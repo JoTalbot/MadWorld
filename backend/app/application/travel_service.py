@@ -29,19 +29,48 @@ def plan_travel(conn, *, player_id: UUID, vehicle_id: UUID, origin_region_id: UU
 
 
 def depart_travel(conn, *, session_id: UUID) -> dict:
+    # Consume the vehicle's fuel in the same transaction as the state transition.
+    # The active-session unique index prevents two planned/travelling sessions from
+    # racing against the same vehicle, while the fuel predicate prevents overspend.
+    fuel_row = conn.execute(text("""
+        UPDATE vehicles v
+        SET fuel = v.fuel - s.fuel_reserved
+        FROM player_travel_sessions s
+        WHERE s.id=:id
+          AND s.state='PLANNED'
+          AND v.id=s.vehicle_id
+          AND v.owner_id=s.player_id
+          AND v.fuel >= s.fuel_reserved
+        RETURNING v.id, v.fuel AS fuel_remaining
+    """), {"id": session_id}).mappings().first()
+    if not fuel_row:
+        existing = conn.execute(text("""
+            SELECT s.id,s.state,s.departure_at,s.arrival_at,s.route_risk_bps,s.version,
+                   s.fuel_reserved,v.fuel AS fuel_remaining
+            FROM player_travel_sessions s
+            JOIN vehicles v ON v.id=s.vehicle_id
+            WHERE s.id=:id
+        """), {"id": session_id}).mappings().first()
+        if not existing:
+            raise ValueError("travel session not found")
+        if existing["state"] != "PLANNED":
+            return dict(existing)
+        raise ValueError("insufficient vehicle fuel")
+
     row = conn.execute(text("""
         UPDATE player_travel_sessions
         SET state='TRAVELLING', departure_at=COALESCE(departure_at,now()),
-            arrival_at=COALESCE(arrival_at,now()+make_interval(secs => planned_duration_seconds)), version=version+1
+            arrival_at=COALESCE(arrival_at,now()+make_interval(secs => planned_duration_seconds)),
+            version=version+1
         WHERE id=:id AND state='PLANNED'
-        RETURNING id,state,departure_at,arrival_at,route_risk_bps,version
+        RETURNING id,state,departure_at,arrival_at,route_risk_bps,version,fuel_reserved
     """), {"id": session_id}).mappings().first()
     if not row:
-        existing = conn.execute(text("SELECT id,state,departure_at,arrival_at,route_risk_bps,version FROM player_travel_sessions WHERE id=:id"), {"id": session_id}).mappings().first()
-        if not existing:
-            raise ValueError("travel session not found")
-        return dict(existing)
-    return dict(row)
+        # Defensive rollback is handled by the caller's transaction boundary.
+        raise ValueError("travel session is no longer planned")
+    result = dict(row)
+    result["fuel_remaining"] = fuel_row["fuel_remaining"]
+    return result
 
 
 def resolve_travel(conn, *, session_id: UUID, outcome: str) -> dict:
