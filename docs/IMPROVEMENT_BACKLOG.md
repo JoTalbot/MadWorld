@@ -39,7 +39,8 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implemented slice: PostgreSQL market orders, sell-item escrow, deterministic price/time/id tie-breaking, transactional matching, buy-side currency reservation, reserve refund after filled limit orders, regional order-book read API, trade history and request-level idempotency by player/key.
 - API: `GET /api/v1/market/{region_id}/{item_definition_id}`, `POST /api/v1/market/buy`, `POST /api/v1/market/sell`.
 - Deferred: cancellation/release flow, market fees/taxes, NPC liquidity, advanced price simulation, richer order types and production market UI.
-- Verification still required in CI/integration tests before marking the selected slice COMPLETE.
+- Verification: CI runs #173 and #174 passed after idempotency hardening and conflict regression coverage.
+- Status after implementation: COMPLETE for the selected slice.
 
 ## IMP-061 — Inventory authority
 - Status: ACCEPTED
@@ -64,6 +65,9 @@ This file is the persistent source of truth for improvement proposals and implem
 ## IMP-066 — API idempotency
 - Status: ACCEPTED
 - Selected: request-hash checked idempotency records with exact replay.
+- Implementation: market order replay now validates that a reused player-scoped idempotency key represents the same request payload; mismatches return `IDEMPOTENCY_CONFLICT` without mutation.
+- Verification: CI #174 passed with explicit conflicting-payload regression coverage.
+- Status after implementation: COMPLETE for the selected slice.
 
 ## IMP-067 — In-memory transactional semantics
 - Status: ACCEPTED — Hybrid
@@ -123,3 +127,9 @@ This file is the persistent source of truth for improvement proposals and implem
 - Selected: Hybrid.
 - Implementation: bearer authentication and ownership checks now cover wallet entries, inventory mutations, job creation/transitions, character creation/reads, vehicle creation/reads, plus bootstrap/state. Negative regression tests cover missing authentication and cross-player access.
 - Remaining production auth work: refresh/revocation, device binding and scoped credentials remain intentionally deferred.
+
+## IMP-073 — Regional market matching concurrency hardening
+- Status: COMPLETE — Technical hardening
+- Finding: cross-side concurrent buy/sell matching could acquire the new order row before the opposite side and form a lock cycle under PostgreSQL row locking.
+- Implementation: `_match` now takes a PostgreSQL transaction-scoped advisory lock derived from `(region_id, item_definition_id)` before locking/matching the order book, serializing matching per regional item without changing market behavior.
+- Verification: implementation committed as `6bddb0fee2998e75c15c249c6640c8d670030cd5`; CI verification pending.
