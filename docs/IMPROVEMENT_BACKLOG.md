@@ -164,3 +164,13 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred by design: NPC supply/demand simulation, advanced skills/specialization progression, full logistics/cargo contracts and route simulation, insurance/recovery economy, live economy-driven procedural contract generation and advanced financial systems.
 - Follow-up note: migration SQL containing `%(`-like text now has regression protection through the raw-driver migration execution path; this is a technical reliability hardening, not a product change.
 - Scope record: `docs/IMP-081-ECONOMY-HYBRID.md`.
+
+## IMP-082 — Economy-to-Gameplay Integration
+- Status: COMPLETE — Hybrid
+- Selected by user: proceed with the full next implementation section.
+- Variants considered: Minimal, Systemic, Advanced and Hybrid.
+- Selected scope: authoritative economy overview read model combining settlement, warehouse capacity/usage, facilities, active refining/production jobs, contracts, vehicle readiness and recent market activity; deterministic next-action prioritization; typed Android model/API/repository integration; mobile Economy Loop panel.
+- Implementation: `GET /api/v1/economy/overview`, authenticated server-side aggregation, Android `EconomyOverviewState`, ViewModel refresh path and Compose economy panel.
+- Verification: focused backend tests cover deterministic action prioritization; backend and Android CI must verify the final `main` head.
+- Deferred by design: direct Android job mutation controls, full cargo/logistics execution, skills/specialization modifiers, NPC supply/demand simulation, insurance/recovery economy and procedural economy-driven contracts.
+- Scope record: `docs/IMP-082-ECONOMY-GAMEPLAY-INTEGRATION.md`.
