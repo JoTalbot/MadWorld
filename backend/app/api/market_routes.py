@@ -9,8 +9,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from app.api.dependencies import get_authenticated_player, get_engine
-from app.api.idempotency import replay_or_none, require_key, store_response
-from app.api.schemas import ErrorResponse
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
@@ -77,7 +75,7 @@ def _ledger(conn, wallet_id: UUID, amount: int, reason: str, actor_id: UUID, key
     conn.execute(text("INSERT INTO ledger_entries (wallet_id, amount, reason, actor_id, idempotency_key) VALUES (:wallet_id, :amount, :reason, :actor_id, :key)"), {"wallet_id": wallet_id, "amount": amount, "reason": reason, "actor_id": actor_id, "key": key})
 
 
-def _match(conn, order_id: UUID, actor_id: UUID) -> None:
+def _match(conn, order_id: UUID) -> None:
     order = conn.execute(text("SELECT * FROM market_orders WHERE id = :id FOR UPDATE"), {"id": order_id}).mappings().one()
     opposite = "sell" if order["side"] == "buy" else "buy"
     if order["side"] == "buy":
@@ -91,14 +89,9 @@ def _match(conn, order_id: UUID, actor_id: UUID) -> None:
         trade_price = int(other["unit_price"])
         buy = order if order["side"] == "buy" else other
         sell = other if order["side"] == "buy" else order
-        buyer_wallet = _wallet(conn, UUID(str(buy["owner_id"])))
         seller_wallet = _wallet(conn, UUID(str(sell["owner_id"])))
         amount = qty * trade_price
-        _ledger(conn, UUID(str(seller_wallet["id"])), amount, "market_sale", UUID(str(sell["owner_id"])), f"market-trade:{order_id}:{other['id']}:seller")
-        if buy["id"] == order["id"]:
-            _ledger(conn, UUID(str(buyer_wallet["id"])), amount, "market_purchase", UUID(str(buy["owner_id"])), f"market-trade:{order_id}:{other['id']}:buyer")
-        else:
-            _ledger(conn, UUID(str(buyer_wallet["id"])), -amount, "market_purchase", UUID(str(buy["owner_id"])), f"market-trade:{order_id}:{other['id']}:buyer")
+        _ledger(conn, UUID(str(seller_wallet["id"])), amount, "market_sale", UUID(str(sell["owner_id"])), f"market-trade:{buy['id']}:{sell['id']}:seller:{qty}:{trade_price}")
         sell_escrow = conn.execute(text("SELECT quantity, condition FROM market_sell_escrow WHERE order_id=:id FOR UPDATE"), {"id": sell["id"]}).mappings().first()
         if sell_escrow is None or int(sell_escrow["quantity"]) < qty:
             raise ValueError("sell order escrow is insufficient")
@@ -110,7 +103,14 @@ def _match(conn, order_id: UUID, actor_id: UUID) -> None:
             status = "filled" if new_remaining == 0 else "open"
             conn.execute(text("UPDATE market_orders SET remaining_quantity=:remaining,status=:status,updated_at=now(),version=version+1 WHERE id=:id"), {"id": current["id"], "remaining": new_remaining, "status": status})
         conn.execute(text("INSERT INTO market_trade_history (buy_order_id,sell_order_id,region_id,item_definition_id,buyer_id,seller_id,quantity,unit_price,total_amount) VALUES (:buy,:sell,:region,:item,:buyer,:seller,:qty,:price,:amount)"), {"buy": buy["id"], "sell": sell["id"], "region": order["region_id"], "item": order["item_definition_id"], "buyer": buy["owner_id"], "seller": sell["owner_id"], "qty": qty, "price": trade_price, "amount": amount})
-        order = conn.execute(text("SELECT * FROM market_orders WHERE id=:id"), {"id": order_id}).mappings().one()
+        order = conn.execute(text("SELECT * FROM market_orders WHERE id=:id FOR UPDATE"), {"id": order_id}).mappings().one()
+    if order["side"] == "buy" and order["status"] == "filled":
+        reserved = int(order["quantity"]) * int(order["unit_price"])
+        spent = conn.execute(text("SELECT COALESCE(SUM(total_amount),0) AS total FROM market_trade_history WHERE buy_order_id=:id"), {"id": order_id}).scalar_one()
+        refund = reserved - int(spent)
+        if refund > 0:
+            wallet = _wallet(conn, UUID(str(order["owner_id"])))
+            _ledger(conn, UUID(str(wallet["id"])), refund, "market_buy_reserve_refund", UUID(str(order["owner_id"])), f"market-refund:{order_id}")
 
 
 @router.get("/{region_id}/{item_definition_id}", response_model=BookResponse)
@@ -121,35 +121,43 @@ def book(region_id: UUID, item_definition_id: UUID, authenticated_player: UUID =
     return BookResponse(region_id=region_id, item_definition_id=item_definition_id, bids=[BookOrder(**{**dict(r), "created_at": r["created_at"].isoformat()}) for r in bids], asks=[BookOrder(**{**dict(r), "created_at": r["created_at"].isoformat()}) for r in asks])
 
 
-@router.post("/buy", response_model=OrderResponse, responses={400: {"model": ErrorResponse}})
+def _existing(conn, owner_id: UUID, key: str):
+    return conn.execute(text("SELECT * FROM market_orders WHERE owner_id=:owner AND idempotency_key=:key"), {"owner": owner_id, "key": key}).mappings().first()
+
+
+@router.post("/buy", response_model=OrderResponse)
 def buy(payload: OrderRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), authenticated_player: UUID = Depends(get_authenticated_player)) -> OrderResponse:
-    key = require_key(idempotency_key)
+    if not idempotency_key:
+        raise ValueError("Idempotency-Key header is required")
     with get_engine().begin() as conn:
-        request_data = payload.model_dump(mode="json")
-        replay = replay_or_none(type("Uow", (), {"idempotency": None})(), "market.buy", key, request_data) if False else None
+        existing = _existing(conn, authenticated_player, idempotency_key)
+        if existing is not None:
+            return _order_response(existing)
         wallet = _wallet(conn, authenticated_player)
         reserve = payload.quantity * payload.unit_price
         if _balance(conn, UUID(str(wallet["id"]))) < reserve:
             raise ValueError("insufficient funds for market order")
-        _ledger(conn, UUID(str(wallet["id"])), -reserve, "market_buy_reserve", authenticated_player, f"market-reserve:{key}")
-        row = conn.execute(text("INSERT INTO market_orders (region_id,owner_id,item_definition_id,side,quantity,remaining_quantity,unit_price,idempotency_key) VALUES (:region,:owner,:item,'buy',:qty,:qty,:price,:key) RETURNING *"), {"region": payload.region_id, "owner": authenticated_player, "item": payload.item_definition_id, "qty": payload.quantity, "price": payload.unit_price, "key": key}).mappings().one()
-        _match(conn, UUID(str(row["id"])), authenticated_player)
-        row = conn.execute(text("SELECT * FROM market_orders WHERE id=:id"), {"id": row["id"]}).mappings().one()
-        return _order_response(row)
+        _ledger(conn, UUID(str(wallet["id"])), -reserve, "market_buy_reserve", authenticated_player, f"market-reserve:{idempotency_key}")
+        row = conn.execute(text("INSERT INTO market_orders (region_id,owner_id,item_definition_id,side,quantity,remaining_quantity,unit_price,idempotency_key) VALUES (:region,:owner,:item,'buy',:qty,:qty,:price,:key) RETURNING *"), {"region": payload.region_id, "owner": authenticated_player, "item": payload.item_definition_id, "qty": payload.quantity, "price": payload.unit_price, "key": idempotency_key}).mappings().one()
+        _match(conn, UUID(str(row["id"])))
+        return _order_response(conn.execute(text("SELECT * FROM market_orders WHERE id=:id"), {"id": row["id"]}).mappings().one())
 
 
 @router.post("/sell", response_model=OrderResponse)
 def sell(payload: OrderRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), authenticated_player: UUID = Depends(get_authenticated_player)) -> OrderResponse:
-    key = require_key(idempotency_key)
+    if not idempotency_key:
+        raise ValueError("Idempotency-Key header is required")
     with get_engine().begin() as conn:
+        existing = _existing(conn, authenticated_player, idempotency_key)
+        if existing is not None:
+            return _order_response(existing)
         inv = _inventory(conn, authenticated_player)
         item = conn.execute(text("SELECT quantity,condition FROM inventory_items WHERE inventory_id=:inv AND item_definition_id=:item FOR UPDATE"), {"inv": inv["id"], "item": payload.item_definition_id}).mappings().first()
         if item is None or int(item["quantity"]) < payload.quantity:
             raise ValueError("insufficient inventory for market order")
         conn.execute(text("UPDATE inventory_items SET quantity=quantity-:qty WHERE inventory_id=:inv AND item_definition_id=:item"), {"inv": inv["id"], "item": payload.item_definition_id, "qty": payload.quantity})
         conn.execute(text("DELETE FROM inventory_items WHERE inventory_id=:inv AND item_definition_id=:item AND quantity=0"), {"inv": inv["id"], "item": payload.item_definition_id})
-        row = conn.execute(text("INSERT INTO market_orders (region_id,owner_id,item_definition_id,side,quantity,remaining_quantity,unit_price,idempotency_key) VALUES (:region,:owner,:item,'sell',:qty,:qty,:price,:key) RETURNING *"), {"region": payload.region_id, "owner": authenticated_player, "item": payload.item_definition_id, "qty": payload.quantity, "price": payload.unit_price, "key": key}).mappings().one()
+        row = conn.execute(text("INSERT INTO market_orders (region_id,owner_id,item_definition_id,side,quantity,remaining_quantity,unit_price,idempotency_key) VALUES (:region,:owner,:item,'sell',:qty,:qty,:price,:key) RETURNING *"), {"region": payload.region_id, "owner": authenticated_player, "item": payload.item_definition_id, "qty": payload.quantity, "price": payload.unit_price, "key": idempotency_key}).mappings().one()
         conn.execute(text("INSERT INTO market_sell_escrow(order_id,quantity,condition) VALUES (:id,:qty,:condition)"), {"id": row["id"], "qty": payload.quantity, "condition": item["condition"]})
-        _match(conn, UUID(str(row["id"])), authenticated_player)
-        row = conn.execute(text("SELECT * FROM market_orders WHERE id=:id"), {"id": row["id"]}).mappings().one()
-        return _order_response(row)
+        _match(conn, UUID(str(row["id"])))
+        return _order_response(conn.execute(text("SELECT * FROM market_orders WHERE id=:id"), {"id": row["id"]}).mappings().one())
