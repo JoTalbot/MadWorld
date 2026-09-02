@@ -11,6 +11,7 @@ from fastapi import Header, HTTPException
 from app.application.ports import UnitOfWork
 from app.infrastructure.db import create_engine_from_env
 from app.infrastructure.postgres import PostgresUnitOfWork
+from app.infrastructure.vehicle_components import ComponentVehicleRepository
 from app.api.session_routes import resolve_session
 
 
@@ -23,6 +24,7 @@ def get_engine():
 def get_uow() -> Generator[UnitOfWork, None, None]:
     """Open one authoritative UoW for an HTTP command."""
     with PostgresUnitOfWork(get_engine()) as uow:
+        uow.vehicles = ComponentVehicleRepository(uow.vehicles)
         yield uow
 
 

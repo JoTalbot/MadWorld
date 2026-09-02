@@ -9,7 +9,6 @@ from uuid import UUID, uuid4
 
 from app.domain.primitives import utc_now
 
-
 @dataclass(frozen=True, slots=True)
 class EventEnvelope:
     event_id: UUID
@@ -22,15 +21,12 @@ class EventEnvelope:
     def to_dict(self) -> dict:
         value = asdict(self); value["event_id"] = str(value["event_id"]); value["aggregate_id"] = str(value["aggregate_id"]); value["occurred_at"] = value["occurred_at"].isoformat(); return value
 
-
 EventValidator = Callable[[dict], None]
-
 def _require_keys(*keys: str) -> EventValidator:
     def validate(payload: dict) -> None:
         missing = [key for key in keys if key not in payload]
         if missing: raise ValueError(f"event payload missing required fields: {', '.join(missing)}")
     return validate
-
 
 class EventSchemaRegistry:
     def __init__(self) -> None: self._validators: dict[tuple[str, int], EventValidator] = {}
@@ -47,7 +43,6 @@ class EventSchemaRegistry:
         self.validate(event_type, schema_version, payload)
         return EventEnvelope(event_id or uuid4(), event_type, schema_version, aggregate_type, aggregate_id, occurred_at or utc_now(), dict(payload))
 
-
 def build_default_registry() -> EventSchemaRegistry:
     registry = EventSchemaRegistry()
     registry.register("wallet.entry_posted", 1, _require_keys("entry_id", "amount", "reason", "actor_id"))
@@ -58,8 +53,9 @@ def build_default_registry() -> EventSchemaRegistry:
     registry.register("vehicle.created", 1, _require_keys("owner_id", "code", "chassis_code", "starter"))
     registry.register("vehicle.repair_started", 1, _require_keys("job_id", "amount", "kits"))
     registry.register("vehicle.repaired", 1, _require_keys("job_id", "amount", "durability"))
+    registry.register("vehicle.component_damaged", 1, _require_keys("component", "raw_amount", "applied_amount", "damage_type", "durability", "state"))
+    registry.register("vehicle.component_repaired", 1, _require_keys("component", "amount", "durability"))
     registry.register("resource.gathered", 1, _require_keys("player_id", "inventory_id", "item_definition_id", "quantity"))
     return registry
-
 
 DEFAULT_EVENT_REGISTRY = build_default_registry()

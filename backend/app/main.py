@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.damage_routes import router as damage_router
 from app.api.gathering_routes import router as gathering_router
 from app.api.market_routes import router as market_router
 from app.api.crafting_routes import router as crafting_router
@@ -24,6 +25,7 @@ app.include_router(market_router)
 app.include_router(gathering_router)
 app.include_router(crafting_router)
 app.include_router(repair_router)
+app.include_router(damage_router)
 
 
 @app.middleware("http")
