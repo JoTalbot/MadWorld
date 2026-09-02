@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
-from app.api.dependencies import get_uow
+from app.api.dependencies import get_authenticated_player, get_uow
 from app.api.idempotency import replay_or_none, require_key, store_response
 from app.api.schemas import (
     CharacterCreateRequest, CharacterResponse, InventoryAddRequest, InventoryRemoveRequest, InventoryResponse,
@@ -110,7 +110,9 @@ def repair_vehicle(vehicle_id: UUID, payload: VehicleMutationRequest, idempotenc
 def refuel_vehicle(vehicle_id: UUID, payload: VehicleMutationRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> VehicleResponse: return _vehicle_mutation(vehicle_id, payload, "vehicle.refuel", idempotency_key, uow, lambda amount: VehicleService(uow).refuel(vehicle_id, amount))
 
 @router.post("/players/bootstrap", response_model=PlayerBootstrapResponse, status_code=status.HTTP_201_CREATED)
-def bootstrap_player(payload: PlayerBootstrapRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> PlayerBootstrapResponse:
+def bootstrap_player(payload: PlayerBootstrapRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> PlayerBootstrapResponse:
+    if authenticated_player != payload.player_id:
+        raise HTTPException(status_code=403, detail="session does not own player")
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "player.bootstrap", key, request_data)
     if replay is not None: return PlayerBootstrapResponse.model_validate(replay)
     character, vehicle = PlayerBootstrapService(uow).bootstrap(payload.player_id, payload.character_name)
@@ -118,7 +120,9 @@ def bootstrap_player(payload: PlayerBootstrapRequest, idempotency_key: str | Non
     store_response(uow, "player.bootstrap", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.player_id); return response
 
 @router.get("/players/{player_id}/state", response_model=PlayerStateResponse)
-def player_state(player_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> PlayerStateResponse:
+def player_state(player_id: UUID, uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> PlayerStateResponse:
+    if authenticated_player != player_id:
+        raise HTTPException(status_code=403, detail="session does not own player")
     character = uow.characters.get_by_player_id(player_id)
     vehicles = VehicleService(uow).list_for_owner(player_id)
     return PlayerStateResponse(character=_character_response(character) if character else None, vehicles=[_vehicle_response(v) for v in vehicles])
