@@ -9,39 +9,25 @@ class MadWorldApi(private val baseUrl: String) {
     fun createSession(handle: String): SessionState {
         val url = URI.create("${baseUrl.trimEnd('/')}/api/v1/sessions").toURL()
         val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            doOutput = true
-            connectTimeout = 10_000
-            readTimeout = 10_000
-            setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("Accept", "application/json")
+            requestMethod = "POST"; doOutput = true; connectTimeout = 10_000; readTimeout = 10_000
+            setRequestProperty("Content-Type", "application/json"); setRequestProperty("Accept", "application/json")
         }
         try {
             connection.outputStream.use { it.write(JSONObject().put("handle", handle).toString().toByteArray()) }
-            val code = connection.responseCode
-            if (code !in 200..299) throw ApiException("session request failed: HTTP $code")
+            if (connection.responseCode !in 200..299) throw ApiException("session request failed: HTTP ${connection.responseCode}")
             val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-            return SessionState(
-                playerId = UUID.fromString(root.getString("player_id")),
-                handle = root.getString("handle"),
-                token = root.getString("token"),
-                expiresAt = root.getString("expires_at"),
-            )
+            return SessionState(UUID.fromString(root.getString("player_id")), root.getString("handle"), root.getString("token"), root.getString("expires_at"))
         } finally { connection.disconnect() }
     }
 
     fun fetchPlayerState(playerId: UUID, token: String? = null): PlayerState {
         val url = URI.create("${baseUrl.trimEnd('/')}/api/v1/players/$playerId/state").toURL()
         val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 10_000
-            readTimeout = 10_000
-            setRequestProperty("Accept", "application/json")
+            requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 10_000; setRequestProperty("Accept", "application/json")
             token?.let { setRequestProperty("Authorization", "Bearer $it") }
         }
         try {
-            val code = connection.responseCode
-            if (code !in 200..299) throw ApiException("state request failed: HTTP $code")
+            if (connection.responseCode !in 200..299) throw ApiException("state request failed: HTTP ${connection.responseCode}")
             return parseState(connection.inputStream.bufferedReader().use { it.readText() })
         } finally { connection.disconnect() }
     }
@@ -49,32 +35,25 @@ class MadWorldApi(private val baseUrl: String) {
     fun bootstrap(playerId: UUID, characterName: String, token: String? = null, idempotencyKey: UUID = UUID.randomUUID()): PlayerState {
         val url = URI.create("${baseUrl.trimEnd('/')}/api/v1/players/bootstrap").toURL()
         val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            doOutput = true
-            connectTimeout = 10_000
-            readTimeout = 10_000
-            setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("Accept", "application/json")
-            setRequestProperty("Idempotency-Key", idempotencyKey.toString())
-            token?.let { setRequestProperty("Authorization", "Bearer $it") }
+            requestMethod = "POST"; doOutput = true; connectTimeout = 10_000; readTimeout = 10_000
+            setRequestProperty("Content-Type", "application/json"); setRequestProperty("Accept", "application/json")
+            setRequestProperty("Idempotency-Key", idempotencyKey.toString()); token?.let { setRequestProperty("Authorization", "Bearer $it") }
         }
         try {
             connection.outputStream.use { it.write(JSONObject().put("player_id", playerId.toString()).put("character_name", characterName).toString().toByteArray()) }
-            val code = connection.responseCode
-            if (code !in 200..299) throw ApiException("bootstrap request failed: HTTP $code")
-            val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-            return PlayerState(parseCharacter(root.getJSONObject("character")), listOf(parseVehicle(root.getJSONObject("vehicle"))))
+            if (connection.responseCode !in 200..299) throw ApiException("bootstrap request failed: HTTP ${connection.responseCode}")
+            return fetchPlayerState(playerId, token)
         } finally { connection.disconnect() }
     }
 
     private fun parseState(json: String): PlayerState {
         val root = JSONObject(json)
         val character = if (root.isNull("character")) null else parseCharacter(root.getJSONObject("character"))
-        val vehicles = buildList {
-            val array = root.getJSONArray("vehicles")
-            for (index in 0 until array.length()) add(parseVehicle(array.getJSONObject(index)))
-        }
-        return PlayerState(character, vehicles)
+        val vehicles = buildList { val array = root.getJSONArray("vehicles"); for (index in 0 until array.length()) add(parseVehicle(array.getJSONObject(index))) }
+        val wallet = if (root.isNull("wallet")) null else root.getJSONObject("wallet").let { WalletState(UUID.fromString(it.getString("id")), it.getLong("balance"), it.getInt("version")) }
+        val inventory = buildList { val array = root.getJSONArray("inventory"); for (index in 0 until array.length()) { val it = array.getJSONObject(index); add(InventoryState(UUID.fromString(it.getString("inventory_id")), UUID.fromString(it.getString("item_definition_id")), it.getLong("quantity"), it.getInt("condition"), it.getInt("version"))) } }
+        val jobs = buildList { val array = root.getJSONArray("active_jobs"); for (index in 0 until array.length()) { val it = array.getJSONObject(index); add(JobState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("owner_id")), it.getString("job_type"), it.getString("started_at"), it.getString("completes_at"), it.getString("state"), it.getInt("version"))) } }
+        return PlayerState(character, vehicles, wallet, inventory, jobs)
     }
 
     private fun parseCharacter(json: JSONObject) = CharacterState(UUID.fromString(json.getString("id")), UUID.fromString(json.getString("player_id")), json.getString("name"), json.getInt("level"), json.getInt("version"))
