@@ -130,6 +130,6 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ## IMP-073 — Regional market matching concurrency hardening
 - Status: COMPLETE — Technical hardening
-- Finding: cross-side concurrent buy/sell matching could acquire the new order row before the opposite side and form a lock cycle under PostgreSQL row locking.
-- Implementation: `_match` now takes a PostgreSQL transaction-scoped advisory lock derived from `(region_id, item_definition_id)` before locking/matching the order book, serializing matching per regional item without changing market behavior.
-- Verification: implementation committed as `6bddb0fee2998e75c15c249c6640c8d670030cd5`; CI verification pending.
+- Finding: cross-side concurrent buy/sell matching could deadlock if each transaction locked its own order row before attempting to synchronize the shared regional/item order book.
+- Implementation: `_match` now resolves the order's `(region_id, item_definition_id)` first, acquires a PostgreSQL transaction-scoped advisory lock for that regional/item book, and only then acquires the order row lock and performs matching. This serializes matching per regional item without changing market behavior.
+- Verification: corrected implementation committed as `367b950d6ab0b0c7d24c450a2f965dd257df7d4c`; CI run #177 passed migrations and the complete test suite.
