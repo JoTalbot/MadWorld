@@ -120,5 +120,18 @@ This file is the persistent source of truth for improvement proposals and implem
   4. Hybrid: systemic persistence plus advanced combat model incrementally.
 - Selected by user: `3 + 2`, interpreted as Advanced + Systemic, with maximum available options included in the implementation scope.
 - Implementation: engine, hull, wheels and fuel-system components; kinetic/explosive/fire/impact damage types; per-component armor; destruction state; component-derived aggregate durability; engine/mobility/fuel-efficiency effects; component repair; authoritative API and transactional persistence adapter.
-- Verification: PR #3 merged to `main` as merge commit `61ae299ea6380f0b945a8c6a860190bf4f982da4`.
+- Verification: PR #3 merged to `main` as merge commit `61ae299ea6380b0f945a8c6a860190bf4f982da4`.
 - Deferred after this slice: richer hit-location simulation, weapon-specific penetration tables, repair quality progression, mechanic skills, facility modifiers and advanced combat telemetry.
+
+## IMP-077 — Authoritative Contract System
+- Status: ACCEPTED — Hybrid
+- Selected by user: Hybrid, with systemic architecture and maximum useful Phase 1 vertical-slice scope.
+- Goal: establish server-authoritative contracts as a persistent gameplay/economic boundary that can later support logistics, factions, corporations and dynamic-world systems.
+- Variants considered:
+  1. Minimal: contract templates, lifecycle, reward and five starter contracts.
+  2. Systemic: immutable terms, escrow/reservation, cancellation/expiration, partial execution, penalties, concurrency and economic events.
+  3. Advanced: dynamic generation, NPC/faction/player/corporate issuers, reputation, collateral, multi-objective and multi-stage contracts, route constraints and analytics.
+  4. Hybrid: systemic contract boundary now, with Phase 1 delivery validation and five deterministic templates; richer issuers, escrow, partial execution and dynamic generation added as later slices.
+- Implementation status: Phase 1 vertical slice implemented using the existing authoritative transactional job boundary, inventory authority and wallet ledger. Five deterministic templates, acceptance, ownership checks, immutable terms in job metadata, deadline, cancellation, delivery validation, cargo consumption, reward payment, idempotency and contract events are included.
+- Verification pending: CI.
+- Deferred: dedicated contract persistence/repository, escrow and collateral, partial execution, penalties, player/NPC/corporate issuers, reputation, multi-objective contracts, dynamic generation, route constraints and advanced contract telemetry.
