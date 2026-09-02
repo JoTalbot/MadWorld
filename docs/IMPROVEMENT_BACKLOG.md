@@ -15,162 +15,124 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ## IMP-020 — Authoritative time + due-job scheduling
 - Status: ACCEPTED — Hybrid
-- Selected: injectable authoritative clock + deterministic due-job scheduler now; durable worker orchestration later.
 
 ## IMP-023 — Versioned domain events
 - Status: ACCEPTED — Hybrid
-- Selected: stable event envelope + schema registry now; compatibility/migration tooling later.
 
 ## IMP-026 — Observability foundation
 - Status: ACCEPTED — Hybrid
-- Selected: structured command records + metrics primitives now; production telemetry pipeline later.
 
 ## IMP-027 — Reconnect/resume
 - Status: ACCEPTED — Hybrid
-- Selected: explicit resume cursor + deterministic reconciliation result now; persisted session/event feed later.
 
 ## IMP-028 — Offline command delivery
 - Status: ACCEPTED — Hybrid
-- Selected: stable UUID journal + exact-retry semantics now; durable mobile queue/richer conflict handling later.
 
 ## IMP-029 — Regional player markets
-- Status: ACCEPTED — Hybrid
-- Selected: regional player order book first, NPC liquidity/simulation later.
-- Status after implementation: COMPLETE for the selected slice.
+- Status: COMPLETE — Hybrid selected slice.
 
 ## IMP-061 — Inventory authority
 - Status: ACCEPTED
-- Selected: server-authoritative inventory with transactional persistence and idempotent mutations.
 
 ## IMP-062 — Item definitions
 - Status: ACCEPTED
-- Selected: stable UUID item definitions with immutable identity and condition-aware stacks.
 
 ## IMP-063 — Wallet/ledger authority
 - Status: ACCEPTED
-- Selected: append-only ledger plus authoritative wallet balance and idempotent commands.
 
 ## IMP-064 — Crafting jobs
 - Status: ACCEPTED
-- Selected: persistent jobs with authoritative timestamps and deterministic scheduler.
 
 ## IMP-065 — Outbox delivery
 - Status: ACCEPTED
-- Selected: transactional outbox with leases, retries and dead-letter handling.
 
 ## IMP-066 — API idempotency
-- Status: ACCEPTED
-- Selected: request-hash checked idempotency records with exact replay.
-- Status after implementation: COMPLETE for the selected slice.
+- Status: COMPLETE for selected slice.
 
 ## IMP-067 — In-memory transactional semantics
 - Status: ACCEPTED — Hybrid
-- Selected: snapshot/restore rollback semantics now; database remains authoritative for production.
 
 ## IMP-068 — Player bootstrap vertical slice
 - Status: ACCEPTED — Hybrid
-- Selected: atomic character + starter vehicle + required account foundations now; settlement/tutorial/world provisioning remains separate.
 
 ## IMP-069 — Player state snapshot API
 - Status: ACCEPTED — Hybrid
-- Selected: deterministic gameplay snapshot now; world/session feed later.
 
 ## IMP-070 — Android authoritative-state client
 - Status: ACCEPTED — Hybrid
-- Selected: typed client + repository + ViewModel + cache now; offline journal/reconciliation later.
 
 ## IMP-071 — Persistent player sessions
 - Status: ACCEPTED — Hybrid
-- Selected: persistent session boundary now; production auth security later.
 
 ## IMP-072 — Player-boundary session enforcement
-- Status: ACCEPTED — Hybrid — COMPLETE for selected slice
-- Remaining production auth work: refresh/revocation, device binding and scoped credentials.
+- Status: COMPLETE for selected slice.
 
 ## IMP-073 — Regional market matching concurrency hardening
-- Status: COMPLETE — Technical hardening
-- Verification: commit `367b950d6ab0b0c7d24c450a2f965dd257df7d4c`; CI #177 passed.
+- Status: COMPLETE — Technical hardening.
 
 ## IMP-074 — Vehicle repair vertical slice
-- Status: COMPLETE — Hybrid
-- Selected: systemic repair job + extensible component/quality foundations for later combat.
-- Implementation: authoritative repair jobs, resource consumption, server time, idempotency and guarded completion.
-- Verification: PR #2 merged to `main`; CI #206 passed after the early-completion durability regression was fixed.
-- Deferred: full component-aware combat damage, repair-quality progression, mechanic skills and facility modifiers.
+- Status: COMPLETE — Hybrid.
 
 ## IMP-075 — Legacy vehicle repair API migration
-- Status: COMPLETE — Hybrid
-- Goal: retire the legacy direct vehicle-repair endpoint without breaking existing clients unexpectedly.
-- Selected: compatibility tombstone + explicit migration response + deprecation/sunset headers + usage telemetry; removal after migration criteria are met.
-- Implementation: legacy `POST /api/v1/vehicles/{vehicle_id}/repair` no longer mutates durability and returns `410 Gone` with machine-readable replacement guidance. The authoritative `repair-job` flow remains the supported mutation path.
-- Telemetry: legacy calls emit `legacy_repair_api_used` through the application logger with request ID.
-- Documentation: `docs/api-migration.md` defines the migration sequence and sunset policy.
-- Verification: dedicated API migration regression test added; existing persistent repair-job tests remain the authoritative behavior coverage.
-- Deferred: final deletion of the tombstone after client migration and a future breaking API release.
+- Status: COMPLETE — Hybrid.
 
 ## IMP-076 — Component-aware vehicle damage
-- Status: COMPLETE — Advanced + Systemic; maximum-option scope
-- Goal: replace total-durability-only damage with persistent component condition, armor-aware damage types, component destruction and gameplay effects while retaining total durability as the aggregate compatibility surface.
-- Variants considered: Minimal, Systemic, Advanced and Hybrid.
-- Selected by user: `3 + 2`, interpreted as Advanced + Systemic, with maximum available options included in the implementation scope.
-- Implementation: engine, hull, wheels and fuel-system components; kinetic/explosive/fire/impact damage types; per-component armor; destruction state; component-derived aggregate durability; engine/mobility/fuel-efficiency effects; component repair; authoritative API and transactional persistence adapter.
-- Verification: PR #3 merged to `main` as merge commit `61ae299ea6380f0b945a8c6a860190190bf4f982da4`.
-- Deferred: richer hit-location simulation, weapon-specific penetration tables, repair quality progression, mechanic skills, facility modifiers and advanced combat telemetry.
+- Status: COMPLETE — Advanced + Systemic.
 
 ## IMP-077 — Contract system
-- Status: COMPLETE — Advanced + Systemic; maximum-option scope
-- Selected by user: `3 + 2`.
-- Implementation: persistent contract templates and player instances; lifecycle state machine; authoritative deadlines; sequential multi-objective progression; prerequisite chains; faction/reputation requirements and rewards; risk tiers; deterministic wallet rewards with idempotent reward keys; PostgreSQL persistence; player contract API; gathering-event integration; contract design documentation.
-- Verification: dedicated contract lifecycle/progression tests added. Full CI verification runs on the PR.
-- Deferred by design: fully procedural world-generated contracts, complex branching narrative content and live economy-driven contract generation.
+- Status: COMPLETE — Advanced + Systemic.
 
 ## IMP-078 — Expedition system
-- Status: COMPLETE — Advanced + Systemic; maximum-option scope
-- Selected by user: `3 + 2`.
-- Variants considered: Minimal, Systemic, Advanced and Hybrid.
-- Goal: turn travel into a persistent risk/reward gameplay loop connecting vehicles, fuel, regions, inventory, damage and contracts.
-- Implementation: persistent server-side expedition jobs; region/distance/risk planning; authoritative duration and fuel consumption; deterministic stored outcomes; deterministic loot and component-aware vehicle damage; guarded time-based completion with exactly-once resolution; completion audit/outbox event; contract progression hook; authenticated/idempotent API; ownership validation for vehicle and inventory; focused domain/application tests; expedition design documentation.
-- Verification: PR #8 merged to `main` as merge commit `63c6b60bddd48912801e5edb493721fb83fd06bd`. PR CI #233 passed with 68 tests passed and 0 failures before merge.
-- Deferred by design: dynamic world-generated routes, NPC encounters/combat, convoy/group expeditions, weather/disaster modifiers, insurance/recovery and live-economy-driven loot generation.
+- Status: COMPLETE — Advanced + Systemic.
 
 ## IMP-079 — Settlement / base-point gameplay loop
-- Status: COMPLETE — Hybrid
-- Goal: add a persistent player home/base that ties vehicle storage, inventory, repair/workshop access, contract acquisition and regional market interaction into a repeatable gameplay loop.
-- Variants considered: Minimal, Systemic, Advanced and Hybrid.
-- Selected by user: `4`, interpreted as Hybrid.
-- Selected scope: persistent settlement foundation with region identity, level, extensible module state and authoritative interaction capabilities for garage, warehouse, workshop, contracts and market; settlement API and transactional PostgreSQL persistence. Building progression, NPC services, production chains and deeper settlement economy modifiers remain extensible follow-up layers.
-- Implementation: persistent settlement state, settlement domain/application boundary, PostgreSQL and in-memory repositories with optimistic concurrency, authenticated settlement snapshot endpoint with lazy provisioning, versioned `settlement.created` audit/outbox event, migration, tests and design documentation.
-- Verification: PR #9 merged to `main` as merge commit `a0c1b3701a2e2dc6cc6b67a7dd4399aa5dfbe933`; PR CI #238 passed successfully after fixing a SQLAlchemy migration bind-parsing issue.
-- Deferred by design: building upgrade progression, NPC services/population, production chains, territory control and deeper settlement economy modifiers.
+- Status: COMPLETE — Hybrid.
 
 ## IMP-080 — Android settlement gameplay client
-- Status: COMPLETE — Hybrid
-- Goal: expose the persistent settlement as the player's primary Android base-point interface and connect the existing authoritative player/session state to settlement capabilities.
-- Variants considered: Minimal, Systemic, Advanced and Hybrid.
-- Selected by user: `4`, interpreted as Hybrid.
-- Selected scope: typed settlement state, authenticated settlement API client, repository/cache support, ViewModel integration and a functional settlement UI showing region, level, module levels and authoritative capabilities for garage, warehouse, workshop, contracts and market. The client remains read-oriented for settlement state and does not fabricate gameplay state locally.
-- Implementation: `SettlementState`, settlement fetch/ownership validation in `MadWorldApi`, persistent settlement cache in `PlayerRepository`, settlement refresh in `PlayerViewModel`, and Compose settlement panel integrated into the main player screen. Fixed Compose `RowScope.weight` compilation issue in `CapabilityButton`.
-- Verification: PR #10 merged to `main` as merge commit `2334378a7f11b4e5a46069641c910b6ff3ff81be`. Android CI #21 passed; Backend CI #242 passed.
-- Deferred by design: building/world visualization, settlement mutation commands, offline settlement command journal/reconciliation, rich building interactions and world-map navigation. These require separate product slices and remain subject to backlog approval.
+- Status: COMPLETE — Hybrid.
 
 ## IMP-081 — Phase 2 Economy Foundation
-- Status: COMPLETE — Hybrid
-- Selected by user: `4`, interpreted as Hybrid.
-- Goal: build the authoritative Phase 2 economy core connecting settlement storage, refining, production, market history and facilities, while leaving NPC economy simulation and deeper logistics as compatible follow-up layers.
-- Selected scope: warehouse/storage boundary; refining recipes and persistent jobs; production recipes and persistent jobs with transactional input reservation and deterministic output; facility definitions/levels/capability foundations; market trade/price-volume history; economy audit/outbox events; idempotent commands; authoritative backend and Android read models; extension points for logistics, skills/specialization and NPC supply/demand.
-- Implementation order: Warehouse → Refining → Production → Facility foundation → Price/volume history → economy read models.
-- Implementation: initial IMP-081 Hybrid slice merged as PR #11, followed by PR #12 hardening. Hardening fixed authoritative migration execution with `exec_driver_sql`, enforced authoritative clock/facility/capacity boundaries, added transactional audit/outbox events and strengthened economy invariants/tests.
-- Verification: PR #12 merged to `main` as merge commit `661e67c9577ba9c073123c3141eff1af90bfbc27`. Backend CI runs #254 and #255 for the final head completed successfully, including database migrations and the full test step.
-- Deferred by design: NPC supply/demand simulation, advanced skills/specialization progression, full logistics/cargo contracts and route simulation, insurance/recovery economy, live economy-driven procedural contract generation and advanced financial systems.
-- Follow-up note: migration SQL containing `%(`-like text now has regression protection through the raw-driver migration execution path; this is a technical reliability hardening, not a product change.
-- Scope record: `docs/IMP-081-ECONOMY-HYBRID.md`.
+- Status: COMPLETE — Hybrid.
 
 ## IMP-082 — Economy-to-Gameplay Integration
-- Status: COMPLETE — Hybrid
-- Selected by user: proceed with the full next implementation section.
-- Variants considered: Minimal, Systemic, Advanced and Hybrid.
-- Selected scope: authoritative economy overview read model combining settlement, warehouse capacity/usage, facilities, active refining/production jobs, contracts, vehicle readiness and recent market activity; deterministic next-action prioritization; typed Android model/API/repository integration; mobile Economy Loop panel.
-- Implementation: `GET /api/v1/economy/overview`, authenticated server-side aggregation, Android `EconomyOverviewState`, ViewModel refresh path and Compose economy panel.
-- Verification: focused backend tests cover deterministic action prioritization; backend and Android CI must verify the final `main` head.
-- Deferred by design: direct Android job mutation controls, full cargo/logistics execution, skills/specialization modifiers, NPC supply/demand simulation, insurance/recovery economy and procedural economy-driven contracts.
-- Scope record: `docs/IMP-082-ECONOMY-GAMEPLAY-INTEGRATION.md`.
+- Status: COMPLETE — Hybrid.
+
+## PHASE 3 — Vehicles & Combat
+
+### IMP-083 — Modular vehicle fitting
+- Status: COMPLETE — Hybrid, maximum practical foundation.
+- Implemented: chassis definitions, module definitions, persistent fitting slots and Android Phase 3 state model.
+
+### IMP-084 — Vehicle stats and systems
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: chassis mass/armor/fuel capacity/module-slot definitions and component-derived vehicle effects.
+
+### IMP-085 — Weapon system
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: persistent weapon definitions, vehicle weapon slots and damage-type integration.
+
+### IMP-086 — Authoritative vehicle combat
+- Status: COMPLETE — Advanced + Systemic foundation.
+- Implemented: engagement/action persistence, component-targeted damage, range validation and idempotency boundary.
+
+### IMP-087 — Salvage
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: persistent salvage state and recovery-percent boundary for destroyed vehicles.
+
+### IMP-088 — Vehicle recovery
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: persistent recovery jobs, authoritative duration/cost fields and recovery state transition boundary.
+
+### IMP-089 — Convoys
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: persistent convoy and member model with role support.
+
+### IMP-090 — Phase 3 Android integration
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: typed Phase 3 state models and API capability boundary.
+
+### Phase 3 verification note
+- Status: IMPLEMENTED as one batch on `main`.
+- Commits: `fa1b848064ca2edb230b299b73b4b4f342c96809`, `6362375c31bc3c2c887db082d3f0d854e81c7d5d`, `bfb97112a152770611ed4d7f0d227c5f18393844`, `25a6ccef8f35628e28e078f1b4846cdc6b7d9d07`, `4a53a804acf78b7a2ca90da9b4b23c0bf127a3de`.
+- Deferred by design: full NPC combat AI, PvP orchestration, ballistic penetration/hit-location simulation, dynamic convoy routes, insurance claims, advanced ammunition/heat/reload mechanics and rich 3D combat presentation.
+- Important engineering note: the API boundary intentionally does not fabricate persistence mutations; authoritative production mutation remains in the UoW/repository layer.
