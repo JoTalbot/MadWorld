@@ -19,111 +19,194 @@ from app.application.services import CharacterService, InventoryService, JobServ
 
 router = APIRouter(prefix="/api/v1", tags=["commands"])
 
+
+def _assert_owner(authenticated_player: UUID, owner_id: UUID) -> None:
+    if authenticated_player != owner_id:
+        raise HTTPException(status_code=403, detail="session does not own player")
+
+
+def _repository_owner(repo: object, resource_id: UUID, table: str) -> UUID | None:
+    """Resolve resource ownership for both PostgreSQL and in-memory API tests."""
+    owners = getattr(repo, "owners", None)
+    if owners is not None:
+        return owners.get(resource_id)
+    conn = getattr(repo, "conn", None)
+    if conn is None:
+        return None
+    row = conn.execute(
+        __import__("sqlalchemy").text(f"SELECT owner_id FROM {table} WHERE id = :id"),
+        {"id": resource_id},
+    ).mappings().first()
+    return UUID(str(row["owner_id"])) if row else None
+
+
+def _wallet_owner(uow: UnitOfWork, wallet_id: UUID) -> UUID | None:
+    return _repository_owner(uow.wallets, wallet_id, "wallets")
+
+
+def _inventory_owner(uow: UnitOfWork, inventory_id: UUID) -> UUID | None:
+    owners = getattr(uow.inventories, "owners", None)
+    if owners is not None:
+        return owners.get(inventory_id)
+    conn = getattr(uow.inventories, "conn", None)
+    if conn is None:
+        return None
+    row = conn.execute(
+        __import__("sqlalchemy").text("SELECT owner_id FROM inventories WHERE id = :id"),
+        {"id": inventory_id},
+    ).mappings().first()
+    return UUID(str(row["owner_id"])) if row else None
+
+
+def _assert_resource_owner(authenticated_player: UUID, owner_id: UUID | None) -> None:
+    if owner_id is not None:
+        _assert_owner(authenticated_player, owner_id)
+
+
 def _wallet_response(entry) -> WalletEntryResponse:
     return WalletEntryResponse.model_validate({"entry_id": entry.id, "wallet_id": entry.wallet_id, "amount": entry.amount, "reason": entry.reason, "idempotency_key": entry.idempotency_key, "created_at": entry.created_at})
+
 
 def _job_response(job: object) -> JobResponse:
     return JobResponse.model_validate({"id": job.id, "owner_id": job.owner_id, "job_type": job.job_type, "started_at": job.started_at, "completes_at": job.completes_at, "state": job.state.value, "version": job.version})
 
+
 def _inventory_response(stack) -> InventoryResponse:
     return InventoryResponse.model_validate({"item_definition_id": stack.item_definition_id, "quantity": stack.quantity, "condition": stack.condition, "version": stack.version})
+
 
 def _character_response(character) -> CharacterResponse:
     return CharacterResponse.model_validate({"id": character.id, "player_id": character.player_id, "name": character.name, "level": character.level, "version": character.version})
 
+
 def _vehicle_response(vehicle) -> VehicleResponse:
     return VehicleResponse.model_validate({"id": vehicle.id, "owner_id": vehicle.owner_id, "code": vehicle.code, "chassis_code": vehicle.chassis_code, "durability": vehicle.durability, "fuel": vehicle.fuel, "state": vehicle.state.value, "version": vehicle.version})
 
+
 @router.post("/wallet/entries", response_model=WalletEntryResponse, status_code=status.HTTP_201_CREATED)
-def post_wallet_entry(payload: WalletEntryRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> WalletEntryResponse:
+def post_wallet_entry(payload: WalletEntryRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> WalletEntryResponse:
+    _assert_resource_owner(authenticated_player, _wallet_owner(uow, payload.wallet_id))
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "wallet.post_entry", key, request_data)
     if replay is not None: return WalletEntryResponse.model_validate(replay)
-    entry = WalletService(uow).post_entry(payload.wallet_id, payload.amount, payload.reason, key, payload.actor_id); response = _wallet_response(entry)
-    store_response(uow, "wallet.post_entry", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.actor_id); return response
+    entry = WalletService(uow).post_entry(payload.wallet_id, payload.amount, payload.reason, key, authenticated_player); response = _wallet_response(entry)
+    store_response(uow, "wallet.post_entry", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, authenticated_player); return response
+
 
 @router.post("/inventory/add", response_model=InventoryResponse, status_code=status.HTTP_200_OK)
-def add_inventory(payload: InventoryAddRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse:
+def add_inventory(payload: InventoryAddRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> InventoryResponse:
+    _assert_resource_owner(authenticated_player, _inventory_owner(uow, payload.inventory_id))
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "inventory.add", key, request_data)
     if replay is not None: return InventoryResponse.model_validate(replay)
     stack = InventoryService(uow).add(payload.inventory_id, payload.item_definition_id, payload.quantity, payload.condition); response = _inventory_response(stack)
-    store_response(uow, "inventory.add", key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK); return response
+    store_response(uow, "inventory.add", key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK, authenticated_player); return response
+
 
 @router.post("/inventory/remove", response_model=InventoryResponse | None)
-def remove_inventory(payload: InventoryRemoveRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse | None:
+def remove_inventory(payload: InventoryRemoveRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> InventoryResponse | None:
+    _assert_resource_owner(authenticated_player, _inventory_owner(uow, payload.inventory_id))
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "inventory.remove", key, request_data)
     if replay is not None: return InventoryResponse.model_validate(replay) if replay else None
     stack = InventoryService(uow).remove(payload.inventory_id, payload.item_definition_id, payload.quantity); response = _inventory_response(stack) if stack is not None else None
-    store_response(uow, "inventory.remove", key, request_data, response.model_dump(mode="json") if response else {}, status.HTTP_200_OK); return response
+    store_response(uow, "inventory.remove", key, request_data, response.model_dump(mode="json") if response else {}, status.HTTP_200_OK, authenticated_player); return response
+
 
 @router.post("/jobs", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
-def create_job(payload: JobCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
+def create_job(payload: JobCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> JobResponse:
+    _assert_owner(authenticated_player, payload.owner_id)
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "job.create", key, request_data)
     if replay is not None: return JobResponse.model_validate(replay)
-    job = JobService(uow).create(payload.owner_id, payload.job_type, payload.started_at, payload.completes_at, key); response = _job_response(job)
-    store_response(uow, "job.create", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.owner_id); return response
+    job = JobService(uow).create(authenticated_player, payload.job_type, payload.started_at, payload.completes_at, key); response = _job_response(job)
+    store_response(uow, "job.create", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, authenticated_player); return response
 
-def _job_transition(job_id: UUID, command_name: str, idempotency_key: str | None, uow: UnitOfWork, transition) -> JobResponse:
+
+def _job_transition(job_id: UUID, command_name: str, idempotency_key: str | None, uow: UnitOfWork, authenticated_player: UUID, transition) -> JobResponse:
+    job = uow.jobs.get(job_id)
+    if job is not None:
+        _assert_owner(authenticated_player, job.owner_id)
     key = require_key(idempotency_key); request_data = {"job_id": str(job_id)}; replay = replay_or_none(uow, command_name, key, request_data)
     if replay is not None: return JobResponse.model_validate(replay)
-    response = _job_response(transition()); store_response(uow, command_name, key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK); return response
+    response = _job_response(transition()); store_response(uow, command_name, key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK, authenticated_player); return response
+
 
 @router.post("/jobs/{job_id}/start", response_model=JobResponse)
-def start_job(job_id: UUID, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> JobResponse: return _job_transition(job_id, "job.start", idempotency_key, uow, lambda: JobService(uow).start(job_id))
+def start_job(job_id: UUID, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> JobResponse:
+    return _job_transition(job_id, "job.start", idempotency_key, uow, authenticated_player, lambda: JobService(uow).start(job_id))
+
 
 @router.post("/jobs/{job_id}/complete", response_model=JobResponse)
-def complete_job(job_id: UUID, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> JobResponse: return _job_transition(job_id, "job.complete", idempotency_key, uow, lambda: JobService(uow).complete(job_id))
+def complete_job(job_id: UUID, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> JobResponse:
+    return _job_transition(job_id, "job.complete", idempotency_key, uow, authenticated_player, lambda: JobService(uow).complete(job_id))
+
 
 @router.post("/jobs/{job_id}/cancel", response_model=JobResponse)
-def cancel_job(job_id: UUID, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> JobResponse: return _job_transition(job_id, "job.cancel", idempotency_key, uow, lambda: JobService(uow).cancel(job_id))
+def cancel_job(job_id: UUID, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> JobResponse:
+    return _job_transition(job_id, "job.cancel", idempotency_key, uow, authenticated_player, lambda: JobService(uow).cancel(job_id))
+
 
 @router.post("/characters", response_model=CharacterResponse, status_code=status.HTTP_201_CREATED)
-def create_character(payload: CharacterCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> CharacterResponse:
+def create_character(payload: CharacterCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> CharacterResponse:
+    _assert_owner(authenticated_player, payload.player_id)
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "character.create", key, request_data)
     if replay is not None: return CharacterResponse.model_validate(replay)
-    character = CharacterService(uow).create(payload.player_id, payload.name); response = _character_response(character)
-    store_response(uow, "character.create", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.player_id); return response
+    character = CharacterService(uow).create(authenticated_player, payload.name); response = _character_response(character)
+    store_response(uow, "character.create", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, authenticated_player); return response
+
 
 @router.get("/characters/by-player/{player_id}", response_model=CharacterResponse)
-def get_character(player_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> CharacterResponse: return _character_response(CharacterService(uow).get_for_player(player_id))
+def get_character(player_id: UUID, uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> CharacterResponse:
+    _assert_owner(authenticated_player, player_id)
+    return _character_response(CharacterService(uow).get_for_player(player_id))
+
 
 @router.post("/vehicles/starter", response_model=VehicleResponse, status_code=status.HTTP_201_CREATED)
-def create_starter_vehicle(payload: VehicleCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> VehicleResponse:
+def create_starter_vehicle(payload: VehicleCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> VehicleResponse:
+    _assert_owner(authenticated_player, payload.owner_id)
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "vehicle.create_starter", key, request_data)
     if replay is not None: return VehicleResponse.model_validate(replay)
-    vehicle = VehicleService(uow).create_starter(payload.owner_id, payload.code, payload.chassis_code); response = _vehicle_response(vehicle)
-    store_response(uow, "vehicle.create_starter", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.owner_id); return response
+    vehicle = VehicleService(uow).create_starter(authenticated_player, payload.code, payload.chassis_code); response = _vehicle_response(vehicle)
+    store_response(uow, "vehicle.create_starter", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, authenticated_player); return response
+
 
 @router.get("/vehicles/{vehicle_id}", response_model=VehicleResponse)
-def get_vehicle(vehicle_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> VehicleResponse: return _vehicle_response(VehicleService(uow).get(vehicle_id))
+def get_vehicle(vehicle_id: UUID, uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> VehicleResponse:
+    vehicle = VehicleService(uow).get(vehicle_id); _assert_owner(authenticated_player, vehicle.owner_id); return _vehicle_response(vehicle)
+
 
 @router.get("/vehicles/by-owner/{owner_id}", response_model=list[VehicleResponse])
-def list_vehicles(owner_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> list[VehicleResponse]: return [_vehicle_response(v) for v in VehicleService(uow).list_for_owner(owner_id)]
+def list_vehicles(owner_id: UUID, uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> list[VehicleResponse]:
+    _assert_owner(authenticated_player, owner_id); return [_vehicle_response(v) for v in VehicleService(uow).list_for_owner(owner_id)]
 
-def _vehicle_mutation(vehicle_id: UUID, payload: VehicleMutationRequest, command_name: str, idempotency_key: str | None, uow: UnitOfWork, mutate) -> VehicleResponse:
+
+def _vehicle_mutation(vehicle_id: UUID, payload: VehicleMutationRequest, command_name: str, idempotency_key: str | None, uow: UnitOfWork, authenticated_player: UUID, mutate) -> VehicleResponse:
+    vehicle = VehicleService(uow).get(vehicle_id); _assert_owner(authenticated_player, vehicle.owner_id)
     key = require_key(idempotency_key); request_data = {"vehicle_id": str(vehicle_id), **payload.model_dump(mode="json")}; replay = replay_or_none(uow, command_name, key, request_data)
     if replay is not None: return VehicleResponse.model_validate(replay)
-    response = _vehicle_response(mutate(payload.amount)); store_response(uow, command_name, key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK); return response
+    response = _vehicle_response(mutate(payload.amount)); store_response(uow, command_name, key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK, authenticated_player); return response
+
 
 @router.post("/vehicles/{vehicle_id}/repair", response_model=VehicleResponse)
-def repair_vehicle(vehicle_id: UUID, payload: VehicleMutationRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> VehicleResponse: return _vehicle_mutation(vehicle_id, payload, "vehicle.repair", idempotency_key, uow, lambda amount: VehicleService(uow).repair(vehicle_id, amount))
+def repair_vehicle(vehicle_id: UUID, payload: VehicleMutationRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> VehicleResponse:
+    return _vehicle_mutation(vehicle_id, payload, "vehicle.repair", idempotency_key, uow, authenticated_player, lambda amount: VehicleService(uow).repair(vehicle_id, amount))
+
 
 @router.post("/vehicles/{vehicle_id}/refuel", response_model=VehicleResponse)
-def refuel_vehicle(vehicle_id: UUID, payload: VehicleMutationRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> VehicleResponse: return _vehicle_mutation(vehicle_id, payload, "vehicle.refuel", idempotency_key, uow, lambda amount: VehicleService(uow).refuel(vehicle_id, amount))
+def refuel_vehicle(vehicle_id: UUID, payload: VehicleMutationRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> VehicleResponse:
+    return _vehicle_mutation(vehicle_id, payload, "vehicle.refuel", idempotency_key, uow, authenticated_player, lambda amount: VehicleService(uow).refuel(vehicle_id, amount))
+
 
 @router.post("/players/bootstrap", response_model=PlayerBootstrapResponse, status_code=status.HTTP_201_CREATED)
 def bootstrap_player(payload: PlayerBootstrapRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> PlayerBootstrapResponse:
-    if authenticated_player != payload.player_id:
-        raise HTTPException(status_code=403, detail="session does not own player")
+    _assert_owner(authenticated_player, payload.player_id)
     key = require_key(idempotency_key); request_data = payload.model_dump(mode="json"); replay = replay_or_none(uow, "player.bootstrap", key, request_data)
     if replay is not None: return PlayerBootstrapResponse.model_validate(replay)
-    character, vehicle = PlayerBootstrapService(uow).bootstrap(payload.player_id, payload.character_name)
+    character, vehicle = PlayerBootstrapService(uow).bootstrap(authenticated_player, payload.character_name)
     response = PlayerBootstrapResponse(character=_character_response(character), vehicle=_vehicle_response(vehicle))
-    store_response(uow, "player.bootstrap", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.player_id); return response
+    store_response(uow, "player.bootstrap", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, authenticated_player); return response
+
 
 @router.get("/players/{player_id}/state", response_model=PlayerStateResponse)
 def player_state(player_id: UUID, uow: UnitOfWork = Depends(get_uow), authenticated_player: UUID = Depends(get_authenticated_player)) -> PlayerStateResponse:
-    if authenticated_player != player_id:
-        raise HTTPException(status_code=403, detail="session does not own player")
+    _assert_owner(authenticated_player, player_id)
     character = uow.characters.get_by_player_id(player_id)
     vehicles = [_vehicle_response(v) for v in VehicleService(uow).list_for_owner(player_id)]
     return load_player_state(player_id, _character_response(character) if character else None, vehicles)
