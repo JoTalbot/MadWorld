@@ -6,7 +6,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from uuid import UUID
 
-from app.application.errors import ConcurrencyConflict
+from app.application.errors import ConcurrencyConflict, IdempotencyConflict
+from app.application.ports import IdempotencyRecord
 from app.domain.primitives import InventoryStack, Job, LedgerEntry, Wallet
 
 
@@ -27,8 +28,9 @@ class InMemoryWalletRepository:
         self.wallets[wallet.id] = deepcopy(wallet)
 
     def add_ledger_entry(self, entry: LedgerEntry) -> None:
-        if entry.idempotency_key in self.ledger:
-            return
+        existing = self.ledger.get(entry.idempotency_key)
+        if existing is not None and existing != entry:
+            raise IdempotencyConflict("ledger idempotency key already exists")
         self.ledger[entry.idempotency_key] = entry
 
     def get_ledger_entry_by_idempotency_key(self, key: str) -> LedgerEntry | None:
@@ -83,8 +85,23 @@ class InMemoryJobRepository:
     def bind_idempotency_key(self, key: str, job_id: UUID) -> None:
         existing = self.idempotency.get(key)
         if existing is not None and existing != job_id:
-            raise ConcurrencyConflict("idempotency key is already bound")
+            raise IdempotencyConflict("idempotency key is already bound")
         self.idempotency[key] = job_id
+
+
+@dataclass
+class InMemoryIdempotencyRepository:
+    records: dict[tuple[str, str], IdempotencyRecord] = field(default_factory=dict)
+
+    def get(self, command_name: str, idempotency_key: str) -> IdempotencyRecord | None:
+        return self.records.get((command_name, idempotency_key))
+
+    def put(self, record: IdempotencyRecord) -> None:
+        key = (record.command_name, record.idempotency_key)
+        existing = self.records.get(key)
+        if existing is not None and existing.request_hash != record.request_hash:
+            raise IdempotencyConflict("idempotency key belongs to a different request")
+        self.records[key] = record
 
 
 @dataclass
@@ -108,6 +125,7 @@ class InMemoryUnitOfWork:
     wallets: InMemoryWalletRepository = field(default_factory=InMemoryWalletRepository)
     inventories: InMemoryInventoryRepository = field(default_factory=InMemoryInventoryRepository)
     jobs: InMemoryJobRepository = field(default_factory=InMemoryJobRepository)
+    idempotency: InMemoryIdempotencyRepository = field(default_factory=InMemoryIdempotencyRepository)
     audit: InMemoryAuditRepository = field(default_factory=InMemoryAuditRepository)
     outbox: InMemoryOutboxRepository = field(default_factory=InMemoryOutboxRepository)
     committed: bool = False
