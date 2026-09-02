@@ -4,6 +4,7 @@ from uuid import uuid4
 from app.application.clock import FixedClock
 from app.application.scheduler import JobScheduler
 from app.application.services import JobService
+from app.domain.primitives import JobState
 from app.infrastructure.memory import InMemoryUnitOfWork
 
 
@@ -30,4 +31,4 @@ def test_scheduler_completes_due_job_using_authoritative_service() -> None:
         clock.set(start + timedelta(seconds=30))
         completed = JobScheduler(uow, clock).complete_due([job.id])
         assert completed == [job.id]
-        assert uow.jobs.get(job.id).state.value == "COMPLETED"
+        assert uow.jobs.get(job.id).state == JobState.COMPLETED
