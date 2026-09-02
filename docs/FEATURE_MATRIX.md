@@ -15,9 +15,9 @@
 - [x] Regions and routes
 - [x] Resource nodes
 - [x] Scavenging/territory resource sites foundation
-- [ ] Discovery/scouting
-- [ ] Dynamic points of interest
-- [ ] Weather/hazard modifiers
+- [x] Discovery/scouting foundation
+- [x] Dynamic points of interest foundation
+- [x] Weather/hazard modifier foundation
 
 ## Vehicles
 - [x] Chassis database
@@ -49,15 +49,15 @@
 - [x] Price history
 - [x] Territory modifier foundation
 - [ ] Market taxes
-- [ ] NPC sinks/sources
-- [ ] Regional scarcity
+- [x] NPC/world-event economy foundation
+- [x] Regional scarcity foundation
 - [ ] Trade analytics
 
 ## Logistics
 - [ ] Cargo contracts
 - [x] Route control foundation
 - [ ] Cargo capacity
-- [ ] Risk estimation
+- [x] Risk estimation foundation
 - [x] Escorts
 - [ ] Delivery verification
 - [x] Contract escrow
@@ -69,9 +69,9 @@
 - [x] Targeting foundation
 - [x] Weapons foundation
 - [x] Component damage
-- [ ] NPC encounters
+- [x] NPC encounter foundation
 - [ ] PvP encounters
-- [ ] Convoy battles
+- [x] Convoy event foundation
 - [ ] Settlement defense
 - [x] Combat salvage foundation
 
@@ -100,13 +100,19 @@
 - [x] Scheduled objective lifecycle foundation
 
 ## World simulation
-- [ ] NPC factions
-- [ ] Dynamic shortages
-- [ ] Faction warfare
-- [ ] World events
-- [ ] Resource discoveries
-- [ ] Disasters
-- [ ] Event-generated missions
+- [x] NPC factions
+- [x] Dynamic shortages
+- [x] Faction regional-state foundation
+- [x] World events
+- [x] Convoy events foundation
+- [x] Resource discoveries
+- [x] Disasters
+- [x] Catastrophe zones
+- [x] Event-generated missions
+- [x] Deterministic tick/replay foundation
+- [x] Android authoritative world state
+- [ ] Full faction warfare
+- [ ] Autonomous grand-strategy AI
 
 ## Long-term systems
 - [ ] Research progression
@@ -128,3 +134,4 @@
 - [x] Offline cache for read-only data
 - [x] Social state models
 - [x] Territory state foundation
+- [x] World simulation state foundation
