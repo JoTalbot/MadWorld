@@ -22,6 +22,18 @@ class IdempotencyRecord:
     created_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class OutboxEvent:
+    id: UUID
+    event_type: str
+    aggregate_type: str
+    aggregate_id: UUID
+    payload: dict
+    attempts: int
+    lease_owner: str | None
+    lease_until: datetime | None
+
+
 class WalletRepository(Protocol):
     def get(self, wallet_id: UUID) -> Wallet | None: ...
     def save(self, wallet: Wallet) -> None: ...
@@ -53,6 +65,9 @@ class AuditRepository(Protocol):
 
 class OutboxRepository(Protocol):
     def enqueue(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: ...
+    def claim(self, owner: str, limit: int = 50, lease_seconds: int = 60, max_attempts: int = 10) -> list[OutboxEvent]: ...
+    def mark_published(self, event_id: UUID, owner: str) -> None: ...
+    def mark_failed(self, event_id: UUID, owner: str, error: str, retry_after_seconds: int) -> None: ...
 
 
 class UnitOfWork(AbstractContextManager["UnitOfWork"], Protocol):
