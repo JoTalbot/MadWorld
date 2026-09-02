@@ -1,6 +1,6 @@
 -- Master Batch B1/B2: bind the deterministic world to gameplay-facing domains.
 -- The world simulator remains authoritative for world state; this migration adds
--- durable integration state without granting it direct ownership of player wallets/items.
+-- durable integration state without granting it direct ownership of player wallets.
 
 CREATE TABLE IF NOT EXISTS world_region_bindings (
   world_region_id TEXT PRIMARY KEY REFERENCES world_regions(id),
@@ -31,33 +31,21 @@ CREATE TABLE IF NOT EXISTS world_replay_checkpoints (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE world_simulation_ticks
-  ADD COLUMN IF NOT EXISTS state_hash TEXT;
-ALTER TABLE world_simulation_ticks
-  ADD COLUMN IF NOT EXISTS event_hash TEXT;
-ALTER TABLE world_simulation_ticks
-  ADD COLUMN IF NOT EXISTS duration_ms INTEGER;
-ALTER TABLE world_simulation_ticks
-  ADD COLUMN IF NOT EXISTS lag_ms INTEGER;
+ALTER TABLE world_simulation_ticks ADD COLUMN IF NOT EXISTS state_hash TEXT;
+ALTER TABLE world_simulation_ticks ADD COLUMN IF NOT EXISTS event_hash TEXT;
+ALTER TABLE world_simulation_ticks ADD COLUMN IF NOT EXISTS duration_ms INTEGER;
+ALTER TABLE world_simulation_ticks ADD COLUMN IF NOT EXISTS lag_ms INTEGER;
 
-ALTER TABLE world_convoy_events
-  ADD COLUMN IF NOT EXISTS spawn_tick BIGINT;
-ALTER TABLE world_convoy_events
-  ADD COLUMN IF NOT EXISTS travel_ends_tick BIGINT;
-ALTER TABLE world_convoy_events
-  ADD COLUMN IF NOT EXISTS resolved_tick BIGINT;
-ALTER TABLE world_convoy_events
-  ADD COLUMN IF NOT EXISTS loss_reason TEXT;
+ALTER TABLE world_convoy_events ADD COLUMN IF NOT EXISTS spawn_tick BIGINT;
+ALTER TABLE world_convoy_events ADD COLUMN IF NOT EXISTS travel_ends_tick BIGINT;
+ALTER TABLE world_convoy_events ADD COLUMN IF NOT EXISTS resolved_tick BIGINT;
+ALTER TABLE world_convoy_events ADD COLUMN IF NOT EXISTS loss_reason TEXT;
 
-ALTER TABLE resource_discoveries
-  ADD COLUMN IF NOT EXISTS discovered_tick BIGINT;
-ALTER TABLE resource_discoveries
-  ADD COLUMN IF NOT EXISTS expires_tick BIGINT;
+ALTER TABLE resource_discoveries ADD COLUMN IF NOT EXISTS discovered_tick BIGINT;
+ALTER TABLE resource_discoveries ADD COLUMN IF NOT EXISTS expires_tick BIGINT;
 
-ALTER TABLE dynamic_missions
-  ADD COLUMN IF NOT EXISTS source_event_id UUID REFERENCES world_events(id);
-ALTER TABLE dynamic_missions
-  ADD COLUMN IF NOT EXISTS invalidated_at TIMESTAMPTZ;
+ALTER TABLE dynamic_missions ADD COLUMN IF NOT EXISTS source_event_id UUID REFERENCES world_events(id);
+ALTER TABLE dynamic_missions ADD COLUMN IF NOT EXISTS invalidated_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_world_convoys_progress ON world_convoy_events(state, travel_ends_tick);
 CREATE INDEX IF NOT EXISTS idx_resource_discoveries_expiry ON resource_discoveries(state, expires_tick);
@@ -85,6 +73,9 @@ CREATE TABLE IF NOT EXISTS player_travel_sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_player_travel_player_state ON player_travel_sessions(player_id,state,created_at);
 CREATE INDEX IF NOT EXISTS idx_player_travel_vehicle_state ON player_travel_sessions(vehicle_id,state);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_player_travel_active_vehicle
+  ON player_travel_sessions(vehicle_id)
+  WHERE state IN ('PLANNED','TRAVELLING');
 
 CREATE TABLE IF NOT EXISTS travel_encounters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
