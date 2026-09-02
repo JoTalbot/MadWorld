@@ -152,3 +152,16 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implementation: `SettlementState`, settlement fetch/ownership validation in `MadWorldApi`, persistent settlement cache in `PlayerRepository`, settlement refresh in `PlayerViewModel`, and Compose settlement panel integrated into the main player screen. Fixed Compose `RowScope.weight` compilation issue in `CapabilityButton`.
 - Verification: PR #10 merged to `main` as merge commit `2334378a7f11b4e5a46069641c910b6ff3ff81be`. Android CI #21 passed; Backend CI #242 passed.
 - Deferred by design: building/world visualization, settlement mutation commands, offline settlement command journal/reconciliation, rich building interactions and world-map navigation. These require separate product slices and remain subject to backlog approval.
+
+## IMP-081 — Phase 2 Economy foundation
+- Status: PLANNED
+- Goal: begin the economic layer that turns the existing market/inventory/crafting/settlement foundations into a persistent regional production economy.
+- Discovery: `main` already has transactional regional player order books and trade history, authoritative inventory/wallet/crafting jobs, and settlement capability boundaries. The actual Phase 2 production/refining/warehouse/logistics layer is still largely a design-level target rather than implemented gameplay.
+- Variants considered:
+  - Minimal: price/trade history queries + basic refining recipes + simple production jobs.
+  - Systemic: versioned recipes, input/output reservations, production facilities, persistent warehouse capacity and regional price/volume history integrated with existing inventory, jobs and market transactions.
+  - Advanced: systemic production plus skills/specializations, facility modifiers, NPC supply/demand and logistics contracts with cargo capacity and route costs.
+  - Hybrid: systemic authoritative economy core now, with skills/NPC simulation/logistics expanded through compatible follow-up slices.
+- Proposed dependency order: warehouse/storage boundary → refining/production recipes and jobs → price/volume history → facility capacity/modifiers → logistics/cargo → NPC economy and dynamic supply/demand.
+- Approval required: select a variant before product-changing implementation begins.
+- Deferred until selection: NPC economy simulation, advanced logistics, territory-driven economic modifiers and live world-market simulation.
