@@ -100,3 +100,17 @@ class VehicleService:
         vehicle = self.get(vehicle_id); vehicle.refuel(amount); self.uow.vehicles.save(vehicle); return vehicle
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
         event = DEFAULT_EVENT_REGISTRY.create(event_type, "vehicle", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+
+
+class PlayerBootstrapService:
+    """Atomically provisions the minimum playable identity for an existing player."""
+    def __init__(self, uow: UnitOfWork) -> None: self.uow = uow
+
+    def bootstrap(self, player_id: UUID, character_name: str) -> tuple[Character, Vehicle]:
+        character = self.uow.characters.get_by_player_id(player_id)
+        vehicles = self.uow.vehicles.list_by_owner(player_id)
+        if character is not None or vehicles:
+            raise ValueError("player is already bootstrapped")
+        character = CharacterService(self.uow).create(player_id, character_name)
+        vehicle = VehicleService(self.uow).create_starter(player_id)
+        return character, vehicle
