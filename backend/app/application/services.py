@@ -103,27 +103,28 @@ class VehicleService:
     def repair(self, vehicle_id: UUID, amount: int) -> Vehicle:
         vehicle = self.get(vehicle_id); vehicle.repair(amount); self.uow.vehicles.save(vehicle); return vehicle
     def start_repair(self, vehicle_id: UUID, inventory_id: UUID, amount: int, idempotency_key: str) -> Job:
+        existing = self.uow.jobs.get_by_idempotency_key(idempotency_key)
+        if existing is not None:
+            if existing.job_type != REPAIR_JOB_TYPE or existing.metadata.get("vehicle_id") != str(vehicle_id) or existing.metadata.get("inventory_id") != str(inventory_id): raise IdempotencyConflict("idempotency key already belongs to another repair")
+            return existing
         vehicle = self.get(vehicle_id)
         if vehicle.durability >= 100: raise ValueError("vehicle does not need repair")
-        amount = min(amount, 100 - vehicle.durability)
-        kits = ceil(amount / REPAIR_DURABILITY_PER_KIT)
+        amount = min(amount, 100 - vehicle.durability); kits = ceil(amount / REPAIR_DURABILITY_PER_KIT)
         stack = self.uow.inventories.get_stack(inventory_id, REPAIR_KIT_ID)
         if stack is None or stack.quantity < kits: raise ValueError("repair kits are insufficient")
-        self.uow.inventories.delete_stack(inventory_id, REPAIR_KIT_ID, stack.version) if stack.quantity == kits else self.uow.inventories.save_stack(inventory_id, InventoryStack(REPAIR_KIT_ID, stack.quantity - kits, stack.condition, stack.version))
-        now = utc_now()
-        job = JobService(self.uow).create(vehicle.owner_id, REPAIR_JOB_TYPE, now, now + REPAIR_DURATION, idempotency_key, {"vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "amount": amount, "kits": kits})
-        self._record("vehicle.repair_started", vehicle.id, {"job_id": str(job.id), "amount": amount, "kits": kits})
-        return job
+        remaining = stack.quantity - kits
+        if remaining == 0: self.uow.inventories.delete_stack(inventory_id, REPAIR_KIT_ID, stack.version)
+        else: stack.quantity = remaining; self.uow.inventories.save_stack(inventory_id, stack)
+        now = utc_now(); job = JobService(self.uow).create(vehicle.owner_id, REPAIR_JOB_TYPE, now, now + REPAIR_DURATION, idempotency_key, {"vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "amount": amount, "kits": kits})
+        self._record("vehicle.repair_started", vehicle.id, {"job_id": str(job.id), "amount": amount, "kits": kits}); return job
     def complete_repair(self, job_id: UUID, now: datetime | None = None) -> Job:
         job = self.uow.jobs.get(job_id)
         if job is None: raise NotFound("repair job not found")
         if job.job_type != REPAIR_JOB_TYPE: raise ValueError("job is not a vehicle repair")
         if job.state.value == "completed": return job
-        vehicle_id = UUID(job.metadata["vehicle_id"]); amount = int(job.metadata["amount"])
-        vehicle = self.get(vehicle_id); vehicle.repair(amount); self.uow.vehicles.save(vehicle)
-        completed = JobService(self.uow).complete(job_id, now)
-        self._record("vehicle.repaired", vehicle.id, {"job_id": str(job_id), "amount": amount, "durability": vehicle.durability})
-        return completed
+        vehicle = self.get(UUID(job.metadata["vehicle_id"])); amount = int(job.metadata["amount"])
+        vehicle.repair(amount); self.uow.vehicles.save(vehicle); completed = JobService(self.uow).complete(job_id, now)
+        self._record("vehicle.repaired", vehicle.id, {"job_id": str(job_id), "amount": amount, "durability": vehicle.durability}); return completed
     def refuel(self, vehicle_id: UUID, amount: int) -> Vehicle:
         vehicle = self.get(vehicle_id); vehicle.refuel(amount); self.uow.vehicles.save(vehicle); return vehicle
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
