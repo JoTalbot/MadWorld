@@ -74,7 +74,6 @@ This file is the persistent source of truth for improvement proposals and implem
 ## IMP-069 — Player state snapshot API
 - Status: ACCEPTED — Hybrid
 - Selected: deterministic gameplay snapshot now; world/session feed later.
-- Status after implementation: COMPLETE for the selected slice.
 
 ## IMP-070 — Android authoritative-state client
 - Status: ACCEPTED — Hybrid
@@ -100,15 +99,14 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred: full component-aware combat damage, repair-quality progression, mechanic skills and facility modifiers.
 
 ## IMP-075 — Legacy vehicle repair API migration
-- Status: PLANNED — Product/API change; not approved
+- Status: COMPLETE — Hybrid
 - Goal: retire the legacy direct vehicle-repair endpoint without breaking existing clients unexpectedly.
-- Variants:
-  1. Minimal: remove it in the next breaking API release.
-  2. Systemic: redirect/translate legacy requests into authoritative repair jobs and document migration.
-  3. Advanced: versioned migration with compatibility window, telemetry, deprecation headers and sunset release.
-  4. Hybrid: compatibility adapter + deprecation headers/telemetry now, removal after migration criteria are met.
-- Recommendation: Hybrid.
-- Acceptance: requires explicit product decision.
+- Selected: compatibility tombstone + explicit migration response + deprecation/sunset headers + usage telemetry; removal after migration criteria are met.
+- Implementation: legacy `POST /api/v1/vehicles/{vehicle_id}/repair` no longer mutates durability and returns `410 Gone` with machine-readable replacement guidance. The authoritative `repair-job` flow remains the supported mutation path.
+- Telemetry: legacy calls emit `legacy_repair_api_used` through the application logger with request ID.
+- Documentation: `docs/api-migration.md` defines the migration sequence and sunset policy.
+- Verification: dedicated API migration regression test added; existing persistent repair-job tests remain the authoritative behavior coverage.
+- Deferred: final deletion of the tombstone after client migration and a future breaking API release.
 
 ## IMP-076 — Component-aware vehicle damage
 - Status: COMPLETE — Advanced + Systemic; maximum-option scope
