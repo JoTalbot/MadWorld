@@ -14,7 +14,7 @@
 - [ ] World map
 - [x] Regions and routes
 - [x] Resource nodes
-- [ ] Scavenging sites
+- [x] Scavenging/territory resource sites foundation
 - [ ] Discovery/scouting
 - [ ] Dynamic points of interest
 - [ ] Weather/hazard modifiers
@@ -47,6 +47,7 @@
 - [x] Matching engine
 - [x] Transaction history
 - [x] Price history
+- [x] Territory modifier foundation
 - [ ] Market taxes
 - [ ] NPC sinks/sources
 - [ ] Regional scarcity
@@ -54,12 +55,12 @@
 
 ## Logistics
 - [ ] Cargo contracts
-- [ ] Route planning
+- [x] Route control foundation
 - [ ] Cargo capacity
 - [ ] Risk estimation
 - [x] Escorts
 - [ ] Delivery verification
-- [ ] Contract escrow
+- [x] Contract escrow
 - [ ] Insurance/recovery
 - [ ] Smuggling
 
@@ -89,14 +90,14 @@
 - [ ] Corporate management UI
 
 ## Territory
-- [ ] Claims
-- [ ] Infrastructure
-- [ ] Settlement ownership
-- [ ] Road control
-- [ ] Resource-site control
-- [ ] Taxes
-- [ ] Strategic objectives
-- [ ] Scheduled wars
+- [x] Claims
+- [x] Infrastructure
+- [x] Settlement ownership / regional identity foundation
+- [x] Road control
+- [x] Resource-site control
+- [x] Taxes/modifier foundation
+- [x] Strategic objectives
+- [x] Scheduled objective lifecycle foundation
 
 ## World simulation
 - [ ] NPC factions
@@ -126,3 +127,4 @@
 - [ ] Compact combat controls
 - [x] Offline cache for read-only data
 - [x] Social state models
+- [x] Territory state foundation
