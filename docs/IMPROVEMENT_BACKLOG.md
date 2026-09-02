@@ -101,9 +101,9 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implemented: canonical role set and permission vocabulary with domain validation.
 
 ### IMP-093 — Shared wallets
-- Status: COMPLETE — Hybrid foundation.
-- Implemented: corporation wallet ownership model linked to existing wallet authority.
-- Deferred: role-authorized debit/credit mutation wiring.
+- Status: IN PROGRESS — Hybrid.
+- Implemented: corporation wallet link, database support for corporation-owned wallets, authoritative balance/transfer endpoints with deterministic row locking and idempotency.
+- Deferred: wallet funding policies and richer treasury/reporting UI.
 
 ### IMP-094 — Shared hangars and corporate assets
 - Status: COMPLETE — Hybrid foundation.
@@ -147,18 +147,21 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-102 — Phase 4 social database integrity hardening
 - Status: COMPLETE — Technical hardening.
-- Implemented: shared corporate wallet compatibility, partial unique indexes for player/corporation reputation targets, and database-enforced one-primary-corporation membership under concurrent requests.
-- Verification: migration `017_phase4_social_integrity.sql` added to `main`.
+- Implemented: partial unique indexes for player/corporation reputation targets and database-enforced one-primary-corporation membership under concurrent requests.
+- Verification: migration `017_phase4_social_integrity.sql` is present.
 
 ### IMP-103 — Phase 4 authoritative financial/social operations
 - Status: IN PROGRESS — Hybrid.
 - Scope: idempotent corporate wallet operations, completed alliance lifecycle, hangar/asset accounting, contract escrow settlement and contract-driven reputation propagation.
+- Implemented in current slice: corporate wallet balance/transfer commands, deterministic wallet locking, immutable ledger entries, request idempotency and migration `018_phase4_corporate_wallets.sql` allowing corporation-owned wallets while retaining one player wallet per player.
 - Product-changing choices remain deferred where they alter the intended ownership/membership model.
 
 ### Phase 4 verification note
-- Backend CI #298: SUCCESS on the Android bootstrap restoration commit.
-- Android CI #34: SUCCESS on the Android bootstrap restoration commit.
+- Backend CI #304: SUCCESS on the latest verified push before the current wallet-operation slice.
+- Android CI #34: SUCCESS after the Android bootstrap restoration.
 - Migration `016_phase4_social_operations.sql` and lifecycle rules/tests are present.
-- Migration `017_phase4_social_integrity.sql` is present and closes wallet ownership compatibility, PostgreSQL NULL-uniqueness and concurrent membership integrity gaps.
-- Alliance lifecycle routes are now registered in `main`; new CI verification is required before declaring them complete.
-- Phase 4 remains IN PROGRESS until financial settlement, asset accounting and Android management UI are verified end-to-end.
+- Migration `017_phase4_social_integrity.sql` is present for reputation and membership integrity.
+- Migration `018_phase4_corporate_wallets.sql` is now present and fixes the schema mismatch that previously made corporation wallet creation incompatible with the original player-owned wallet constraint.
+- Corporate wallet routes are registered in `main` and include idempotency, deterministic locking, insufficient-funds protection, audit and outbox events.
+- New CI verification is required for the current wallet slice.
+- Phase 4 remains IN PROGRESS until financial settlement, asset accounting, contract escrow settlement and Android management UI are verified end-to-end.
