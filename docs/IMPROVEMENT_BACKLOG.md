@@ -137,15 +137,27 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-100 — Phase 4 Android integration
 - Status: IN PROGRESS — Hybrid.
-- Implemented: typed social state models and authoritative capability discovery API client.
-- Deferred: full corporation management UI and mutation flows.
+- Implemented: typed social state models, capability discovery, corporation overview and corporation creation client/UI.
+- Deferred: full alliance, wallet, asset and contract mutation UI.
 
 ### IMP-101 — Phase 4 social lifecycle hardening
 - Status: ACCEPTED — Hybrid, approved by user continuation of Phase 4 implementation.
 - Implemented: contract transition invariants, reputation mutation invariants, escrow/invitation state validation, persistence for escrow/history/invitations.
 - Deferred: full alliance workflow, escrow wallet settlement, asset transfer accounting, Android mutation UI.
 
+### IMP-102 — Phase 4 social database integrity hardening
+- Status: COMPLETE — Technical hardening.
+- Implemented: partial unique indexes for player/corporation reputation targets, plus database-enforced one-primary-corporation membership under concurrent requests.
+- Verification: migration `017_phase4_social_integrity.sql` added to `main`.
+
+### IMP-103 — Phase 4 authoritative financial/social operations
+- Status: IN PROGRESS — Hybrid.
+- Scope: idempotent corporate wallet operations, alliance lifecycle, hangar/asset accounting, contract escrow settlement and contract-driven reputation propagation.
+- Product-changing choices remain deferred where they alter the intended ownership/membership model.
+
 ### Phase 4 verification note
-- Backend CI #288: SUCCESS for authoritative social command layer; migrations and tests passed.
-- Follow-up commits add migration `016_phase4_social_operations.sql`, lifecycle domain rules and lifecycle tests.
-- Phase 4 remains IN PROGRESS until economic settlement, alliance workflow, asset accounting and Android management UI are verified end-to-end.
+- Backend CI #298: SUCCESS on `main` after Android bootstrap restoration.
+- Android CI #34: SUCCESS on `main` after Android bootstrap restoration.
+- Migration `016_phase4_social_operations.sql` and lifecycle rules/tests are present.
+- Migration `017_phase4_social_integrity.sql` is now present and closes PostgreSQL NULL-uniqueness and concurrent membership integrity gaps.
+- Phase 4 remains IN PROGRESS until financial settlement, alliance workflow, asset accounting and Android management UI are verified end-to-end.
