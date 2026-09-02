@@ -8,7 +8,15 @@ from fastapi import APIRouter, Depends, Header, status
 
 from app.api.dependencies import get_uow
 from app.api.idempotency import replay_or_none, require_key, store_response
-from app.api.schemas import InventoryAddRequest, InventoryRemoveRequest, InventoryResponse, JobCreateRequest, JobResponse, WalletEntryRequest, WalletEntryResponse
+from app.api.schemas import (
+    InventoryAddRequest,
+    InventoryRemoveRequest,
+    InventoryResponse,
+    JobCreateRequest,
+    JobResponse,
+    WalletEntryRequest,
+    WalletEntryResponse,
+)
 from app.application.ports import UnitOfWork
 from app.application.services import InventoryService, JobService, WalletService
 
@@ -16,19 +24,49 @@ router = APIRouter(prefix="/api/v1", tags=["commands"])
 
 
 def _wallet_response(entry) -> WalletEntryResponse:
-    return WalletEntryResponse.model_validate({"entry_id": entry.id, "wallet_id": entry.wallet_id, "amount": entry.amount, "reason": entry.reason, "idempotency_key": entry.idempotency_key, "created_at": entry.created_at})
+    return WalletEntryResponse.model_validate(
+        {
+            "entry_id": entry.id,
+            "wallet_id": entry.wallet_id,
+            "amount": entry.amount,
+            "reason": entry.reason,
+            "idempotency_key": entry.idempotency_key,
+            "created_at": entry.created_at,
+        }
+    )
 
 
 def _job_response(job: object) -> JobResponse:
-    return JobResponse.model_validate({"id": job.id, "owner_id": job.owner_id, "job_type": job.job_type, "started_at": job.started_at, "completes_at": job.completes_at, "state": job.state.value, "version": job.version})
+    return JobResponse.model_validate(
+        {
+            "id": job.id,
+            "owner_id": job.owner_id,
+            "job_type": job.job_type,
+            "started_at": job.started_at,
+            "completes_at": job.completes_at,
+            "state": job.state.value,
+            "version": job.version,
+        }
+    )
 
 
 def _inventory_response(stack) -> InventoryResponse:
-    return InventoryResponse.model_validate({"item_definition_id": stack.item_definition_id, "quantity": stack.quantity, "condition": stack.condition, "version": stack.version})
+    return InventoryResponse.model_validate(
+        {
+            "item_definition_id": stack.item_definition_id,
+            "quantity": stack.quantity,
+            "condition": stack.condition,
+            "version": stack.version,
+        }
+    )
 
 
 @router.post("/wallet/entries", response_model=WalletEntryResponse, status_code=status.HTTP_201_CREATED)
-def post_wallet_entry(payload: WalletEntryRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> WalletEntryResponse:
+def post_wallet_entry(
+    payload: WalletEntryRequest,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> WalletEntryResponse:
     key = require_key(idempotency_key)
     request_data = payload.model_dump(mode="json")
     replay = replay_or_none(uow, "wallet.post_entry", key, request_data)
@@ -41,7 +79,11 @@ def post_wallet_entry(payload: WalletEntryRequest, idempotency_key: str | None =
 
 
 @router.post("/inventory/add", response_model=InventoryResponse, status_code=status.HTTP_200_OK)
-def add_inventory(payload: InventoryAddRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse:
+def add_inventory(
+    payload: InventoryAddRequest,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> InventoryResponse:
     key = require_key(idempotency_key)
     request_data = payload.model_dump(mode="json")
     replay = replay_or_none(uow, "inventory.add", key, request_data)
@@ -54,7 +96,11 @@ def add_inventory(payload: InventoryAddRequest, idempotency_key: str | None = He
 
 
 @router.post("/inventory/remove", response_model=InventoryResponse | None)
-def remove_inventory(payload: InventoryRemoveRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse | None:
+def remove_inventory(
+    payload: InventoryRemoveRequest,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> InventoryResponse | None:
     key = require_key(idempotency_key)
     request_data = payload.model_dump(mode="json")
     replay = replay_or_none(uow, "inventory.remove", key, request_data)
@@ -67,7 +113,11 @@ def remove_inventory(payload: InventoryRemoveRequest, idempotency_key: str | Non
 
 
 @router.post("/jobs", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
-def create_job(payload: JobCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
+def create_job(
+    payload: JobCreateRequest,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> JobResponse:
     key = require_key(idempotency_key)
     request_data = payload.model_dump(mode="json")
     replay = replay_or_none(uow, "job.create", key, request_data)
@@ -79,16 +129,45 @@ def create_job(payload: JobCreateRequest, idempotency_key: str | None = Header(d
     return response
 
 
+def _job_transition(
+    job_id: UUID,
+    command_name: str,
+    idempotency_key: str | None,
+    uow: UnitOfWork,
+    transition,
+) -> JobResponse:
+    key = require_key(idempotency_key)
+    request_data = {"job_id": str(job_id)}
+    replay = replay_or_none(uow, command_name, key, request_data)
+    if replay is not None:
+        return JobResponse.model_validate(replay)
+    response = _job_response(transition())
+    store_response(uow, command_name, key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK)
+    return response
+
+
 @router.post("/jobs/{job_id}/start", response_model=JobResponse)
-def start_job(job_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
-    return _job_response(JobService(uow).start(job_id))
+def start_job(
+    job_id: UUID,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> JobResponse:
+    return _job_transition(job_id, "job.start", idempotency_key, uow, lambda: JobService(uow).start(job_id))
 
 
 @router.post("/jobs/{job_id}/complete", response_model=JobResponse)
-def complete_job(job_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
-    return _job_response(JobService(uow).complete(job_id))
+def complete_job(
+    job_id: UUID,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> JobResponse:
+    return _job_transition(job_id, "job.complete", idempotency_key, uow, lambda: JobService(uow).complete(job_id))
 
 
 @router.post("/jobs/{job_id}/cancel", response_model=JobResponse)
-def cancel_job(job_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
-    return _job_response(JobService(uow).cancel(job_id))
+def cancel_job(
+    job_id: UUID,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    uow: UnitOfWork = Depends(get_uow),
+) -> JobResponse:
+    return _job_transition(job_id, "job.cancel", idempotency_key, uow, lambda: JobService(uow).cancel(job_id))
