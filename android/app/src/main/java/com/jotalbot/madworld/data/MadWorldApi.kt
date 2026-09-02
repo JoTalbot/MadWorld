@@ -50,6 +50,18 @@ class MadWorldApi(private val baseUrl: String) {
         } finally { connection.disconnect() }
     }
 
+    fun fetchEconomyOverview(playerId: UUID, token: String): EconomyOverviewState {
+        val url = URI.create("${baseUrl.trimEnd('/')}/api/v1/economy/overview").toURL()
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 10_000
+            setRequestProperty("Accept", "application/json"); setRequestProperty("Authorization", "Bearer $token")
+        }
+        try {
+            if (connection.responseCode !in 200..299) throw ApiException("economy overview request failed: HTTP ${connection.responseCode}")
+            return parseEconomyOverview(connection.inputStream.bufferedReader().use { it.readText() }, playerId)
+        } finally { connection.disconnect() }
+    }
+
     fun bootstrap(playerId: UUID, characterName: String, token: String? = null, idempotencyKey: UUID = UUID.randomUUID()): PlayerState {
         val url = URI.create("${baseUrl.trimEnd('/')}/api/v1/players/bootstrap").toURL()
         val connection = (url.openConnection() as HttpURLConnection).apply {
@@ -62,6 +74,27 @@ class MadWorldApi(private val baseUrl: String) {
             if (connection.responseCode !in 200..299) throw ApiException("bootstrap request failed: HTTP ${connection.responseCode}")
             return fetchPlayerState(playerId, token)
         } finally { connection.disconnect() }
+    }
+
+    private fun parseEconomyOverview(json: String, playerId: UUID): EconomyOverviewState {
+        val root = JSONObject(json)
+        val settlementId = UUID.fromString(root.getString("settlement_id"))
+        val jobs = buildList {
+            val array = root.getJSONArray("active_jobs")
+            for (index in 0 until array.length()) {
+                val item = array.getJSONObject(index)
+                add(EconomyJobState(UUID.fromString(item.getString("id")), item.getString("kind"), UUID.fromString(item.getString("recipe_id")), UUID.fromString(item.getString("settlement_id")), item.getString("state"), item.getString("completes_at")))
+            }
+        }
+        val facilities = buildList {
+            val array = root.getJSONArray("facilities")
+            for (index in 0 until array.length()) {
+                val item = array.getJSONObject(index)
+                add(EconomyFacilityState(item.getString("code"), item.getInt("level"), item.getInt("efficiency_bps")))
+            }
+        }
+        if (settlementId == UUID(0, 0)) throw ApiException("invalid economy settlement")
+        return EconomyOverviewState(settlementId, root.getString("region"), root.getInt("warehouse_capacity"), root.getInt("warehouse_used"), facilities, jobs, root.getInt("contract_count"), root.getInt("ready_vehicles"), root.getInt("market_price_points"), root.getString("next_action"))
     }
 
     private fun parseState(json: String): PlayerState {
