@@ -16,7 +16,6 @@ EXPEDITION_JOB_PREFIX = "expedition:"
 SCRAP_METAL_ID = UUID("30000000-0000-0000-0000-000000000001")
 SALVAGED_WIRE_ID = UUID("30000000-0000-0000-0000-000000000002")
 
-
 class ExpeditionService:
     def __init__(self, uow: UnitOfWork) -> None:
         self.uow = uow
@@ -32,13 +31,10 @@ class ExpeditionService:
         plan = build_plan(region, distance_km, risk)
         existing = self.uow.jobs.get_by_idempotency_key(idempotency_key)
         if existing is not None:
-            expected = {
-                "vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "region": plan.region,
-                "distance_km": plan.distance_km, "risk": plan.risk.value,
-            }
+            expected = {"vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "region": plan.region, "distance_km": plan.distance_km, "risk": plan.risk.value}
             actual = {key: existing.metadata.get(key) for key in expected}
             if existing.job_type != f"{EXPEDITION_JOB_PREFIX}{plan.region}" or actual != expected:
-                raise IdempotencyConflict("idempotency key already belongs to another expedition")
+                raise IdempotencyConflict("idempotency key reused with conflicting expedition payload")
             return existing
         vehicle = self.uow.vehicles.get(vehicle_id)
         if vehicle is None:
@@ -48,9 +44,9 @@ class ExpeditionService:
         if not self._inventory_owned(inventory_id, player_id):
             raise PermissionError("inventory does not belong to player")
         if vehicle.state.value == "destroyed":
-            raise ValueError("destroyed vehicle cannot start an expedition")
+            raise ValueError("destroyed vehicle cannot start expedition")
         if vehicle.fuel < plan.fuel_cost:
-            raise ValueError("vehicle fuel is insufficient for expedition")
+            raise ValueError("insufficient fuel")
         vehicle.fuel -= plan.fuel_cost
         self.uow.vehicles.save(vehicle)
         started = now or utc_now()
@@ -60,25 +56,21 @@ class ExpeditionService:
         loot_scrap = 5 + digest[1] % (6 + plan.distance_km // 20)
         loot_wire = digest[2] % (1 + plan.distance_km // 25)
         component = ("engine", "hull", "wheels", "fuel_system")[digest[3] % 4]
-        metadata = {
-            "vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "player_id": str(player_id),
-            "region": plan.region, "distance_km": plan.distance_km, "risk": plan.risk.value,
-            "fuel_cost": plan.fuel_cost, "damage": damage, "damage_component": component,
-            "damage_type": DamageType.IMPACT.value, "loot_scrap": int(loot_scrap), "loot_wire": int(loot_wire),
-            "resolved": False,
-        }
-        return JobService(self.uow).create(player_id, f"{EXPEDITION_JOB_PREFIX}{plan.region}", started, started + timedelta(seconds=plan.duration_seconds), idempotency_key, metadata)
+        metadata = {"vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "region": plan.region, "distance_km": plan.distance_km, "risk": plan.risk.value, "fuel_cost": plan.fuel_cost, "loot_scrap": loot_scrap, "loot_wire": loot_wire, "damage": damage, "damage_component": component, "damage_type": DamageType.KINETIC.value, "resolved": False}
+        return JobService(self.uow).create(f"{EXPEDITION_JOB_PREFIX}{plan.region}", started + timedelta(seconds=plan.duration_seconds), metadata, idempotency_key=idempotency_key)
 
     def complete(self, player_id: UUID, job_id: UUID, now: datetime | None = None):
         job = self.uow.jobs.get(job_id)
-        if job is None or job.owner_id != player_id:
-            raise NotFound("expedition not found")
+        if job is None:
+            raise NotFound("expedition job not found")
         if not job.job_type.startswith(EXPEDITION_JOB_PREFIX):
             raise ValueError("job is not an expedition")
-        if job.state is JobState.CANCELLED:
-            raise ValueError("cancelled expedition cannot be completed")
-        if job.state is JobState.COMPLETED and job.metadata.get("resolved"):
+        if job.metadata.get("player_id") not in (None, str(player_id)):
+            raise PermissionError("expedition does not belong to player")
+        if job.state == JobState.COMPLETED and job.metadata.get("resolved"):
             return job
+        if job.state == JobState.CANCELLED:
+            raise ValueError("cancelled expedition cannot complete")
         inventory_id = UUID(job.metadata["inventory_id"])
         if not self._inventory_owned(inventory_id, player_id):
             raise PermissionError("inventory does not belong to player")
@@ -97,12 +89,7 @@ class ExpeditionService:
             InventoryService(self.uow).add(inventory_id, SALVAGED_WIRE_ID, int(metadata["loot_wire"]), 100)
         metadata["resolved"] = True
         self.uow.jobs.save(completed)
-        payload = {
-            "player_id": str(player_id), "vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id),
-            "region": metadata["region"], "risk": metadata["risk"], "distance_km": metadata["distance_km"],
-            "loot_scrap": metadata["loot_scrap"], "loot_wire": metadata["loot_wire"],
-            "damage": damage, "damage_component": metadata["damage_component"],
-        }
+        payload = {"player_id": str(player_id), "vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "region": metadata["region"], "risk": metadata["risk"], "distance_km": metadata["distance_km"], "loot": {"scrap": metadata["loot_scrap"], "wire": metadata["loot_wire"]}, "loot_scrap": metadata["loot_scrap"], "loot_wire": metadata["loot_wire"], "damage": damage, "damage_component": metadata["damage_component"]}
         event = DEFAULT_EVENT_REGISTRY.create("expedition.completed", "expedition", job.id, payload)
         self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
         self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
