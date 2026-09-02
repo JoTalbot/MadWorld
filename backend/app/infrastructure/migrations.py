@@ -26,14 +26,25 @@ def discover_migrations(directory: Path) -> list[Migration]:
 
 
 def ensure_history_table(conn: Connection) -> None:
-    conn.execute(text("""
-        CREATE TABLE IF NOT EXISTS schema_migrations (
-            version BIGSERIAL PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            checksum TEXT NOT NULL,
-            applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-    """))
+    if conn.dialect.name == "sqlite":
+        ddl = """
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version INTEGER PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                checksum TEXT NOT NULL,
+                applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+    else:
+        ddl = """
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version BIGSERIAL PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                checksum TEXT NOT NULL,
+                applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """
+    conn.execute(text(ddl))
 
 
 def apply_migrations(conn: Connection, directory: Path) -> list[str]:
