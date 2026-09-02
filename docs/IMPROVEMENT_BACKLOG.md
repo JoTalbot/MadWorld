@@ -42,7 +42,7 @@ This is the decision register for meaningful improvements discovered during deve
 | IMP-020 | Deterministic time/job scheduler | ACCEPTED | Required foundation for offline production, repair, contracts and simulation ticks |
 | IMP-021 | Authentication, sessions and device/account security | PROPOSED | Required player-facing identity layer; include refresh/revocation and abuse controls |
 | IMP-022 | API contract versioning and generated client models | PROPOSED | Reduce Android/backend drift and make migrations safer |
-| IMP-023 | Domain event envelope and schema registry | PROPOSED | Stable event contracts for outbox, workers, analytics and future service extraction |
+| IMP-023 | Domain event envelope and schema registry | ACCEPTED | Hybrid selected: stable envelope + registry now; compatibility/migration tooling later |
 | IMP-024 | Rate limiting and command budgets | PROPOSED | Protect authoritative commands and reduce automation abuse |
 | IMP-025 | Anti-cheat trust model and server-side action validation | PROPOSED | Harden economy, movement, combat, timers and rewards against manipulated clients |
 | IMP-026 | Structured observability: logs, metrics, traces and correlation IDs | PROPOSED | Diagnose production failures without inspecting player state manually |
@@ -86,6 +86,7 @@ This is the decision register for meaningful improvements discovered during deve
 | IMP-064 | Outbox leasing, retry and dead-letter processing | ACCEPTED | Hybrid selected: lease + retry/backoff first; dead-letter and replay later |
 | IMP-065 | Stable API error envelope | ACCEPTED | Hybrid selected: stable envelope + typed codes now; generated catalog later |
 | IMP-066 | Constraint-aware database error mapping | ACCEPTED | Hybrid selected: centralized mapper with safe machine codes and no SQL leakage |
+| IMP-067 | Transactional semantics for in-memory test adapter | ACCEPTED | Hybrid selected: snapshot/restore rollback now; production semantics remain PostgreSQL transactions |
 
 ## Variant policy
 
@@ -135,6 +136,18 @@ The chosen variant must be recorded in the decision entry before product behavio
 - **Systemic:** centralized database exception mapper with constraint classification.
 - **Advanced:** catalogued DB constraints, diagnostics and operational error telemetry.
 - **Hybrid — SELECTED:** centralized mapper with safe application codes, preserving original exception as internal cause and never exposing SQL.
+
+### IMP-067 — Transactional semantics for in-memory test adapter
+- **Minimal/MVP:** expose rollback flags only and use tests to inspect them.
+- **Systemic:** implement full repository snapshot/restore semantics matching transactional expectations.
+- **Advanced:** nested transaction/savepoint simulation and fault-injection hooks.
+- **Hybrid — SELECTED:** snapshot/restore now, with deeper savepoint simulation only if later composition tests require it.
+
+### IMP-023 — Domain event envelope and schema registry
+- **Minimal/MVP:** wrap each event in a stable envelope containing event ID, type, aggregate, timestamp and payload.
+- **Systemic:** registry validates every event type/version before it enters audit/outbox.
+- **Advanced:** compatibility matrix, event migrations and operational schema tooling for long-lived consumers.
+- **Hybrid — SELECTED:** versioned envelope + in-process registry now; compatibility/migration tooling later without changing the transport contract.
 
 ## Selection policy
 
