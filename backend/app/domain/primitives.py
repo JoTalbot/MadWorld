@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
 from uuid import UUID, uuid4
@@ -93,12 +93,13 @@ class Job:
     completes_at: datetime
     state: JobState = JobState.QUEUED
     version: int = 0
+    metadata: dict = field(default_factory=dict)
 
     @classmethod
-    def create(cls, owner_id: UUID, job_type: str, started_at: datetime, completes_at: datetime) -> "Job":
+    def create(cls, owner_id: UUID, job_type: str, started_at: datetime, completes_at: datetime, metadata: dict | None = None) -> "Job":
         if completes_at <= started_at:
             raise InvalidTransition("job completion must be after start")
-        return cls(uuid4(), owner_id, job_type, started_at, completes_at)
+        return cls(uuid4(), owner_id, job_type, started_at, completes_at, metadata=dict(metadata or {}))
 
     def start(self) -> None:
         if self.state is not JobState.QUEUED:
