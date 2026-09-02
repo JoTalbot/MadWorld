@@ -1,6 +1,17 @@
 # MadWorld Improvement Backlog
 
-> Policy: every new improvement records materially different implementation variants before selection. Product-changing mechanics require acceptance; bug fixes/refactors may be applied directly.
+## Working policy — persistent across chats
+
+This file is the persistent source of truth for improvement proposals and implementation decisions. A new chat must read and follow this policy instead of requiring the user to restate it.
+
+1. When a materially useful improvement is discovered during analysis or implementation, record it in this backlog immediately.
+2. For every product-changing improvement, record materially different implementation variants before selecting one. At minimum consider Minimal, Systemic, Advanced and Hybrid where applicable.
+3. New product-changing improvements start as `PLANNED`; they are not considered approved merely because they appear in the backlog.
+4. In the chat, present newly discovered improvements and ask the user whether to apply them. Do not silently implement product-changing improvements.
+5. After the user selects a variant, change the item to `ACCEPTED`, record the selected variant and implement it.
+6. Bug fixes, security fixes and non-product-changing refactors may be applied directly when they improve correctness or safety without changing the intended game design.
+7. When implementation is complete, record the implementation status, important deferred parts and tests/verification in the backlog.
+8. Never delete an accepted or planned improvement merely because it is deferred. Preserve the decision history.
 
 ## IMP-020 — Authoritative time + due-job scheduling
 - Status: ACCEPTED — Hybrid
@@ -23,8 +34,12 @@
 - Selected: stable UUID journal + exact-retry semantics now; durable mobile queue/richer conflict handling later.
 
 ## IMP-029 — Regional player markets
-- Status: PLANNED
-- Variants: Minimal fixed-price listings; Systemic regional order books; Advanced NPC liquidity + simulation; Hybrid regional order book first, NPC liquidity later.
+- Status: ACCEPTED — Hybrid
+- Selected: regional player order book first, NPC liquidity/simulation later.
+- Implemented slice: PostgreSQL market orders, sell-item escrow, deterministic price/time/id tie-breaking, transactional matching, buy-side currency reservation, reserve refund after filled limit orders, regional order-book read API, trade history and request-level idempotency by player/key.
+- API: `GET /api/v1/market/{region_id}/{item_definition_id}`, `POST /api/v1/market/buy`, `POST /api/v1/market/sell`.
+- Deferred: cancellation/release flow, market fees/taxes, NPC liquidity, advanced price simulation, richer order types and production market UI.
+- Verification still required in CI/integration tests before marking the selected slice COMPLETE.
 
 ## IMP-061 — Inventory authority
 - Status: ACCEPTED
@@ -106,5 +121,5 @@
   3. Advanced: refresh/revocation/device binding plus scoped credentials.
   4. Hybrid: protect state/bootstrap immediately, then extend ownership enforcement across every player-owned command before production auth hardening.
 - Selected: Hybrid.
-- Implementation: bearer authentication and ownership checks now cover wallet entries, inventory mutations, job creation/transitions, character creation/reads, vehicle creation/reads/mutations, plus bootstrap/state. Negative regression tests cover missing authentication and cross-player access.
+- Implementation: bearer authentication and ownership checks now cover wallet entries, inventory mutations, job creation/transitions, character creation/reads, vehicle creation/reads, plus bootstrap/state. Negative regression tests cover missing authentication and cross-player access.
 - Remaining production auth work: refresh/revocation, device binding and scoped credentials remain intentionally deferred.
