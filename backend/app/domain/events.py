@@ -56,6 +56,8 @@ def build_default_registry() -> EventSchemaRegistry:
     registry.register("vehicle.component_damaged", 1, _require_keys("component", "raw_amount", "applied_amount", "damage_type", "durability", "state"))
     registry.register("vehicle.component_repaired", 1, _require_keys("component", "amount", "durability"))
     registry.register("resource.gathered", 1, _require_keys("player_id", "inventory_id", "item_definition_id", "quantity"))
+    registry.register("contract.completed", 1, _require_keys("template_code", "reward", "owner_id"))
+    registry.register("contract.cancelled", 1, _require_keys("template_code", "owner_id"))
     return registry
 
 DEFAULT_EVENT_REGISTRY = build_default_registry()
