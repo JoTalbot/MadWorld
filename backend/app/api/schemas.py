@@ -68,6 +68,9 @@ class VehicleCreateRequest(BaseModel):
     chassis_code: str = Field(default="light_runner", min_length=1, max_length=100)
 class VehicleMutationRequest(BaseModel):
     amount: int = Field(gt=0)
+class VehicleRepairRequest(BaseModel):
+    inventory_id: UUID
+    amount: int = Field(gt=0, le=100)
 class VehicleResponse(BaseModel):
     id: UUID
     owner_id: UUID

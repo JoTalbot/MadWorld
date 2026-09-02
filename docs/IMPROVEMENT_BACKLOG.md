@@ -133,3 +133,15 @@ This file is the persistent source of truth for improvement proposals and implem
 - Finding: cross-side concurrent buy/sell matching could deadlock if each transaction locked its own order row before attempting to synchronize the shared regional/item order book.
 - Implementation: `_match` now resolves the order's `(region_id, item_definition_id)` first, acquires a PostgreSQL transaction-scoped advisory lock for that regional/item book, and only then acquires the order row lock and performs matching. This serializes matching per regional item without changing market behavior.
 - Verification: corrected implementation committed as `367b950d6ab0b0c7d24c450a2f965dd257df7d4c`; CI run #177 passed migrations and the complete test suite.
+
+## IMP-074 — Vehicle repair vertical slice
+- Status: ACCEPTED — Hybrid
+- Goal: add an authoritative garage repair loop that consumes repair resources, advances vehicle condition through a server-time job, and provides the foundation for component-aware damage without prematurely implementing the full combat damage model.
+- Variants:
+  1. Minimal: direct durability restoration for a resource cost.
+  2. Systemic: persistent repair job + resource consumption + authoritative time + garage requirement + transactional mutation.
+  3. Advanced: component damage, repair quality, mechanic skills and facility modifiers.
+  4. Hybrid: systemic repair job now + extensible component/quality foundations for later combat.
+- Selected: Hybrid.
+- Implementation status: IN PROGRESS on `feat/vehicle-repair`.
+- Deferred: full component-aware combat damage, repair-quality progression, mechanic skills and facility modifiers.

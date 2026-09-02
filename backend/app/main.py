@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from app.api.gathering_routes import router as gathering_router
 from app.api.market_routes import router as market_router
 from app.api.crafting_routes import router as crafting_router
+from app.api.repair_routes import router as repair_router
 from app.api.routes import router as api_v1_router
 from app.api.session_routes import router as session_router
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict, NotFound
@@ -22,6 +23,7 @@ app.include_router(session_router)
 app.include_router(market_router)
 app.include_router(gathering_router)
 app.include_router(crafting_router)
+app.include_router(repair_router)
 
 
 @app.middleware("http")
@@ -38,40 +40,22 @@ def _error_response(request: Request, status_code: int, code: str, message: str,
 
 
 @app.exception_handler(NotFound)
-async def not_found_handler(request: Request, exc: NotFound) -> JSONResponse:
-    return _error_response(request, 404, "NOT_FOUND", str(exc))
-
-
+async def not_found_handler(request: Request, exc: NotFound) -> JSONResponse: return _error_response(request, 404, "NOT_FOUND", str(exc))
 @app.exception_handler(ConcurrencyConflict)
-async def concurrency_handler(request: Request, exc: ConcurrencyConflict) -> JSONResponse:
-    return _error_response(request, 409, "CONCURRENCY_CONFLICT", str(exc))
-
-
+async def concurrency_handler(request: Request, exc: ConcurrencyConflict) -> JSONResponse: return _error_response(request, 409, "CONCURRENCY_CONFLICT", str(exc))
 @app.exception_handler(IdempotencyConflict)
-async def idempotency_handler(request: Request, exc: IdempotencyConflict) -> JSONResponse:
-    return _error_response(request, 409, "IDEMPOTENCY_CONFLICT", str(exc))
-
-
+async def idempotency_handler(request: Request, exc: IdempotencyConflict) -> JSONResponse: return _error_response(request, 409, "IDEMPOTENCY_CONFLICT", str(exc))
 @app.exception_handler(DomainError)
-async def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
-    return _error_response(request, 400, "DOMAIN_ERROR", str(exc))
-
-
+async def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse: return _error_response(request, 400, "DOMAIN_ERROR", str(exc))
 @app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
-    return _error_response(request, 400, "INVALID_ARGUMENT", str(exc))
-
-
+async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse: return _error_response(request, 400, "INVALID_ARGUMENT", str(exc))
 @app.exception_handler(RequestValidationError)
-async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    return _error_response(request, 422, "VALIDATION_ERROR", "request validation failed", {"errors": exc.errors()})
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse: return _error_response(request, 422, "VALIDATION_ERROR", "request validation failed", {"errors": exc.errors()})
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "madworld-api"}
+def health() -> dict[str, str]: return {"status": "ok", "service": "madworld-api"}
 
 
 @app.get("/api/v1/world")
-def world() -> dict:
-    return {"season": 1, "tick": 0, "regions": [{"id": "dust_basin", "name": "Dust Basin", "security": "lawless"}, {"id": "iron_ruins", "name": "Iron Ruins", "security": "contested"}, {"id": "salt_coast", "name": "Salt Coast", "security": "frontier"}]}
+def world() -> dict: return {"season": 1, "tick": 0, "regions": [{"id": "dust_basin", "name": "Dust Basin", "security": "lawless"}, {"id": "iron_ruins", "name": "Iron Ruins", "security": "contested"}, {"id": "salt_coast", "name": "Salt Coast", "security": "frontier"}]}
