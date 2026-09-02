@@ -19,6 +19,11 @@ class WalletTransfer(BaseModel):
     reason: str = Field(min_length=1, max_length=256)
 
 
+def _validate_recipient(payload: WalletTransfer) -> None:
+    if (payload.recipient_player_id is None) == (payload.recipient_corporation_id is None):
+        raise HTTPException(400, "exactly one recipient is required")
+
+
 def _wallet_for_player(uow: UnitOfWork, player_id: UUID) -> UUID:
     row = uow.conn.execute(text("SELECT id FROM wallets WHERE owner_id=:p"), {"p": player_id}).first()
     if not row:
@@ -63,8 +68,7 @@ def transfer_wallet(
     replay = replay_or_none(uow, "social.wallet.transfer", key, payload.model_dump(mode="json"))
     if replay is not None:
         return replay
-    if (payload.recipient_player_id is None) == (payload.recipient_corporation_id is None):
-        raise HTTPException(400, "exactly one recipient is required")
+    _validate_recipient(payload)
     _require_permission(uow, payload.corporation_id, player_id, "MANAGE_WALLET")
     source = _wallet_for_corporation(uow, payload.corporation_id)
     target = _wallet_for_player(uow, payload.recipient_player_id) if payload.recipient_player_id else _wallet_for_corporation(uow, payload.recipient_corporation_id)
