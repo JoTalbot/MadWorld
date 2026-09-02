@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from app.application.errors import IdempotencyConflict, NotFound
 from app.application.ports import UnitOfWork
-from app.domain.primitives import Job, LedgerEntry, utc_now
+from app.domain.primitives import InventoryStack, Job, LedgerEntry, utc_now
 
 
 class WalletService:
@@ -37,6 +37,48 @@ class WalletService:
     def _record(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
         self.uow.audit.append(event_type, aggregate_type, aggregate_id, payload)
         self.uow.outbox.enqueue(event_type, aggregate_type, aggregate_id, payload)
+
+
+class InventoryService:
+    def __init__(self, uow: UnitOfWork) -> None:
+        self.uow = uow
+
+    def add(self, inventory_id: UUID, item_definition_id: UUID, quantity: int, condition: int = 100) -> InventoryStack:
+        if quantity <= 0:
+            raise ValueError("inventory quantity must be positive")
+        stack = self.uow.inventories.get_stack(inventory_id, item_definition_id)
+        if stack is None:
+            stack = InventoryStack(item_definition_id, quantity, condition)
+        else:
+            if stack.condition != condition and stack.quantity > 0:
+                raise ValueError("cannot merge inventory stacks with different condition")
+            stack.quantity += quantity
+        self.uow.inventories.save_stack(inventory_id, stack)
+        self._record("inventory.item_added", inventory_id, {"item_definition_id": str(item_definition_id), "quantity": quantity, "condition": condition})
+        self.uow.commit()
+        return stack
+
+    def remove(self, inventory_id: UUID, item_definition_id: UUID, quantity: int) -> InventoryStack | None:
+        if quantity <= 0:
+            raise ValueError("inventory quantity must be positive")
+        stack = self.uow.inventories.get_stack(inventory_id, item_definition_id)
+        if stack is None or stack.quantity < quantity:
+            raise ValueError("inventory quantity is insufficient")
+        remaining = stack.quantity - quantity
+        if remaining == 0:
+            self.uow.inventories.delete_stack(inventory_id, item_definition_id)
+            result = None
+        else:
+            stack.quantity = remaining
+            self.uow.inventories.save_stack(inventory_id, stack)
+            result = stack
+        self._record("inventory.item_removed", inventory_id, {"item_definition_id": str(item_definition_id), "quantity": quantity})
+        self.uow.commit()
+        return result
+
+    def _record(self, event_type: str, inventory_id: UUID, payload: dict) -> None:
+        self.uow.audit.append(event_type, "inventory", inventory_id, payload)
+        self.uow.outbox.enqueue(event_type, "inventory", inventory_id, payload)
 
 
 class JobService:
