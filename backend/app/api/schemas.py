@@ -112,3 +112,38 @@ class ErrorResponse(BaseModel):
     message: str
     request_id: str
     details: dict | None = None
+
+
+class ContractTemplateResponse(BaseModel):
+    code: str
+    title: str
+    description: str
+    contract_type: str
+    item_definition_id: UUID
+    required_quantity: int
+    reward: int
+    duration_seconds: int
+    penalty: int
+
+class ContractAcceptRequest(BaseModel):
+    template_code: str = Field(min_length=1, max_length=100)
+    inventory_id: UUID
+    wallet_id: UUID
+
+class ContractResponse(BaseModel):
+    id: UUID
+    owner_id: UUID
+    template_code: str
+    title: str
+    description: str
+    contract_type: str
+    item_definition_id: UUID
+    required_quantity: int
+    reward: int
+    penalty: int
+    inventory_id: UUID
+    wallet_id: UUID
+    accepted_at: datetime
+    deadline: datetime
+    state: str
+    version: int
