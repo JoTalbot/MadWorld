@@ -4,10 +4,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.api.dependencies import get_authenticated_player
 from app.api import market_routes
 from app.main import app
-from test_market_api import auth, seed_market_players
+from test_market_api import auth, engine, seed_market_players
 
 pytestmark = pytest.mark.integration
 
