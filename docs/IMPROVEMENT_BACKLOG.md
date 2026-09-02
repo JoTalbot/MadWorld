@@ -135,7 +135,7 @@ This file is the persistent source of truth for improvement proposals and implem
 - Verification: corrected implementation committed as `367b950d6ab0b0c7d24c450a2f965dd257df7d4c`; CI run #177 passed migrations and the complete test suite.
 
 ## IMP-074 — Vehicle repair vertical slice
-- Status: ACCEPTED — Hybrid
+- Status: COMPLETE — Hybrid
 - Goal: add an authoritative garage repair loop that consumes repair resources, advances vehicle condition through a server-time job, and provides the foundation for component-aware damage without prematurely implementing the full combat damage model.
 - Variants:
   1. Minimal: direct durability restoration for a resource cost.
@@ -143,5 +143,18 @@ This file is the persistent source of truth for improvement proposals and implem
   3. Advanced: component damage, repair quality, mechanic skills and facility modifiers.
   4. Hybrid: systemic repair job now + extensible component/quality foundations for later combat.
 - Selected: Hybrid.
-- Implementation status: IN PROGRESS on `feat/vehicle-repair`.
+- Implementation status: COMPLETE. Merged to `main` via PR #2, merge commit `509ab41883cda32a1e20ba78abf6f5162a02854e`.
+- Verification: CI run #206 passed after fixing completion ordering so an early completion cannot mutate vehicle durability.
 - Deferred: full component-aware combat damage, repair-quality progression, mechanic skills and facility modifiers.
+
+## IMP-075 — Legacy vehicle repair API migration
+- Status: PLANNED — Product/API change; not approved
+- Goal: retire the legacy direct vehicle-repair endpoint now that authoritative repair jobs are available, without breaking existing clients unexpectedly.
+- Variants:
+  1. Minimal: remove the legacy endpoint in the next breaking API release.
+  2. Systemic: redirect/translate legacy requests into authoritative repair jobs and document the migration.
+  3. Advanced: versioned API migration with compatibility window, telemetry, deprecation headers and explicit sunset release.
+  4. Hybrid: compatibility adapter + deprecation headers/telemetry now, then remove the legacy endpoint after migration criteria are met.
+- Recommendation: Hybrid.
+- Reason: preserves compatibility while making the authoritative repair-job flow the only long-term implementation.
+- Acceptance: requires explicit product decision before implementation.
