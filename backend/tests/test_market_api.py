@@ -45,6 +45,8 @@ def seed_market_players(engine):
                      {"inventory": seller_inventory, "item": item_id})
         conn.execute(text("INSERT INTO ledger_entries (wallet_id, amount, reason, actor_id, idempotency_key) VALUES (:wallet, 1000, 'test_funding', :actor, :key)"),
                      {"wallet": buyer_wallet, "actor": buyer_id, "key": f"market-funding-{buyer_id}"})
+        conn.execute(text("INSERT INTO ledger_entries (wallet_id, amount, reason, actor_id, idempotency_key) VALUES (:wallet, 1000, 'test_funding', :actor, :key)"),
+                     {"wallet": seller_wallet, "actor": seller_id, "key": f"market-funding-{seller_id}"})
     return region_id, item_id, seller_id, buyer_id, seller_wallet, buyer_wallet, seller_inventory, buyer_inventory
 
 
