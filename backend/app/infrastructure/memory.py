@@ -113,9 +113,34 @@ class InMemoryUnitOfWork:
     outbox: InMemoryOutboxRepository = field(default_factory=InMemoryOutboxRepository)
     committed: bool = False
     rolled_back: bool = False
-    def __enter__(self) -> "InMemoryUnitOfWork": return self
+    _snapshot: dict | None = field(default=None, init=False, repr=False)
+
+    def __enter__(self) -> "InMemoryUnitOfWork":
+        self._snapshot = {
+            "wallets": deepcopy(self.wallets),
+            "inventories": deepcopy(self.inventories),
+            "jobs": deepcopy(self.jobs),
+            "idempotency": deepcopy(self.idempotency),
+            "audit": deepcopy(self.audit),
+            "outbox": deepcopy(self.outbox),
+        }
+        return self
+
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         if exc_type is None: self.commit()
         else: self.rollback()
-    def commit(self) -> None: self.committed = True
-    def rollback(self) -> None: self.rolled_back = True
+
+    def commit(self) -> None:
+        self.committed = True
+        self._snapshot = None
+
+    def rollback(self) -> None:
+        if self._snapshot is not None:
+            self.wallets = self._snapshot["wallets"]
+            self.inventories = self._snapshot["inventories"]
+            self.jobs = self._snapshot["jobs"]
+            self.idempotency = self._snapshot["idempotency"]
+            self.audit = self._snapshot["audit"]
+            self.outbox = self._snapshot["outbox"]
+        self.rolled_back = True
+        self._snapshot = None
