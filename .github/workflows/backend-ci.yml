@@ -45,6 +45,6 @@ jobs:
       - name: Apply database migrations
         run: python scripts/migrate.py
       - name: Verify application module resolution
-        run: python -c "import app.main; print(app.main.__file__); print('routes=', len(app.main.app.routes)); assert any(r.path == '/api/v1/travel/plan' for r in app.main.app.routes)"
+        run: python -c "import app.main; print(app.main.__file__); paths=set(app.main.app.openapi()['paths']); print('routes=', len(paths)); assert '/api/v1/travel/plan' in paths"
       - name: Run tests
         run: python -m pytest -q
