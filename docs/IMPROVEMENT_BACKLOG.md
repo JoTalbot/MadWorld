@@ -86,3 +86,14 @@
   4. Hybrid: typed client + repository + ViewModel + cache now; offline journal/reconciliation builds on IMP-027/028 later.
 - Selected: Hybrid. Reason: establishes the correct client architecture without prematurely duplicating server simulation on Android.
 - Acceptance: authorized by project continuation workflow.
+
+## IMP-071 — Persistent player sessions
+- Status: ACCEPTED — Hybrid
+- Goal: replace the Android development UUID with a server-created persistent player identity and session credential.
+- Variants:
+  1. Minimal: anonymous player creation with a persistent player UUID.
+  2. Systemic: player handle + expiring server session token + Android credential cache.
+  3. Advanced: refresh/revocation/device binding and full account security flows.
+  4. Hybrid: handle + 30-day server session + Android persistence now; refresh/revocation/device security later.
+- Selected: Hybrid. The current slice adds the persistent session boundary while leaving production account security for the dedicated auth hardening phase.
+- Acceptance: authorized by project continuation workflow.
