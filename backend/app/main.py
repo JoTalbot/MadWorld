@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.api.gathering_routes import router as gathering_router
 from app.api.market_routes import router as market_router
 from app.api.routes import router as api_v1_router
 from app.api.session_routes import router as session_router
@@ -18,6 +19,7 @@ app = FastAPI(title="MadWorld API", version="0.1.0")
 app.include_router(api_v1_router)
 app.include_router(session_router)
 app.include_router(market_router)
+app.include_router(gathering_router)
 
 
 @app.middleware("http")
