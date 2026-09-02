@@ -1,10 +1,11 @@
-from fastapi.routing import APIRoute
-
 from app.main import app
 
 
 def test_b2_travel_routes_are_registered():
-    paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
+    # FastAPI 0.141+ may expose included routers as internal wrapper objects
+    # in app.routes. The OpenAPI surface is the stable public registration
+    # contract and avoids coupling this test to Starlette internals.
+    paths = set(app.openapi()["paths"])
     assert {
         "/api/v1/travel/plan",
         "/api/v1/travel/{session_id}/depart",
