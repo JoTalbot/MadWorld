@@ -45,12 +45,20 @@ class InMemoryInventoryRepository:
 @dataclass
 class InMemoryJobRepository:
     jobs: dict[UUID, Job] = field(default_factory=dict)
+    idempotency: dict[str, UUID] = field(default_factory=dict)
 
     def get(self, job_id: UUID) -> Job | None:
         return self.jobs.get(job_id)
 
+    def get_by_idempotency_key(self, key: str) -> Job | None:
+        job_id = self.idempotency.get(key)
+        return self.jobs.get(job_id) if job_id else None
+
     def save(self, job: Job) -> None:
         self.jobs[job.id] = job
+
+    def bind_idempotency_key(self, key: str, job_id: UUID) -> None:
+        self.idempotency[key] = job_id
 
 
 @dataclass
@@ -58,12 +66,7 @@ class InMemoryAuditRepository:
     events: list[dict] = field(default_factory=list)
 
     def append(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
-        self.events.append({
-            "event_type": event_type,
-            "aggregate_type": aggregate_type,
-            "aggregate_id": aggregate_id,
-            "payload": payload,
-        })
+        self.events.append({"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": payload})
 
 
 @dataclass
@@ -71,12 +74,7 @@ class InMemoryOutboxRepository:
     events: list[dict] = field(default_factory=list)
 
     def enqueue(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
-        self.events.append({
-            "event_type": event_type,
-            "aggregate_type": aggregate_type,
-            "aggregate_id": aggregate_id,
-            "payload": payload,
-        })
+        self.events.append({"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": payload})
 
 
 @dataclass
