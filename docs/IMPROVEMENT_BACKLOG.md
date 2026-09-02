@@ -151,3 +151,106 @@ This file is the persistent source of truth for improvement proposals and implem
 - Android: `TerritoryState.kt`, territory API parsing, ViewModel refresh and territory panel.
 - Tests: `backend/tests/test_phase5_territory.py`.
 - Final CI verification is required before declaring the batch green.
+
+## PHASE 6 — Dynamic World
+
+### Variant decision record
+- Initial variants: Minimal / Systemic / Advanced / Hybrid.
+- Full variant comparison and acceptance boundary are preserved in `docs/PHASE6_WORLD_SIMULATION_PLAN.md`.
+- Selected: **Hybrid**.
+- Approval: user approved the recommended Hybrid batch for IMP-117 → IMP-134 as one batch.
+
+### IMP-117 — World Simulation Layer
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: persistent season/tick state, deterministic tick seed, transactional simulation core and trusted service entry point.
+- Deferred: production scheduler/worker wiring.
+
+### IMP-118 — NPC factions
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: seeded faction catalog with doctrine, aggression and logistics parameters.
+- Deferred: full autonomous faction decision engine.
+
+### IMP-119 — Faction regional state and diplomacy
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: per-faction/per-region influence, hostility and supply state.
+- Deferred: full diplomacy transition graph and warfare resolution.
+
+### IMP-120 — Regional shortages and surpluses
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: bounded regional resource pressure/trend state and shortage event generation.
+- Deferred: direct market supply/demand feedback.
+
+### IMP-121 — Dynamic world events
+- Status: COMPLETE — Hybrid.
+- Implemented: persistent typed world events with severity, state, payload and event log.
+
+### IMP-122 — Dynamic convoy events
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: convoy event records with origin/destination, cargo and deterministic danger.
+- Deferred: live convoy movement and combat consumer.
+
+### IMP-123 — Resource discoveries
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: discovery events, quantities, expiry and lifecycle state.
+- Deferred: scouting/player discovery attribution.
+
+### IMP-124 — Disasters
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: deterministic regional disaster generation with severity and lifetime.
+
+### IMP-125 — Catastrophe zones
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: bounded hazard, travel-risk and extraction modifiers linked to disasters.
+- Deferred: physical geography mutation.
+
+### IMP-126 — World-state-driven missions
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: shortage-driven supply missions with bounded reward/risk and expiry.
+- Deferred: broader mission grammar and player acceptance/settlement consumers.
+
+### IMP-127 — World simulation scheduler/ticks
+- Status: COMPLETE — Hybrid service boundary.
+- Implemented: lock-protected single-tick transition and scheduler-ready `run_world_tick()` entry point; public clients are forbidden from advancing ticks.
+- Deferred: wiring into the existing job worker.
+
+### IMP-128 — World event history/replayability
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: deterministic seed plus tick and event logs.
+- Deferred: full historical replay executor.
+
+### IMP-129 — Economy ↔ world feedback loop
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: regional pressure state as the explicit bridge point for future market consumers.
+- Deferred: automatic market order/supply mutation.
+
+### IMP-130 — Territory ↔ NPC/world integration
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: world factions reference stable territory regions and regional influence/supply state.
+- Deferred: autonomous control changes and warfare.
+
+### IMP-131 — Telemetry, anti-abuse and simulation safeguards
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: bounded DB state, row locking, stale-tick rejection, service-only tick mutation and persistent event log.
+- Deferred: statistical abuse scoring and circuit breakers.
+
+### IMP-132 — Android authoritative world-state client
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: typed world models, repository, ViewModel refresh and mobile world panel.
+
+### IMP-133 — Adversarial simulation/invariant tests
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: deterministic seed/score invariants and service-boundary coverage.
+- Deferred: long-running replay/fuzz suite.
+
+### IMP-134 — Intelligence services / market foundation
+- Status: COMPLETE — Hybrid foundation.
+- Implemented: authoritative event/pressure/discovery/mission data exposed through one world-state read model suitable for future intelligence products.
+- Deferred: monetized intelligence market and historical analytics.
+
+### Phase 6 verification note
+- Migration: `backend/migrations/022_phase6_world_simulation.sql`.
+- Simulation: `backend/app/application/phase6_world.py`.
+- API: `backend/app/api/phase6_world_routes.py`.
+- Android: `WorldState.kt`, `WorldRepository.kt`, ViewModel and world panel.
+- Tests: `backend/tests/test_phase6_world.py`.
+- Final Backend and Android CI verification is required before declaring the batch green.
