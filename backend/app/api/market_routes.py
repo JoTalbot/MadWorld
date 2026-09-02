@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from app.api.dependencies import get_authenticated_player, get_engine
+from app.application.errors import IdempotencyConflict
+from app.api.idempotency import request_hash
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
@@ -127,8 +129,19 @@ def book(region_id: UUID, item_definition_id: UUID, authenticated_player: UUID =
     return BookResponse(region_id=region_id, item_definition_id=item_definition_id, bids=[BookOrder(**{**dict(r), "created_at": r["created_at"].isoformat()}) for r in bids], asks=[BookOrder(**{**dict(r), "created_at": r["created_at"].isoformat()}) for r in asks])
 
 
-def _existing(conn, owner_id: UUID, key: str):
-    return conn.execute(text("SELECT * FROM market_orders WHERE owner_id=:owner AND idempotency_key=:key"), {"owner": owner_id, "key": key}).mappings().first()
+def _existing(conn, owner_id: UUID, key: str, payload: OrderRequest):
+    row = conn.execute(text("SELECT * FROM market_orders WHERE owner_id=:owner AND idempotency_key=:key"), {"owner": owner_id, "key": key}).mappings().first()
+    if row is not None:
+        stored = {
+            "region_id": str(row["region_id"]),
+            "item_definition_id": str(row["item_definition_id"]),
+            "quantity": int(row["quantity"]),
+            "unit_price": int(row["unit_price"]),
+        }
+        incoming = payload.model_dump(mode="json")
+        if request_hash(stored) != request_hash(incoming):
+            raise IdempotencyConflict("idempotency key belongs to a different request")
+    return row
 
 
 @router.post("/buy", response_model=OrderResponse)
@@ -136,7 +149,7 @@ def buy(payload: OrderRequest, idempotency_key: str | None = Header(default=None
     if not idempotency_key:
         raise ValueError("Idempotency-Key header is required")
     with get_engine().begin() as conn:
-        existing = _existing(conn, authenticated_player, idempotency_key)
+        existing = _existing(conn, authenticated_player, idempotency_key, payload)
         if existing is not None:
             return _order_response(existing)
         wallet = _wallet(conn, authenticated_player)
@@ -154,7 +167,7 @@ def sell(payload: OrderRequest, idempotency_key: str | None = Header(default=Non
     if not idempotency_key:
         raise ValueError("Idempotency-Key header is required")
     with get_engine().begin() as conn:
-        existing = _existing(conn, authenticated_player, idempotency_key)
+        existing = _existing(conn, authenticated_player, idempotency_key, payload)
         if existing is not None:
             return _order_response(existing)
         inv = _inventory(conn, authenticated_player)
