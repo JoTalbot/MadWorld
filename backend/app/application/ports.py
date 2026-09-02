@@ -1,0 +1,54 @@
+"""Persistence and transaction contracts for authoritative use cases.
+
+The application layer depends on these contracts, not on PostgreSQL or a
+specific ORM. This keeps domain rules testable while the durable adapter is
+introduced incrementally.
+"""
+
+from __future__ import annotations
+
+from contextlib import AbstractContextManager
+from typing import Protocol
+from uuid import UUID
+
+from app.domain.primitives import InventoryStack, Job, LedgerEntry, Wallet
+
+
+class WalletRepository(Protocol):
+    def get(self, wallet_id: UUID) -> Wallet | None: ...
+    def save(self, wallet: Wallet) -> None: ...
+    def add_ledger_entry(self, entry: LedgerEntry) -> None: ...
+    def get_ledger_entry_by_idempotency_key(self, key: str) -> LedgerEntry | None: ...
+
+
+class InventoryRepository(Protocol):
+    def get_stack(self, inventory_id: UUID, item_definition_id: UUID) -> InventoryStack | None: ...
+    def save_stack(self, inventory_id: UUID, stack: InventoryStack) -> None: ...
+    def delete_stack(self, inventory_id: UUID, item_definition_id: UUID) -> None: ...
+
+
+class JobRepository(Protocol):
+    def get(self, job_id: UUID) -> Job | None: ...
+    def save(self, job: Job) -> None: ...
+
+
+class AuditRepository(Protocol):
+    def append(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: ...
+
+
+class OutboxRepository(Protocol):
+    def enqueue(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: ...
+
+
+class UnitOfWork(AbstractContextManager["UnitOfWork"], Protocol):
+    wallets: WalletRepository
+    inventories: InventoryRepository
+    jobs: JobRepository
+    audit: AuditRepository
+    outbox: OutboxRepository
+
+    def commit(self) -> None: ...
+    def rollback(self) -> None: ...
+
+    def __enter__(self) -> "UnitOfWork": ...
+    def __exit__(self, exc_type, exc_value, traceback) -> None: ...
