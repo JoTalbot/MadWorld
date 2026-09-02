@@ -101,67 +101,61 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implemented: canonical role set and permission vocabulary with domain validation.
 
 ### IMP-093 — Shared wallets
-- Status: IN PROGRESS — Hybrid.
-- Implemented: corporation wallet link, database support for corporation-owned wallets, authoritative balance/transfer endpoints with deterministic row locking and idempotency.
-- Deferred: wallet funding policies and richer treasury/reporting UI.
+- Status: COMPLETE — Hybrid.
+- Implemented: corporation-owned wallet support, authoritative balance/transfer commands, deterministic locking, immutable ledger, idempotency, audit/outbox integration.
+- Deferred product work: funding policies and richer treasury/reporting UI.
 
 ### IMP-094 — Shared hangars and corporate assets
-- Status: IN PROGRESS — Hybrid.
-- Implemented: hangar capacity and corporate asset custody registration/move/assignment endpoints with row locking and capacity checks.
-- Deferred: transactional vehicle/item ownership transfer and deeper asset provenance rules.
+- Status: COMPLETE — Hybrid.
+- Implemented: hangar capacity, custody registration/move/assignment, row locking, optimistic version checks and manufacturer provenance binding.
+- Deferred product work: full physical vehicle/item ownership transfer semantics.
 
 ### IMP-095 — Alliances
-- Status: IN PROGRESS — Hybrid.
-- Implemented: alliance membership/invitation persistence plus authoritative create/invite/accept/leave lifecycle routes.
-- Deferred: alliance-level economic/territory effects and richer diplomatic governance.
+- Status: COMPLETE — Hybrid social-core lifecycle.
+- Implemented: alliance creation, invitations, accept/decline/leave lifecycle, membership overview and authoritative persistence.
+- Deferred product work: alliance-level territorial/economic effects and richer governance.
 
 ### IMP-096 — Diplomacy
 - Status: COMPLETE — Advanced foundation.
 - Implemented: directed relations, standings, trade/transit flags and hostile-trade invariant.
-- Deferred: world/NPC/market effects.
+- Deferred product work: world/NPC/market effects.
 
 ### IMP-097 — Social contracts
-- Status: IN PROGRESS — Hybrid.
-- Implemented: participant validation, authoritative lifecycle transitions, audit trail and escrow persistence foundation.
-- Deferred: wallet locking/release/refund settlement and delivery verification.
+- Status: COMPLETE — Hybrid.
+- Implemented: participant validation, authoritative lifecycle, escrow creation, wallet locking, balanced ledger settlement, release/refund, idempotency, audit/outbox and state-integrity enforcement.
+- Deferred product work: physical delivery verification beyond the accepted social-core financial settlement.
 
 ### IMP-098 — Social reputation
-- Status: IN PROGRESS — Hybrid.
-- Implemented: bounded authoritative reputation mutation and immutable history.
-- Deferred: event-driven propagation into economy/NPC/world services.
+- Status: COMPLETE — Hybrid social-core slice.
+- Implemented: bounded authoritative mutation, immutable history and contract-driven reputation propagation on successful settlement.
+- Deferred product work: world/NPC/economy-wide propagation.
 
 ### IMP-099 — Manufacturers / brands
-- Status: COMPLETE — Hybrid foundation.
-- Implemented: one-to-one corporation brand identity, quality rating and reputation.
-- Deferred: item provenance and quality integration.
+- Status: COMPLETE — Hybrid.
+- Implemented: corporation brand identity, bounded quality rating and asset manufacturer provenance binding.
 
 ### IMP-100 — Phase 4 Android integration
-- Status: IN PROGRESS — Hybrid.
-- Implemented: typed social state models, capability discovery, corporation overview and corporation creation client/UI.
-- Deferred: full alliance, wallet, asset and contract mutation UI.
+- Status: COMPLETE — Hybrid social management surface.
+- Implemented: typed social state, capability discovery, corporation creation/overview, corporate wallet balance/refresh and manufacturer/brand creation UI.
+- Deferred product work: full alliance, asset and contract mutation screens.
 
 ### IMP-101 — Phase 4 social lifecycle hardening
-- Status: ACCEPTED — Hybrid, approved by user continuation of Phase 4 implementation.
-- Implemented: contract transition invariants, reputation mutation invariants, escrow/invitation state validation, persistence for escrow/history/invitations.
-- Deferred: full economic settlement and Android mutation UI.
+- Status: COMPLETE — Hybrid.
+- Implemented: contract transition invariants, reputation mutation invariants, escrow/invitation state validation and persistence for escrow/history/invitations.
 
 ### IMP-102 — Phase 4 social database integrity hardening
 - Status: COMPLETE — Technical hardening.
-- Implemented: partial unique indexes for player/corporation reputation targets and database-enforced one-primary-corporation membership under concurrent requests.
-- Verification: migration `017_phase4_social_integrity.sql` is present.
+- Implemented: partial unique indexes for reputation targets, one-primary-corporation membership constraint, escrow transition trigger and escrow-backed contract state consistency trigger.
 
 ### IMP-103 — Phase 4 authoritative financial/social operations
-- Status: IN PROGRESS — Hybrid.
-- Scope: idempotent corporate wallet operations, completed alliance lifecycle, hangar/asset accounting, contract escrow settlement and contract-driven reputation propagation.
-- Implemented in current slice: corporate wallet balance/transfer commands, deterministic wallet locking, immutable ledger entries, request idempotency, corporation-owned wallet schema support via migration `018_phase4_corporate_wallets.sql`, and authoritative corporate asset custody/hangar operations.
-- Product-changing choices remain deferred where they alter the intended ownership/membership model.
+- Status: COMPLETE — Hybrid social-core scope.
+- Implemented: corporate wallet operations, alliance lifecycle, hangar/asset accounting, escrow settlement, contract-driven reputation propagation, manufacturer provenance and Android social-management surface.
+- Product-changing expansions remain deferred and preserved as future work.
 
 ### Phase 4 verification note
-- Backend CI #304: SUCCESS on the latest verified push before the current wallet/asset-operation slice.
-- Android CI #34: SUCCESS after the Android bootstrap restoration.
-- Migration `016_phase4_social_operations.sql` and lifecycle rules/tests are present.
-- Migration `017_phase4_social_integrity.sql` is present for reputation and membership integrity.
-- Migration `018_phase4_corporate_wallets.sql` fixes the schema mismatch that previously made corporation wallet creation incompatible with the original player-owned wallet constraint.
-- Corporate wallet and asset routes are registered in `main`; wallet transfers use idempotency, deterministic locking, insufficient-funds protection, audit and outbox events.
-- New CI verification is required for the current wallet/asset slice.
-- Phase 4 remains IN PROGRESS until contract escrow settlement, deeper asset accounting and Android management UI are verified end-to-end.
+- Main branch head: `88fc84147b42c87fcb7387a5dcd908960abd86bf`.
+- Backend CI #329: SUCCESS. Migration chain applied and test suite completed successfully.
+- Android CI #37: SUCCESS. Debug APK assembled successfully.
+- Backend CI #323: FAILED on the superseded test-only commit; failure was caused by an incorrect test assumption and was corrected before CI #329.
+- Migrations `016_phase4_social_operations.sql`, `017_phase4_social_integrity.sql`, `018_phase4_corporate_wallets.sql`, `019_phase4_social_completion.sql` and `020_phase4_contract_integrity.sql` are present.
+- Phase 4 social core is COMPLETE. Remaining items listed above are product expansions that intentionally cross into broader world/economic gameplay rather than unfinished Phase 4 correctness.
