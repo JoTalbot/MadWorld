@@ -32,6 +32,24 @@ class MadWorldApi(private val baseUrl: String) {
         } finally { connection.disconnect() }
     }
 
+    fun fetchSettlement(playerId: UUID, token: String): SettlementState {
+        val url = URI.create("${baseUrl.trimEnd('/')}/api/v1/settlement").toURL()
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 10_000
+            setRequestProperty("Accept", "application/json"); setRequestProperty("Authorization", "Bearer $token")
+        }
+        try {
+            if (connection.responseCode !in 200..299) throw ApiException("settlement request failed: HTTP ${connection.responseCode}")
+            val root = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+            if (UUID.fromString(root.getString("owner_id")) != playerId) throw ApiException("settlement owner mismatch")
+            val modulesJson = root.getJSONObject("modules")
+            val capabilitiesJson = root.getJSONObject("capabilities")
+            val modules = buildMap { modulesJson.keys().forEach { key -> put(key, modulesJson.getInt(key)) } }
+            val capabilities = buildMap { capabilitiesJson.keys().forEach { key -> put(key, capabilitiesJson.getBoolean(key)) } }
+            return SettlementState(UUID.fromString(root.getString("id")), playerId, root.getString("region"), root.getInt("level"), modules, capabilities, root.getInt("version"))
+        } finally { connection.disconnect() }
+    }
+
     fun bootstrap(playerId: UUID, characterName: String, token: String? = null, idempotencyKey: UUID = UUID.randomUUID()): PlayerState {
         val url = URI.create("${baseUrl.trimEnd('/')}/api/v1/players/bootstrap").toURL()
         val connection = (url.openConnection() as HttpURLConnection).apply {

@@ -52,3 +52,13 @@ data class PlayerState(
     val inventory: List<InventoryState> = emptyList(),
     val activeJobs: List<JobState> = emptyList(),
 )
+
+data class SettlementState(
+    val id: UUID,
+    val ownerId: UUID,
+    val region: String,
+    val level: Int,
+    val modules: Map<String, Int>,
+    val capabilities: Map<String, Boolean>,
+    val version: Int,
+)
