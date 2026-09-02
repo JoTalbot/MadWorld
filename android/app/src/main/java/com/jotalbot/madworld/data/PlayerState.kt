@@ -21,7 +21,34 @@ data class VehicleState(
     val version: Int,
 )
 
+data class WalletState(
+    val id: UUID,
+    val balance: Long,
+    val version: Int,
+)
+
+data class InventoryState(
+    val inventoryId: UUID,
+    val itemDefinitionId: UUID,
+    val quantity: Long,
+    val condition: Int,
+    val version: Int,
+)
+
+data class JobState(
+    val id: UUID,
+    val ownerId: UUID,
+    val jobType: String,
+    val startedAt: String,
+    val completesAt: String,
+    val state: String,
+    val version: Int,
+)
+
 data class PlayerState(
     val character: CharacterState?,
     val vehicles: List<VehicleState>,
+    val wallet: WalletState? = null,
+    val inventory: List<InventoryState> = emptyList(),
+    val activeJobs: List<JobState> = emptyList(),
 )
