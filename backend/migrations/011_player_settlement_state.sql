@@ -3,7 +3,7 @@ CREATE TABLE player_settlement_state (
     settlement_id UUID NOT NULL REFERENCES settlements(id),
     region TEXT NOT NULL,
     level INTEGER NOT NULL DEFAULT 1 CHECK (level >= 1),
-    modules JSONB NOT NULL DEFAULT '{"garage":1,"warehouse":1,"workshop":1,"contracts":1,"market":1}'::jsonb,
+    modules JSONB NOT NULL,
     version INTEGER NOT NULL DEFAULT 0 CHECK (version >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
