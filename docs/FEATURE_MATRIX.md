@@ -1,7 +1,6 @@
 # MadWorld — Feature Matrix
 
 ## Foundation
-
 - [ ] Accounts and sessions
 - [ ] Characters
 - [x] Server-authoritative inventory
@@ -12,7 +11,6 @@
 - [x] Audit events
 
 ## Exploration
-
 - [ ] World map
 - [x] Regions and routes
 - [x] Resource nodes
@@ -22,7 +20,6 @@
 - [ ] Weather/hazard modifiers
 
 ## Vehicles
-
 - [x] Chassis database
 - [x] Modular fitting
 - [x] Vehicle stats
@@ -34,7 +31,6 @@
 - [x] Convoys
 
 ## Industry
-
 - [ ] Blueprints
 - [x] Refining
 - [x] Manufacturing
@@ -46,7 +42,6 @@
 - [ ] Waste/by-products
 
 ## Economy
-
 - [x] Regional order books
 - [x] Buy/sell orders
 - [x] Matching engine
@@ -58,7 +53,6 @@
 - [ ] Trade analytics
 
 ## Logistics
-
 - [ ] Cargo contracts
 - [ ] Route planning
 - [ ] Cargo capacity
@@ -70,7 +64,6 @@
 - [ ] Smuggling
 
 ## Combat
-
 - [x] Vehicle combat foundation
 - [x] Targeting foundation
 - [x] Weapons foundation
@@ -82,19 +75,20 @@
 - [x] Combat salvage foundation
 
 ## Social
-
-- [ ] Corporations
-- [ ] Roles and permissions
-- [ ] Shared storage
-- [ ] Shared wallets
-- [ ] Alliances
-- [ ] Standings
-- [ ] Diplomacy
-- [ ] Corporate contracts
-- [ ] Corporate taxes
+- [x] Corporations foundation
+- [x] Roles and permissions foundation
+- [x] Shared wallet ownership model
+- [x] Shared hangar/asset model
+- [x] Alliances foundation
+- [x] Reputation records foundation
+- [x] Diplomacy foundation
+- [x] Corporate/player social contracts foundation
+- [x] Corporate assets foundation
+- [x] Manufacturers/brands foundation
+- [ ] Full transactional social mutations
+- [ ] Corporate management UI
 
 ## Territory
-
 - [ ] Claims
 - [ ] Infrastructure
 - [ ] Settlement ownership
@@ -105,7 +99,6 @@
 - [ ] Scheduled wars
 
 ## World simulation
-
 - [ ] NPC factions
 - [ ] Dynamic shortages
 - [ ] Faction warfare
@@ -115,17 +108,15 @@
 - [ ] Event-generated missions
 
 ## Long-term systems
-
 - [ ] Research progression
 - [ ] Skill queues
 - [ ] Blueprint discovery
-- [x] Reputation
+- [x] Reputation foundation
 - [ ] Achievement/career milestones
 - [ ] Seasonal world arcs
 - [ ] Player-created economic organizations
 
 ## Mobile UX
-
 - [ ] One-handed core controls
 - [ ] Low-bandwidth mode
 - [ ] Background job notifications
@@ -134,3 +125,4 @@
 - [ ] Fleet/vehicle dashboard
 - [ ] Compact combat controls
 - [x] Offline cache for read-only data
+- [x] Social state models
