@@ -123,7 +123,8 @@ class VehicleService:
         if job.job_type != REPAIR_JOB_TYPE: raise ValueError("job is not a vehicle repair")
         if job.state.value == "completed": return job
         vehicle = self.get(UUID(job.metadata["vehicle_id"])); amount = int(job.metadata["amount"])
-        vehicle.repair(amount); self.uow.vehicles.save(vehicle); completed = JobService(self.uow).complete(job_id, now)
+        completed = JobService(self.uow).complete(job_id, now)
+        vehicle.repair(amount); self.uow.vehicles.save(vehicle)
         self._record("vehicle.repaired", vehicle.id, {"job_id": str(job_id), "amount": amount, "durability": vehicle.durability}); return completed
     def refuel(self, vehicle_id: UUID, amount: int) -> Vehicle:
         vehicle = self.get(vehicle_id); vehicle.refuel(amount); self.uow.vehicles.save(vehicle); return vehicle
