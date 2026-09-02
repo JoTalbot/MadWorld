@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
 from app.application.ports import IdempotencyRecord, OutboxEvent
-from app.domain.primitives import InventoryStack, Job, LedgerEntry, Wallet
+from app.domain.primitives import Character, InventoryStack, Job, LedgerEntry, Vehicle, Wallet
 
 
 @dataclass
@@ -63,6 +63,33 @@ class InMemoryJobRepository:
 
 
 @dataclass
+class InMemoryCharacterRepository:
+    characters: dict[UUID, Character] = field(default_factory=dict)
+    def get(self, character_id: UUID) -> Character | None:
+        character = self.characters.get(character_id); return deepcopy(character) if character else None
+    def get_by_player_id(self, player_id: UUID) -> Character | None:
+        character = next((c for c in self.characters.values() if c.player_id == player_id), None)
+        return deepcopy(character) if character else None
+    def save(self, character: Character) -> None:
+        current = self.characters.get(character.id)
+        if current is not None and current.version != character.version: raise ConcurrencyConflict("character changed since it was read")
+        character.version += 1; self.characters[character.id] = deepcopy(character)
+
+
+@dataclass
+class InMemoryVehicleRepository:
+    vehicles: dict[UUID, Vehicle] = field(default_factory=dict)
+    def get(self, vehicle_id: UUID) -> Vehicle | None:
+        vehicle = self.vehicles.get(vehicle_id); return deepcopy(vehicle) if vehicle else None
+    def list_by_owner(self, owner_id: UUID) -> list[Vehicle]:
+        return [deepcopy(v) for v in self.vehicles.values() if v.owner_id == owner_id]
+    def save(self, vehicle: Vehicle) -> None:
+        current = self.vehicles.get(vehicle.id)
+        if current is not None and current.version != vehicle.version: raise ConcurrencyConflict("vehicle changed since it was read")
+        vehicle.version += 1; self.vehicles[vehicle.id] = deepcopy(vehicle)
+
+
+@dataclass
 class InMemoryIdempotencyRepository:
     records: dict[tuple[str, str], IdempotencyRecord] = field(default_factory=dict)
     def get(self, command_name: str, idempotency_key: str) -> IdempotencyRecord | None: return self.records.get((command_name, idempotency_key))
@@ -108,39 +135,23 @@ class InMemoryUnitOfWork:
     wallets: InMemoryWalletRepository = field(default_factory=InMemoryWalletRepository)
     inventories: InMemoryInventoryRepository = field(default_factory=InMemoryInventoryRepository)
     jobs: InMemoryJobRepository = field(default_factory=InMemoryJobRepository)
+    characters: InMemoryCharacterRepository = field(default_factory=InMemoryCharacterRepository)
+    vehicles: InMemoryVehicleRepository = field(default_factory=InMemoryVehicleRepository)
     idempotency: InMemoryIdempotencyRepository = field(default_factory=InMemoryIdempotencyRepository)
     audit: InMemoryAuditRepository = field(default_factory=InMemoryAuditRepository)
     outbox: InMemoryOutboxRepository = field(default_factory=InMemoryOutboxRepository)
     committed: bool = False
     rolled_back: bool = False
     _snapshot: dict | None = field(default=None, init=False, repr=False)
-
     def __enter__(self) -> "InMemoryUnitOfWork":
-        self._snapshot = {
-            "wallets": deepcopy(self.wallets),
-            "inventories": deepcopy(self.inventories),
-            "jobs": deepcopy(self.jobs),
-            "idempotency": deepcopy(self.idempotency),
-            "audit": deepcopy(self.audit),
-            "outbox": deepcopy(self.outbox),
-        }
+        self._snapshot = {"wallets": deepcopy(self.wallets), "inventories": deepcopy(self.inventories), "jobs": deepcopy(self.jobs), "characters": deepcopy(self.characters), "vehicles": deepcopy(self.vehicles), "idempotency": deepcopy(self.idempotency), "audit": deepcopy(self.audit), "outbox": deepcopy(self.outbox)}
         return self
-
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         if exc_type is None: self.commit()
         else: self.rollback()
-
     def commit(self) -> None:
-        self.committed = True
-        self._snapshot = None
-
+        self.committed = True; self._snapshot = None
     def rollback(self) -> None:
         if self._snapshot is not None:
-            self.wallets = self._snapshot["wallets"]
-            self.inventories = self._snapshot["inventories"]
-            self.jobs = self._snapshot["jobs"]
-            self.idempotency = self._snapshot["idempotency"]
-            self.audit = self._snapshot["audit"]
-            self.outbox = self._snapshot["outbox"]
-        self.rolled_back = True
-        self._snapshot = None
+            for name in self._snapshot: setattr(self, name, self._snapshot[name])
+        self.rolled_back = True; self._snapshot = None
