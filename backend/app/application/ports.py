@@ -3,10 +3,23 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
 from app.domain.primitives import InventoryStack, Job, LedgerEntry, Wallet
+
+
+@dataclass(frozen=True, slots=True)
+class IdempotencyRecord:
+    command_name: str
+    idempotency_key: str
+    request_hash: str
+    response_status: int
+    response_payload: dict
+    actor_id: UUID | None
+    created_at: datetime
 
 
 class WalletRepository(Protocol):
@@ -29,6 +42,11 @@ class JobRepository(Protocol):
     def bind_idempotency_key(self, key: str, job_id: UUID) -> None: ...
 
 
+class IdempotencyRepository(Protocol):
+    def get(self, command_name: str, idempotency_key: str) -> IdempotencyRecord | None: ...
+    def put(self, record: IdempotencyRecord) -> None: ...
+
+
 class AuditRepository(Protocol):
     def append(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: ...
 
@@ -41,6 +59,7 @@ class UnitOfWork(AbstractContextManager["UnitOfWork"], Protocol):
     wallets: WalletRepository
     inventories: InventoryRepository
     jobs: JobRepository
+    idempotency: IdempotencyRepository
     audit: AuditRepository
     outbox: OutboxRepository
 
