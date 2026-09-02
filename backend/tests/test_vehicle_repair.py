@@ -1,10 +1,10 @@
 from datetime import timedelta
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 
 from app.application.services import REPAIR_KIT_ID, VehicleService
-from app.domain.primitives import InventoryStack, VehicleService as _Unused  # type: ignore[attr-defined]
+from app.domain.primitives import InventoryStack
 from app.infrastructure.memory import InMemoryUnitOfWork
 
 
