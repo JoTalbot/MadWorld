@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from app.domain.primitives import LedgerEntry, Wallet
+from app.domain.primitives import LedgerEntry, Wallet, utc_now
 from app.infrastructure.memory import InMemoryUnitOfWork
 
 
@@ -20,7 +20,7 @@ def test_memory_uow_exposes_all_authoritative_boundaries() -> None:
 
 def test_ledger_idempotency_key_is_unique_in_memory() -> None:
     wallet_id = uuid4()
-    entry = LedgerEntry(uuid4(), wallet_id, 50, "reward", "same-command", __import__("app.domain.primitives", fromlist=["utc_now"]).utc_now())
+    entry = LedgerEntry(uuid4(), wallet_id, 50, "reward", "same-command", utc_now())
     uow = InMemoryUnitOfWork()
     uow.wallets.add_ledger_entry(entry)
     uow.wallets.add_ledger_entry(entry)
