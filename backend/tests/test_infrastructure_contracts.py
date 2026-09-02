@@ -13,7 +13,9 @@ def test_memory_uow_exposes_all_authoritative_boundaries() -> None:
 
     assert uow.committed is True
     assert uow.rolled_back is False
-    assert uow.wallets.get(wallet.id) is wallet
+    stored = uow.wallets.get(wallet.id)
+    assert stored == wallet
+    assert stored is not wallet
     assert len(uow.audit.events) == 1
     assert len(uow.outbox.events) == 1
 
