@@ -39,7 +39,7 @@ This is the decision register for meaningful improvements discovered during deve
 | IMP-017 | Economic telemetry and balance dashboards | PROPOSED | Needed to balance inflation, scarcity, destruction and concentration |
 | IMP-018 | Disaster/recovery strategy for authoritative state | PROPOSED | Needed before persistent player assets become valuable |
 | IMP-019 | Server-side notification/event feed | PROPOSED | Needed for offline jobs, market changes, contracts and world events |
-| IMP-020 | Deterministic time/job scheduler | ACCEPTED | Required foundation for offline production, repair, contracts and simulation ticks |
+| IMP-020 | Deterministic time/job scheduler | ACCEPTED | Hybrid selected: injectable authoritative clock + due-job scheduler now; durable worker orchestration later |
 | IMP-021 | Authentication, sessions and device/account security | PROPOSED | Required player-facing identity layer; include refresh/revocation and abuse controls |
 | IMP-022 | API contract versioning and generated client models | PROPOSED | Reduce Android/backend drift and make migrations safer |
 | IMP-023 | Domain event envelope and schema registry | ACCEPTED | Hybrid selected: stable envelope + registry now; compatibility/migration tooling later |
@@ -142,6 +142,12 @@ The chosen variant must be recorded in the decision entry before product behavio
 - **Systemic:** implement full repository snapshot/restore semantics matching transactional expectations.
 - **Advanced:** nested transaction/savepoint simulation and fault-injection hooks.
 - **Hybrid — SELECTED:** snapshot/restore now, with deeper savepoint simulation only if later composition tests require it.
+
+### IMP-020 — Deterministic time/job scheduler
+- **Minimal/MVP:** inject a clock into services and provide a simple due-job polling loop.
+- **Systemic:** durable scheduler backed by persisted leases, deterministic ordering and crash-safe retries.
+- **Advanced:** distributed worker orchestration, partitioning, lag metrics, replay and simulation tick coordination.
+- **Hybrid — SELECTED:** injectable authoritative clock + deterministic due-job selection now; durable worker/lease orchestration later without changing domain rules.
 
 ### IMP-023 — Domain event envelope and schema registry
 - **Minimal/MVP:** wrap each event in a stable envelope containing event ID, type, aggregate, timestamp and payload.
