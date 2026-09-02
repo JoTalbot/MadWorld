@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
 from app.application.ports import UnitOfWork
 from app.domain.primitives import InventoryStack, Job, JobState, LedgerEntry, Wallet
+from app.infrastructure.errors import map_integrity_error
 
 
 class PostgresWalletRepository:
@@ -39,7 +40,7 @@ class PostgresWalletRepository:
                 VALUES (:id, :key, :wallet_id, :amount, :reason, :created_at)
             """), {"id": entry.id, "key": entry.idempotency_key, "wallet_id": entry.wallet_id, "amount": entry.amount, "reason": entry.reason, "created_at": entry.created_at})
         except IntegrityError as exc:
-            raise IdempotencyConflict("ledger idempotency key already exists") from exc
+            raise map_integrity_error(exc) from exc
 
     def get_ledger_entry_by_idempotency_key(self, key: str) -> LedgerEntry | None:
         row = self.conn.execute(text("SELECT id, wallet_id, amount, reason, idempotency_key, created_at FROM ledger_entries WHERE idempotency_key = :key"), {"key": key}).mappings().first()
@@ -81,7 +82,7 @@ class PostgresInventoryRepository:
             """), {"inventory_id": inventory_id, "item_definition_id": stack.item_definition_id, "quantity": stack.quantity, "condition": stack.condition})
             stack.version = 1
         except IntegrityError as exc:
-            raise ConcurrencyConflict("inventory stack was created concurrently") from exc
+            raise map_integrity_error(exc) from exc
 
     def delete_stack(self, inventory_id: UUID, item_definition_id: UUID, expected_version: int) -> None:
         result = self.conn.execute(text("""
@@ -118,7 +119,7 @@ class PostgresJobRepository:
                 job.version = 1
                 return
             except IntegrityError as exc:
-                raise ConcurrencyConflict("job was created concurrently") from exc
+                raise map_integrity_error(exc) from exc
         result = self.conn.execute(text("UPDATE jobs SET state = :state, version = version + 1 WHERE id = :id AND version = :version"), {"id": job.id, "state": job.state.value, "version": job.version})
         if result.rowcount != 1:
             raise ConcurrencyConflict("job changed since it was read")
@@ -130,7 +131,7 @@ class PostgresJobRepository:
             if result.rowcount != 1:
                 raise IdempotencyConflict("job idempotency key cannot be rebound")
         except IntegrityError as exc:
-            raise IdempotencyConflict("job idempotency key already exists") from exc
+            raise map_integrity_error(exc) from exc
 
 
 class PostgresAuditRepository:
@@ -160,7 +161,7 @@ def _json(payload: dict) -> str:
 
 
 class PostgresUnitOfWork(UnitOfWork):
-    """One database connection; commits may be used by multiple commands before exit."""
+    """One connection and one transaction owned by the command/request boundary."""
 
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
