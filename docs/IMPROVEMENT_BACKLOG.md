@@ -111,15 +111,11 @@ This file is the persistent source of truth for improvement proposals and implem
 ## IMP-076 — Component-aware vehicle damage
 - Status: COMPLETE — Advanced + Systemic; maximum-option scope
 - Goal: replace total-durability-only damage with persistent component condition, armor-aware damage types, component destruction and gameplay effects while retaining total durability as the aggregate compatibility surface.
-- Variants considered:
-  1. Minimal: component data only.
-  2. Systemic: persistent component state and component-specific damage/repair.
-  3. Advanced: damage types, armor mitigation, destruction states and gameplay effects.
-  4. Hybrid: systemic persistence plus advanced combat model incrementally.
+- Variants considered: Minimal, Systemic, Advanced and Hybrid.
 - Selected by user: `3 + 2`, interpreted as Advanced + Systemic, with maximum available options included in the implementation scope.
 - Implementation: engine, hull, wheels and fuel-system components; kinetic/explosive/fire/impact damage types; per-component armor; destruction state; component-derived aggregate durability; engine/mobility/fuel-efficiency effects; component repair; authoritative API and transactional persistence adapter.
 - Verification: PR #3 merged to `main` as merge commit `61ae299ea6380f0b945a8c6a860190bf4f982da4`.
-- Deferred after this slice: richer hit-location simulation, weapon-specific penetration tables, repair quality progression, mechanic skills, facility modifiers and advanced combat telemetry.
+- Deferred: richer hit-location simulation, weapon-specific penetration tables, repair quality progression, mechanic skills, facility modifiers and advanced combat telemetry.
 
 ## IMP-077 — Contract system
 - Status: COMPLETE — Advanced + Systemic; maximum-option scope
@@ -127,3 +123,11 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implementation: persistent contract templates and player instances; lifecycle state machine; authoritative deadlines; sequential multi-objective progression; prerequisite chains; faction/reputation requirements and rewards; risk tiers; deterministic wallet rewards with idempotent reward keys; PostgreSQL persistence; player contract API; gathering-event integration; contract design documentation.
 - Verification: dedicated contract lifecycle/progression tests added. Full CI verification runs on the PR.
 - Deferred by design: fully procedural world-generated contracts, complex branching narrative content and live economy-driven contract generation.
+
+## IMP-078 — Expedition system
+- Status: ACCEPTED — Advanced + Systemic; maximum-option scope
+- Selected by user: `3 + 2`.
+- Variants considered: Minimal, Systemic, Advanced and Hybrid.
+- Goal: turn travel into a persistent risk/reward gameplay loop connecting vehicles, fuel, regions, inventory, damage and contracts.
+- Implementation target: persistent server-side expedition jobs; region/distance/risk planning; authoritative duration and fuel consumption; deterministic expedition outcome; loot; vehicle damage; completion event; idempotent start and guarded completion; API and Android-ready contract.
+- Deferred by design: dynamic world-generated routes, NPC encounters/combat simulation, convoy/group expeditions, live weather/disaster modifiers, insurance/recovery and economy-driven loot generation.
