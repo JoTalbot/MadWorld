@@ -144,10 +144,11 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred by design: building upgrade progression, NPC services/population, production chains, territory control and deeper settlement economy modifiers.
 
 ## IMP-080 — Android settlement gameplay client
-- Status: ACCEPTED — Hybrid
+- Status: COMPLETE — Hybrid
 - Goal: expose the persistent settlement as the player's primary Android base-point interface and connect the existing authoritative player/session state to settlement capabilities.
 - Variants considered: Minimal, Systemic, Advanced and Hybrid.
 - Selected by user: `4`, interpreted as Hybrid.
 - Selected scope: typed settlement state, authenticated settlement API client, repository/cache support, ViewModel integration and a functional settlement UI showing region, level, module levels and authoritative capabilities for garage, warehouse, workshop, contracts and market. The client remains read-oriented for settlement state and does not fabricate gameplay state locally.
-- Implementation in progress: `SettlementState`, settlement fetch/ownership validation in `MadWorldApi`, persistent settlement cache in `PlayerRepository`, settlement refresh in `PlayerViewModel`, and Compose settlement panel integrated into the main player screen.
+- Implementation: `SettlementState`, settlement fetch/ownership validation in `MadWorldApi`, persistent settlement cache in `PlayerRepository`, settlement refresh in `PlayerViewModel`, and Compose settlement panel integrated into the main player screen. Fixed Compose `RowScope.weight` compilation issue in `CapabilityButton`.
+- Verification: PR #10 merged to `main` as merge commit `2334378a7f11b4e5a46069641c910b6ff3ff81be`. Android CI #21 passed; Backend CI #242 passed.
 - Deferred by design: building/world visualization, settlement mutation commands, offline settlement command journal/reconciliation, rich building interactions and world-map navigation. These require separate product slices and remain subject to backlog approval.
