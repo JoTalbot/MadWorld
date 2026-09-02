@@ -255,3 +255,120 @@ This file is the persistent source of truth for improvement proposals and implem
 - Worker documentation: `docs/PHASE6_WORLD_TICK_WORKER.md`.
 - Tests: `backend/tests/test_phase6_world.py`, `backend/tests/test_phase6_world_worker.py`.
 - Final Backend and Android CI verification is required before declaring the batch green.
+
+## MASTER PRODUCTION BATCH PROGRAM
+
+Status: **ACCEPTED — execute as the project's production completion sequence.**
+
+The user approved the master implementation plan consisting of B1 → B10. Individual new product-changing expansions discovered during execution remain subject to the existing variant/approval policy unless they are already within the accepted batch scope.
+
+### B1 — World Integration
+- World → Economy feedback
+- World → Territory effects
+- Convoy lifecycle
+- Resource discovery lifecycle
+- Faction regional dynamics
+- Dynamic mission grammar
+- World event → outbox bridge
+- Deterministic replay foundation
+- World lag telemetry
+- Integration/invariant tests
+
+### B2 — Gameplay Integration
+- Travel/economy integration
+- Vehicle/world interaction
+- Vehicle/territory interaction
+- Combat/world encounters
+- Convoy combat and escort
+- Salvage/economy integration
+- Recovery/reconnect-safe gameplay
+
+### B3 — Advanced Economy
+- Full regional order books
+- Partial fills/matching correctness
+- Price/volume/liquidity history
+- Regional supply/demand accounting
+- Refining/production chains
+- Facility capacity and maintenance
+- Skill specialization
+- Warehouse/logistics economics
+- Economy stress and reconciliation tests
+
+### B4 — NPC Faction Simulation
+- Strategic observation
+- Priority evaluation
+- Decision engine
+- Military/economic/logistics actions
+- Diplomacy transitions
+- Persistent NPC consequences
+- Deterministic bounded decision cadence
+
+### B5 — Territory Warfare
+- Claim costs/upkeep
+- Contest/capture/abandonment
+- Infrastructure damage/repair
+- Checkpoints and supply lines
+- Objective chains/reinforcement
+- Siege/disruption foundations
+- Alliance warfare
+- Occupation economic effects
+
+### B6 — Finance & Provenance
+- Secured credit
+- Collateral
+- Repayment/default/recovery
+- Insurance
+- Financing/investment
+- Asset provenance
+- Quality/manufacturer history
+- Financial abuse telemetry
+
+### B7 — Full Android Game
+- All critical MMO screens
+- Authoritative command flow
+- Offline queue
+- Reconnect/resume
+- Stale-state handling
+- Notifications
+- Localization/accessibility foundations
+
+### B8 — Security, Anti-Abuse & Reliability
+- Mutation endpoint audit
+- Authorization/ownership audit
+- Replay protection
+- Money/item duplication defenses
+- Race-condition defenses
+- Market/reward abuse defenses
+- Rate limiting
+- Circuit breakers
+- Abuse scoring foundations
+- Security regression suite
+
+### B9 — Scale, Operations & LiveOps
+- Production service definitions
+- Worker deployment
+- Catch-up policy
+- Observability and alerting
+- Load/stress tests
+- Android device matrix
+- Analytics
+- Push notifications
+- Backup/restore
+- Disaster recovery
+- Live operations tooling
+
+### B10 — Final Release Gate
+- Full gameplay regression
+- Backend/Android/integration CI
+- Security and exploit regression
+- Replay verification
+- Load verification
+- Backup/restore verification
+- Release artifact verification
+- Production configuration
+- Rollback/incident procedures
+- Release checklist
+
+### Batch completion rule
+
+No batch is marked COMPLETE merely because code exists. The batch must satisfy its exit gate, applicable Definition of Done, tests and CI verification. Deferred items remain explicitly recorded and are not silently treated as complete.
