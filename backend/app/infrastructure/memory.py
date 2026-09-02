@@ -83,6 +83,8 @@ class InMemoryVehicleRepository:
         vehicle = self.vehicles.get(vehicle_id); return deepcopy(vehicle) if vehicle else None
     def list_by_owner(self, owner_id: UUID) -> list[Vehicle]:
         return [deepcopy(v) for v in self.vehicles.values() if v.owner_id == owner_id]
+    def lock_owner_for_starter(self, owner_id: UUID) -> None:
+        return None
     def save(self, vehicle: Vehicle) -> None:
         current = self.vehicles.get(vehicle.id)
         if current is not None and current.version != vehicle.version: raise ConcurrencyConflict("vehicle changed since it was read")
