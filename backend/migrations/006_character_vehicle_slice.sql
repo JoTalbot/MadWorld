@@ -1,6 +1,5 @@
 ALTER TABLE vehicles
-    ADD COLUMN state TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'destroyed', 'stored')),
-    ADD COLUMN version INTEGER NOT NULL DEFAULT 0 CHECK (version >= 0);
+    ADD COLUMN state TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'destroyed', 'stored'));
 
 CREATE TABLE characters (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
