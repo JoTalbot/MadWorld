@@ -56,6 +56,7 @@ def build_default_registry() -> EventSchemaRegistry:
     registry.register("job.created", 1, _require_keys("job_type")); registry.register("job.started", 1, _require_keys("state")); registry.register("job.completed", 1, _require_keys("state")); registry.register("job.cancelled", 1, _require_keys("state"))
     registry.register("character.created", 1, _require_keys("player_id", "name"))
     registry.register("vehicle.created", 1, _require_keys("owner_id", "code", "chassis_code", "starter"))
+    registry.register("resource.gathered", 1, _require_keys("player_id", "inventory_id", "item_definition_id", "quantity"))
     return registry
 
 
