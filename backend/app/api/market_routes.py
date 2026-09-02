@@ -92,7 +92,6 @@ def _match(conn, order_id: UUID) -> None:
             seller_wallet = _wallet(conn, UUID(str(sell["owner_id"])))
             amount = qty * trade_price
             trade_key = f"market-trade:{order_id}:{other['id']}:{int(order['remaining_quantity'])}:{other_remaining}"
-            _ledger(conn, UUID(str(seller_wallet["id"])), amount, "market_sale", UUID(str(sell["owner_id"])), trade_key)
             sell_escrow = conn.execute(text("SELECT quantity, condition FROM market_sell_escrow WHERE order_id=:id FOR UPDATE"), {"id": sell["id"]}).mappings().first()
             if sell_escrow is None or int(sell_escrow["quantity"]) < qty:
                 raise ValueError("sell order escrow is insufficient")
@@ -102,7 +101,12 @@ def _match(conn, order_id: UUID) -> None:
             if buyer_stack is not None and int(buyer_stack["quantity"]) + qty > int(item_def["stack_limit"]):
                 raise ValueError("buyer inventory stack limit exceeded")
             conn.execute(text("INSERT INTO inventory_items (inventory_id, item_definition_id, quantity, condition) VALUES (:inv,:item,:qty,:condition) ON CONFLICT (inventory_id,item_definition_id) DO UPDATE SET quantity=inventory_items.quantity+:qty"), {"inv": buyer_inv["id"], "item": order["item_definition_id"], "qty": qty, "condition": sell_escrow["condition"]})
-            conn.execute(text("UPDATE market_sell_escrow SET quantity=quantity-:qty WHERE order_id=:id"), {"id": sell["id"], "qty": qty})
+            escrow_remaining = int(sell_escrow["quantity"]) - qty
+            if escrow_remaining == 0:
+                conn.execute(text("DELETE FROM market_sell_escrow WHERE order_id=:id"), {"id": sell["id"]})
+            else:
+                conn.execute(text("UPDATE market_sell_escrow SET quantity=:remaining WHERE order_id=:id"), {"id": sell["id"], "remaining": escrow_remaining})
+            _ledger(conn, UUID(str(seller_wallet["id"])), amount, "market_sale", UUID(str(sell["owner_id"])), trade_key)
             for current in (order, other):
                 new_remaining = int(current["remaining_quantity"]) - qty
                 status = "filled" if new_remaining == 0 else "open"
@@ -161,8 +165,11 @@ def sell(payload: OrderRequest, idempotency_key: str | None = Header(default=Non
         item = conn.execute(text("SELECT quantity,condition FROM inventory_items WHERE inventory_id=:inv AND item_definition_id=:item FOR UPDATE"), {"inv": inv["id"], "item": payload.item_definition_id}).mappings().first()
         if item is None or int(item["quantity"]) < payload.quantity:
             raise ValueError("insufficient inventory for market order")
-        conn.execute(text("UPDATE inventory_items SET quantity=quantity-:qty WHERE inventory_id=:inv AND item_definition_id=:item"), {"inv": inv["id"], "item": payload.item_definition_id, "qty": payload.quantity})
-        conn.execute(text("DELETE FROM inventory_items WHERE inventory_id=:inv AND item_definition_id=:item AND quantity=0"), {"inv": inv["id"], "item": payload.item_definition_id})
+        remaining_inventory = int(item["quantity"]) - payload.quantity
+        if remaining_inventory == 0:
+            conn.execute(text("DELETE FROM inventory_items WHERE inventory_id=:inv AND item_definition_id=:item"), {"inv": inv["id"], "item": payload.item_definition_id})
+        else:
+            conn.execute(text("UPDATE inventory_items SET quantity=:remaining WHERE inventory_id=:inv AND item_definition_id=:item"), {"inv": inv["id"], "item": payload.item_definition_id, "remaining": remaining_inventory})
         row = conn.execute(text("INSERT INTO market_orders (region_id,owner_id,item_definition_id,side,quantity,remaining_quantity,unit_price,idempotency_key) VALUES (:region,:owner,:item,'sell',:qty,:qty,:price,:key) RETURNING *"), {"region": payload.region_id, "owner": authenticated_player, "item": payload.item_definition_id, "qty": payload.quantity, "price": payload.unit_price, "key": idempotency_key}).mappings().one()
         conn.execute(text("INSERT INTO market_sell_escrow(order_id,quantity,condition) VALUES (:id,:qty,:condition)"), {"id": row["id"], "qty": payload.quantity, "condition": item["condition"]})
         _match(conn, UUID(str(row["id"])))
