@@ -1,9 +1,4 @@
-"""Persistence and transaction contracts for authoritative use cases.
-
-The application layer depends on these contracts, not on PostgreSQL or a
-specific ORM. This keeps domain rules testable while the durable adapter is
-introduced incrementally.
-"""
+"""Persistence and transaction contracts for authoritative use cases."""
 
 from __future__ import annotations
 
@@ -29,6 +24,7 @@ class InventoryRepository(Protocol):
 
 class JobRepository(Protocol):
     def get(self, job_id: UUID) -> Job | None: ...
+    def get_by_idempotency_key(self, key: str) -> Job | None: ...
     def save(self, job: Job) -> None: ...
 
 
