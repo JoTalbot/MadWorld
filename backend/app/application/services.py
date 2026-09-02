@@ -1,4 +1,4 @@
-"""Small use cases that enforce authoritative transaction boundaries."""
+"""Small use cases; transaction ownership belongs to the command boundary."""
 
 from __future__ import annotations
 
@@ -31,7 +31,6 @@ class WalletService:
         self.uow.wallets.save(wallet)
         self.uow.wallets.add_ledger_entry(entry)
         self._record("wallet.entry_posted", "wallet", wallet_id, {"entry_id": str(entry.id), "amount": amount, "reason": reason, "actor_id": str(actor_id) if actor_id else None})
-        self.uow.commit()
         return entry
 
     def _record(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
@@ -55,7 +54,6 @@ class InventoryService:
             stack.quantity += quantity
         self.uow.inventories.save_stack(inventory_id, stack)
         self._record("inventory.item_added", inventory_id, {"item_definition_id": str(item_definition_id), "quantity": quantity, "condition": condition})
-        self.uow.commit()
         return stack
 
     def remove(self, inventory_id: UUID, item_definition_id: UUID, quantity: int) -> InventoryStack | None:
@@ -73,7 +71,6 @@ class InventoryService:
             self.uow.inventories.save_stack(inventory_id, stack)
             result = stack
         self._record("inventory.item_removed", inventory_id, {"item_definition_id": str(item_definition_id), "quantity": quantity})
-        self.uow.commit()
         return result
 
     def _record(self, event_type: str, inventory_id: UUID, payload: dict) -> None:
@@ -96,7 +93,6 @@ class JobService:
         self.uow.jobs.bind_idempotency_key(idempotency_key, job.id)
         self.uow.audit.append("job.created", "job", job.id, {"job_type": job_type})
         self.uow.outbox.enqueue("job.created", "job", job.id, {"job_type": job_type})
-        self.uow.commit()
         return job
 
     def start(self, job_id: UUID) -> Job:
@@ -124,5 +120,4 @@ class JobService:
         self.uow.jobs.save(job)
         self.uow.audit.append(event_type, "job", job.id, {"state": job.state.value})
         self.uow.outbox.enqueue(event_type, "job", job.id, {"state": job.state.value})
-        self.uow.commit()
         return job
