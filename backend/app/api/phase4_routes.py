@@ -6,6 +6,7 @@ for the first social gameplay loop.
 """
 from __future__ import annotations
 
+import json
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -149,6 +150,7 @@ def create_hangar(payload: HangarCreate, player_id: UUID = Depends(get_authentic
 @router.post("/diplomacy")
 def set_diplomacy(payload: DiplomacyChange, player_id: UUID = Depends(get_authenticated_player), uow: UnitOfWork = Depends(get_uow)):
     _require_permission(uow, payload.source_corporation_id, player_id, "DIPLOMACY")
+    _require_corporation_exists(uow, payload.target_corporation_id)
     relation = SocialPolicy.set_diplomacy(payload.source_corporation_id, payload.target_corporation_id, payload.relation, payload.standing, payload.trade_allowed, payload.transit_allowed)
     relation_id = uuid4()
     uow.conn.execute(text("""INSERT INTO diplomatic_relations (id, source_corporation_id, target_corporation_id, relation, standing, trade_allowed, transit_allowed, version)
@@ -162,7 +164,7 @@ def set_diplomacy(payload: DiplomacyChange, player_id: UUID = Depends(get_authen
 def create_contract(payload: ContractCreate, player_id: UUID = Depends(get_authenticated_player), uow: UnitOfWork = Depends(get_uow)):
     _require_permission(uow, payload.issuer_corporation_id, player_id, "CREATE_CONTRACTS")
     contract = SocialPolicy.create_contract(payload.issuer_corporation_id, payload.contract_type, payload.terms, payload.counterparty_corporation_id, payload.counterparty_player_id)
-    uow.conn.execute(text("INSERT INTO social_contracts (id, issuer_corporation_id, counterparty_corporation_id, counterparty_player_id, contract_type, terms, state, version) VALUES (:id,:issuer,:counterparty_corp,:counterparty_player,:contract_type,CAST(:terms AS JSONB),'OFFERED',0)"), {"id": contract.id, "issuer": contract.issuer_corporation_id, "counterparty_corp": contract.counterparty_corporation_id, "counterparty_player": contract.counterparty_player_id, "contract_type": contract.contract_type, "terms": __import__('json').dumps(contract.terms)})
+    uow.conn.execute(text("INSERT INTO social_contracts (id, issuer_corporation_id, counterparty_corporation_id, counterparty_player_id, contract_type, terms, state, version) VALUES (:id,:issuer,:counterparty_corp,:counterparty_player,:contract_type,CAST(:terms AS JSONB),'OFFERED',0)"), {"id": contract.id, "issuer": contract.issuer_corporation_id, "counterparty_corp": contract.counterparty_corporation_id, "counterparty_player": contract.counterparty_player_id, "contract_type": contract.contract_type, "terms": json.dumps(contract.terms)})
     uow.audit.append("social_contract.created", "social_contract", contract.id, {"actor_id": str(player_id), "issuer": str(payload.issuer_corporation_id)})
     uow.outbox.enqueue("social_contract.created", "social_contract", contract.id, {"issuer": str(payload.issuer_corporation_id)})
     return {"ok": True, "contract_id": str(contract.id), "state": "OFFERED"}
@@ -170,7 +172,7 @@ def create_contract(payload: ContractCreate, player_id: UUID = Depends(get_authe
 
 @router.get("/overview/{corporation_id}")
 def corporation_overview(corporation_id: UUID, player_id: UUID = Depends(get_authenticated_player), uow: UnitOfWork = Depends(get_uow)):
-    _member_role(uow, corporation_id, player_id) or (_require_corporation_exists(uow, corporation_id), None)[1]
+    _require_corporation_exists(uow, corporation_id)
     role = _member_role(uow, corporation_id, player_id)
     if role is None:
         raise HTTPException(status_code=403, detail="corporation membership required")
