@@ -22,3 +22,9 @@ CREATE TABLE IF NOT EXISTS economy_facilities (
 );
 
 CREATE INDEX IF NOT EXISTS idx_economy_facilities_settlement ON economy_facilities(settlement_id);
+
+INSERT INTO economy_facilities(settlement_id,code,level,efficiency_bps)
+SELECT s.id, f.code, 1, 10000
+FROM settlements s
+CROSS JOIN (VALUES ('refinery'), ('workshop')) AS f(code)
+ON CONFLICT (settlement_id,code) DO NOTHING;
