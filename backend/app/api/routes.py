@@ -1,115 +1,82 @@
-"""Versioned command endpoints backed by application services."""
+"""Versioned authoritative command endpoints."""
 
 from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, status
 
 from app.api.dependencies import get_uow
-from app.api.schemas import (
-    InventoryAddRequest,
-    InventoryRemoveRequest,
-    InventoryResponse,
-    JobCreateRequest,
-    JobResponse,
-    WalletEntryRequest,
-    WalletEntryResponse,
-)
+from app.api.idempotency import replay_or_none, require_key, store_response
+from app.api.schemas import InventoryAddRequest, InventoryRemoveRequest, InventoryResponse, JobCreateRequest, JobResponse, WalletEntryRequest, WalletEntryResponse
 from app.application.ports import UnitOfWork
 from app.application.services import InventoryService, JobService, WalletService
 
 router = APIRouter(prefix="/api/v1", tags=["commands"])
 
 
-def _require_idempotency_key(value: str | None) -> str:
-    if not value or not value.strip():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Idempotency-Key header is required")
-    return value.strip()
-
-
 def _wallet_response(entry) -> WalletEntryResponse:
-    return WalletEntryResponse(
-        entry_id=entry.id,
-        wallet_id=entry.wallet_id,
-        amount=entry.amount,
-        reason=entry.reason,
-        idempotency_key=entry.idempotency_key,
-        created_at=entry.created_at,
-    )
+    return WalletEntryResponse.model_validate({"entry_id": entry.id, "wallet_id": entry.wallet_id, "amount": entry.amount, "reason": entry.reason, "idempotency_key": entry.idempotency_key, "created_at": entry.created_at})
 
 
-def _job_response(job) -> JobResponse:
-    return JobResponse(
-        id=job.id,
-        owner_id=job.owner_id,
-        job_type=job.job_type,
-        started_at=job.started_at,
-        completes_at=job.completes_at,
-        state=job.state.value,
-        version=job.version,
-    )
+def _job_response(job: object) -> JobResponse:
+    return JobResponse.model_validate({"id": job.id, "owner_id": job.owner_id, "job_type": job.job_type, "started_at": job.started_at, "completes_at": job.completes_at, "state": job.state.value, "version": job.version})
+
+
+def _inventory_response(stack) -> InventoryResponse:
+    return InventoryResponse.model_validate({"item_definition_id": stack.item_definition_id, "quantity": stack.quantity, "condition": stack.condition, "version": stack.version})
 
 
 @router.post("/wallet/entries", response_model=WalletEntryResponse, status_code=status.HTTP_201_CREATED)
-def post_wallet_entry(
-    payload: WalletEntryRequest,
-    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
-    uow: UnitOfWork = Depends(get_uow),
-) -> WalletEntryResponse:
-    entry = WalletService(uow).post_entry(
-        payload.wallet_id,
-        payload.amount,
-        payload.reason,
-        _require_idempotency_key(idempotency_key),
-        payload.actor_id,
-    )
-    return _wallet_response(entry)
+def post_wallet_entry(payload: WalletEntryRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> WalletEntryResponse:
+    key = require_key(idempotency_key)
+    request_data = payload.model_dump(mode="json")
+    replay = replay_or_none(uow, "wallet.post_entry", key, request_data)
+    if replay is not None:
+        return WalletEntryResponse.model_validate(replay)
+    entry = WalletService(uow).post_entry(payload.wallet_id, payload.amount, payload.reason, key, payload.actor_id)
+    response = _wallet_response(entry)
+    store_response(uow, "wallet.post_entry", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.actor_id)
+    return response
 
 
-@router.post("/inventory/add", response_model=InventoryResponse)
-def add_inventory(payload: InventoryAddRequest, uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse:
-    stack = InventoryService(uow).add(
-        payload.inventory_id,
-        payload.item_definition_id,
-        payload.quantity,
-        payload.condition,
-    )
-    return InventoryResponse(
-        item_definition_id=stack.item_definition_id,
-        quantity=stack.quantity,
-        condition=stack.condition,
-        version=stack.version,
-    )
+@router.post("/inventory/add", response_model=InventoryResponse, status_code=status.HTTP_200_OK)
+def add_inventory(payload: InventoryAddRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse:
+    key = require_key(idempotency_key)
+    request_data = payload.model_dump(mode="json")
+    replay = replay_or_none(uow, "inventory.add", key, request_data)
+    if replay is not None:
+        return InventoryResponse.model_validate(replay)
+    stack = InventoryService(uow).add(payload.inventory_id, payload.item_definition_id, payload.quantity, payload.condition)
+    response = _inventory_response(stack)
+    store_response(uow, "inventory.add", key, request_data, response.model_dump(mode="json"), status.HTTP_200_OK)
+    return response
 
 
 @router.post("/inventory/remove", response_model=InventoryResponse | None)
-def remove_inventory(payload: InventoryRemoveRequest, uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse | None:
+def remove_inventory(payload: InventoryRemoveRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse | None:
+    key = require_key(idempotency_key)
+    request_data = payload.model_dump(mode="json")
+    replay = replay_or_none(uow, "inventory.remove", key, request_data)
+    if replay is not None:
+        return InventoryResponse.model_validate(replay) if replay else None
     stack = InventoryService(uow).remove(payload.inventory_id, payload.item_definition_id, payload.quantity)
-    if stack is None:
-        return None
-    return InventoryResponse(
-        item_definition_id=stack.item_definition_id,
-        quantity=stack.quantity,
-        condition=stack.condition,
-        version=stack.version,
-    )
+    response = _inventory_response(stack) if stack is not None else None
+    store_response(uow, "inventory.remove", key, request_data, response.model_dump(mode="json") if response else {}, status.HTTP_200_OK)
+    return response
 
 
 @router.post("/jobs", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
-def create_job(
-    payload: JobCreateRequest,
-    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
-    uow: UnitOfWork = Depends(get_uow),
-) -> JobResponse:
-    job = JobService(uow).create(
-        payload.owner_id,
-        payload.job_type,
-        payload.started_at,
-        payload.completes_at,
-        _require_idempotency_key(idempotency_key),
-    )
-    return _job_response(job)
+def create_job(payload: JobCreateRequest, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"), uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
+    key = require_key(idempotency_key)
+    request_data = payload.model_dump(mode="json")
+    replay = replay_or_none(uow, "job.create", key, request_data)
+    if replay is not None:
+        return JobResponse.model_validate(replay)
+    job = JobService(uow).create(payload.owner_id, payload.job_type, payload.started_at, payload.completes_at, key)
+    response = _job_response(job)
+    store_response(uow, "job.create", key, request_data, response.model_dump(mode="json"), status.HTTP_201_CREATED, payload.owner_id)
+    return response
 
 
 @router.post("/jobs/{job_id}/start", response_model=JobResponse)
