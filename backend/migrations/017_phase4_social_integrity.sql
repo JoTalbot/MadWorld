@@ -1,5 +1,14 @@
 -- Phase 4 integrity hardening: enforce uniqueness that PostgreSQL NULL semantics
 -- cannot guarantee with the original composite UNIQUE constraints.
+--
+-- Wallets now support both player-owned and shared corporate wallets. Existing
+-- player wallets keep their owner_id; corporate wallets intentionally use NULL.
+ALTER TABLE wallets ALTER COLUMN owner_id DROP NOT NULL;
+ALTER TABLE wallets DROP CONSTRAINT IF EXISTS wallets_owner_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_wallets_player_owner
+  ON wallets(owner_id)
+  WHERE owner_id IS NOT NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_social_reputation_player_target
   ON social_reputation(subject_player_id, target_type, target_id)
   WHERE subject_player_id IS NOT NULL;
