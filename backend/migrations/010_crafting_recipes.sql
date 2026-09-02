@@ -13,18 +13,18 @@ CREATE INDEX idx_crafting_recipes_enabled ON crafting_recipes(enabled);
 INSERT INTO crafting_recipes (id, code, name, duration_seconds, ingredients, outputs)
 VALUES
 ('50000000-0000-0000-0000-000000000001', 'reinforced_plate', 'Reinforced Plate', 30,
- '[{"item_code":"scrap_metal","quantity":5},{"item_code":"salvaged_wire","quantity":1}]',
- '[{"item_code":"metal_plate","quantity":1}]'),
+ jsonb_build_array(jsonb_build_object('item_code','scrap_metal','quantity',5), jsonb_build_object('item_code','salvaged_wire','quantity',1)),
+ jsonb_build_array(jsonb_build_object('item_code','metal_plate','quantity',1))),
 ('50000000-0000-0000-0000-000000000002', 'wire_bundle', 'Wire Bundle', 20,
- '[{"item_code":"salvaged_wire","quantity":4}]',
- '[{"item_code":"wire_bundle","quantity":1}]'),
+ jsonb_build_array(jsonb_build_object('item_code','salvaged_wire','quantity',4)),
+ jsonb_build_array(jsonb_build_object('item_code','wire_bundle','quantity',1))),
 ('50000000-0000-0000-0000-000000000003', 'fuel_cell', 'Fuel Cell', 45,
- '[{"item_code":"raw_fuel","quantity":3},{"item_code":"chemicals","quantity":1},{"item_code":"salvaged_wire","quantity":2}]',
- '[{"item_code":"fuel_cell","quantity":1}]'),
+ jsonb_build_array(jsonb_build_object('item_code','raw_fuel','quantity',3), jsonb_build_object('item_code','chemicals','quantity',1), jsonb_build_object('item_code','salvaged_wire','quantity',2)),
+ jsonb_build_array(jsonb_build_object('item_code','fuel_cell','quantity',1))),
 ('50000000-0000-0000-0000-000000000004', 'repair_kit', 'Field Repair Kit', 60,
- '[{"item_code":"metal_plate","quantity":1},{"item_code":"wire_bundle","quantity":1},{"item_code":"chemicals","quantity":1}]',
- '[{"item_code":"repair_kit","quantity":1}]'),
+ jsonb_build_array(jsonb_build_object('item_code','metal_plate','quantity',1), jsonb_build_object('item_code','wire_bundle','quantity',1), jsonb_build_object('item_code','chemicals','quantity',1)),
+ jsonb_build_array(jsonb_build_object('item_code','repair_kit','quantity',1))),
 ('50000000-0000-0000-0000-000000000005', 'armor_panel', 'Armor Panel', 90,
- '[{"item_code":"metal_plate","quantity":2},{"item_code":"fiber","quantity":2},{"item_code":"chemicals","quantity":1}]',
- '[{"item_code":"armor_panel","quantity":1}]')
+ jsonb_build_array(jsonb_build_object('item_code','metal_plate','quantity',2), jsonb_build_object('item_code','fiber','quantity',2), jsonb_build_object('item_code','chemicals','quantity',1)),
+ jsonb_build_array(jsonb_build_object('item_code','armor_panel','quantity',1)))
 ON CONFLICT (id) DO NOTHING;
