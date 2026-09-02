@@ -1,182 +1,77 @@
-# MadWorld — Improvement Backlog
+# MadWorld Improvement Backlog
 
-This is the decision register for meaningful improvements discovered during development.
+> Policy: every new improvement records materially different implementation variants before selection. Product-changing mechanics require acceptance; bug fixes/refactors may be applied directly.
 
-**Rule:** a proposal is recorded first. It is implemented only after it is marked `ACCEPTED`. `DEFERRED` means intentionally postponed. `REJECTED` means explicitly excluded.
+## IMP-020 — Authoritative time + due-job scheduling
+- Status: ACCEPTED — Hybrid
+- Selected: injectable authoritative clock + deterministic due-job scheduler now; durable worker orchestration later.
 
-## Decision states
+## IMP-023 — Versioned domain events
+- Status: ACCEPTED — Hybrid
+- Selected: stable event envelope + schema registry now; compatibility/migration tooling later.
 
-- `ACCEPTED` — approved for implementation and may become an architectural dependency.
-- `PROPOSED` — worth considering; do not silently implement it.
-- `DEFERRED` — useful, but not for the current milestone.
-- `REJECTED` — explicitly excluded.
+## IMP-026 — Observability foundation
+- Status: ACCEPTED — Hybrid
+- Selected: structured command records + metrics primitives now; production telemetry pipeline later.
 
-## Initial proposal set
+## IMP-027 — Reconnect/resume
+- Status: ACCEPTED — Hybrid
+- Selected: explicit resume cursor + deterministic reconciliation result now; persisted session/event feed later.
 
-| ID | Improvement | Status | Notes |
-|---|---|---|---|
-| IMP-001 | Dynamic world map: roads, bridges, checkpoints, POIs and danger can change | PROPOSED | Persistent geography and strategic navigation |
-| IMP-002 | Meaningful character/corporation specialization | PROPOSED | Strong opportunity cost; avoid universal mastery |
-| IMP-003 | Item quality, wear and condition | PROPOSED | Same item type can have materially different economic value |
-| IMP-004 | Player/corporate manufacturers and brands | PROPOSED | Reputation and production consistency can affect value |
-| IMP-005 | Asset provenance and history | PROPOSED | Track meaningful ownership/manufacturing/repair events |
-| IMP-006 | Finance: credit, collateral, investment and insurance | PROPOSED | Must include capital sources, defaults and anti-inflation controls |
-| IMP-007 | NPC factions as bounded economic agents | PROPOSED | Production, consumption, shortages, war and territorial effects |
-| IMP-008 | Player-created infrastructure | PROPOSED | Garages, factories, warehouses, depots, fuel/water and defenses |
-| IMP-009 | Intelligence market | PROPOSED | Tradeable but uncertain and aging route/price/resource information |
-| IMP-010 | World Simulation Layer | PROPOSED | Deterministic tick-based feedback loop connecting economy, logistics, NPCs and conflict |
+## IMP-028 — Offline command delivery
+- Status: ACCEPTED — Hybrid
+- Selected: stable UUID journal + exact-retry semantics now; durable mobile queue/richer conflict handling later.
 
-## Additional candidates discovered during implementation
+## IMP-029 — Regional player markets
+- Status: PLANNED
+- Variants: Minimal fixed-price listings; Systemic regional order books; Advanced NPC liquidity + simulation; Hybrid regional order book first, NPC liquidity later.
 
-| ID | Improvement | Status | Trigger for review |
-|---|---|---|---|
-| IMP-011 | Transactional outbox for domain events | ACCEPTED | Required foundation for reliable asynchronous world/event processing |
-| IMP-012 | Optimistic concurrency/version checks on mutable aggregates | ACCEPTED | Required foundation before concurrent commands target the same asset |
-| IMP-013 | Explicit asset state machines | ACCEPTED | Required to prevent illegal transitions for jobs and persistent assets |
-| IMP-014 | Content versioning and feature flags | PROPOSED | Needed for safe live balancing and staged rollout |
-| IMP-015 | Reproducible simulation seeds and audit snapshots | PROPOSED | Needed for debugging contested world/economy outcomes |
-| IMP-016 | Economic abuse detection and anomaly scoring | PROPOSED | Needed before meaningful player-driven markets and finance |
-| IMP-017 | Economic telemetry and balance dashboards | PROPOSED | Needed to balance inflation, scarcity, destruction and concentration |
-| IMP-018 | Disaster/recovery strategy for authoritative state | PROPOSED | Needed before persistent player assets become valuable |
-| IMP-019 | Server-side notification/event feed | PROPOSED | Needed for offline jobs, market changes, contracts and world events |
-| IMP-020 | Deterministic time/job scheduler | ACCEPTED | Hybrid selected: injectable authoritative clock + due-job scheduler now; durable worker orchestration later |
-| IMP-021 | Authentication, sessions and device/account security | PROPOSED | Required player-facing identity layer; include refresh/revocation and abuse controls |
-| IMP-022 | API contract versioning and generated client models | PROPOSED | Reduce Android/backend drift and make migrations safer |
-| IMP-023 | Domain event envelope and schema registry | ACCEPTED | Hybrid selected: stable envelope + registry now; compatibility/migration tooling later |
-| IMP-024 | Rate limiting and command budgets | PROPOSED | Protect authoritative commands and reduce automation abuse |
-| IMP-025 | Anti-cheat trust model and server-side action validation | PROPOSED | Harden economy, movement, combat, timers and rewards against manipulated clients |
-| IMP-026 | Structured observability: logs, metrics, traces and correlation IDs | ACCEPTED | Hybrid selected: structured command records + metrics primitives now; backend exporters/tracing later |
-| IMP-027 | Reconnect/resume protocol with authoritative state reconciliation | ACCEPTED | Hybrid selected: explicit resume cursor + reconciliation result now; persisted session/event feed later |
-| IMP-028 | Offline action journal and retry semantics | ACCEPTED | Hybrid selected: UUID command journal + exact-retry deduplication now; durable mobile queue integration later |
-| IMP-029 | Market order lifecycle, escrow and deterministic matching | PROPOSED | Formalize reservations, partial fills, cancellation and settlement |
-| IMP-030 | Regional price history and market analytics | PROPOSED | Give players useful information without creating a global auction house |
-| IMP-031 | Logistics route planner with risk/cost/time trade-offs | PROPOSED | Turn geography and danger into meaningful economic decisions |
-| IMP-032 | Convoy command, escort roles and shared cargo risk | PROPOSED | Extend hauling into cooperative logistics gameplay |
-| IMP-033 | Combat replay and authoritative incident timeline | PROPOSED | Explain losses, support appeals and enable debugging of combat outcomes |
-| IMP-034 | Component-level vehicle damage and repair dependencies | PROPOSED | Make vehicle configuration economically meaningful rather than cosmetic |
-| IMP-035 | Reputation graph across players, settlements, factions and corporations | PROPOSED | Make trust, access and criminality persistent gameplay systems |
-| IMP-036 | Corporation governance, permissions and treasury controls | PROPOSED | Prevent shared-asset gameplay from becoming an all-or-nothing trust model |
-| IMP-037 | Alliance diplomacy, treaties and transit rights | PROPOSED | Enable political gameplay beyond simple clan membership |
-| IMP-038 | Fog of war, scouting and information freshness | PROPOSED | Make intelligence valuable while preserving uncertainty |
-| IMP-039 | Dynamic mission generation from world/economic state | PROPOSED | Replace static quest spam with systemic objectives |
-| IMP-040 | Seasonal/live-world configuration with controlled state transitions | PROPOSED | Support long-term world evolution without wiping persistent assets |
-| IMP-041 | Content authoring pipeline and validation | PROPOSED | Allow large data-driven item, blueprint, POI and mission catalogs safely |
-| IMP-042 | Localization architecture and runtime text versioning | PROPOSED | Prepare Android UX for multilingual deployment without hardcoded strings |
-| IMP-043 | Accessibility-first mobile interaction layer | PROPOSED | Support scalable text, contrast, touch targets, reduced motion and assistive technology |
-| IMP-044 | Push notifications and player alert priorities | PROPOSED | Surface completed jobs, attacks, contracts and market events while offline |
-| IMP-045 | Player-driven contracts with escrow and dispute rules | PROPOSED | Turn logistics, manufacturing and recovery into player-to-player economic services |
-| IMP-046 | Insurance/recovery risk model | PROPOSED | Provide loss mitigation without removing meaningful destruction and risk |
-| IMP-047 | Resource depletion and regeneration model | PROPOSED | Prevent permanent exhaustion while preserving regional scarcity |
-| IMP-048 | Weather, disasters and environmental modifiers | PROPOSED | Make travel, production and combat respond to persistent world conditions |
-| IMP-049 | POI ownership/access-control model | PROPOSED | Define who can operate, tax, repair, refuel or extract at strategic locations |
-| IMP-050 | Infrastructure maintenance and degradation | PROPOSED | Prevent permanent snowballing from player-built infrastructure |
-| IMP-051 | NPC demand, production and trade feedback loops | PROPOSED | Give NPCs bounded economic agency without infinite item generation |
-| IMP-052 | Bot-resistant market and behavior telemetry | PROPOSED | Detect scripted patterns while avoiding punitive false positives |
-| IMP-053 | Economy simulation sandbox and replayable balance tests | PROPOSED | Test inflation, scarcity and market shocks before live rollout |
-| IMP-054 | Deterministic world-state snapshots and rollback checkpoints | PROPOSED | Recover from simulation defects without arbitrary player restoration |
-| IMP-055 | Backup verification and disaster-recovery drills | PROPOSED | Prove backups are restorable rather than merely existing |
-| IMP-056 | Data retention, archival and privacy boundaries | PROPOSED | Keep audit/history useful while limiting unnecessary long-term personal data |
-| IMP-057 | Admin/operator action audit and privileged-command controls | PROPOSED | Make support and moderation actions traceable and reversible where safe |
-| IMP-058 | Moderation, reporting and anti-harassment tooling | PROPOSED | Necessary for a persistent social sandbox at scale |
-| IMP-059 | Player safety controls and communication preferences | PROPOSED | Give players control over notifications, chat exposure and social interactions |
-| IMP-060 | Analytics/event taxonomy with privacy-safe aggregation | PROPOSED | Measure retention and systems health without coupling gameplay to invasive tracking |
-| IMP-061 | Deterministic SQL migration runner and schema history | ACCEPTED | Hybrid selected: ordered SQL + checksums + CI verification; no destructive automatic rollback |
-| IMP-062 | Transaction boundary ownership | ACCEPTED | Hybrid selected: command boundary owns lifecycle; savepoints only when composition requires them |
-| IMP-063 | Generic API idempotency store | ACCEPTED | Hybrid selected: shared PostgreSQL table first, compatible with later distributed extraction |
-| IMP-064 | Outbox leasing, retry and dead-letter processing | ACCEPTED | Hybrid selected: lease + retry/backoff first; dead-letter and replay later |
-| IMP-065 | Stable API error envelope | ACCEPTED | Hybrid selected: stable envelope + typed codes now; generated catalog later |
-| IMP-066 | Constraint-aware database error mapping | ACCEPTED | Hybrid selected: centralized mapper with safe machine codes and no SQL leakage |
-| IMP-067 | Transactional semantics for in-memory test adapter | ACCEPTED | Hybrid selected: snapshot/restore rollback now; production semantics remain PostgreSQL transactions |
+## IMP-061 — Inventory authority
+- Status: ACCEPTED
+- Selected: server-authoritative inventory with transactional persistence and idempotent mutations.
 
-## Variant policy
+## IMP-062 — Item definitions
+- Status: ACCEPTED
+- Selected: stable UUID item definitions with immutable identity and condition-aware stacks.
 
-For every new improvement, record all materially different implementation variants before choosing one. A proposal may therefore contain several approaches:
+## IMP-063 — Wallet/ledger authority
+- Status: ACCEPTED
+- Selected: append-only ledger plus authoritative wallet balance and idempotent commands.
 
-1. **Minimal/MVP** — smallest implementation that validates the gameplay or architectural need.
-2. **Systemic** — deeper simulation with persistent interactions and stronger emergence.
-3. **Advanced** — high-fidelity version intended for mature/live-world operation.
-4. **Hybrid** — staged approach where MVP foundations remain compatible with later systemic expansion.
+## IMP-064 — Crafting jobs
+- Status: ACCEPTED
+- Selected: persistent jobs with authoritative timestamps and deterministic scheduler.
 
-The chosen variant must be recorded in the decision entry before product behavior is enabled. Technical bug fixes and invariant-preserving refactors remain exempt from product approval.
+## IMP-065 — Outbox delivery
+- Status: ACCEPTED
+- Selected: transactional outbox with leases, retries and dead-letter handling.
 
-## Variant notes for accepted technical improvements
+## IMP-066 — API idempotency
+- Status: ACCEPTED
+- Selected: request-hash checked idempotency records with exact replay.
 
-### IMP-061 — Deterministic SQL migration runner
-- **Minimal/MVP:** ordered SQL files plus a `schema_migrations` table storing migration name and applied timestamp.
-- **Systemic:** metadata with checksums, dependency/order validation and startup/CI verification.
-- **Advanced:** checksums plus repair tooling, drift detection, deployment gates and explicit recovery metadata.
-- **Hybrid — SELECTED:** ordered SQL + checksums + CI verification, with no destructive automatic rollback.
+## IMP-067 — In-memory transactional semantics
+- Status: ACCEPTED — Hybrid
+- Selected: snapshot/restore rollback semantics now; database remains authoritative for production.
 
-### IMP-062 — Transaction boundary ownership
-- **Minimal/MVP:** keep service-level commits and prohibit multi-command UoW reuse.
-- **Systemic:** command/application boundary owns commit and rollback; services only mutate the UoW.
-- **Advanced:** explicit nested transactions/savepoints and composable command pipelines.
-- **Hybrid — SELECTED:** application boundary owns transaction lifecycle, with savepoints added only where composition requires them.
+## IMP-068 — Player bootstrap vertical slice
+- Status: ACCEPTED — Hybrid
+- Goal: make first login produce one coherent authoritative player state instead of requiring clients to orchestrate several independent commands.
+- Variants:
+  1. Minimal: client calls character creation and starter-vehicle creation separately.
+  2. Systemic: one atomic server-side bootstrap command creates character, starter vehicle, wallet/inventory foundations and returns a snapshot.
+  3. Advanced: bootstrap also provisions settlement, starter resources, tutorial state and region assignment.
+  4. Hybrid: atomic character + starter vehicle + required account foundations now; settlement/tutorial/world provisioning remains separate.
+- Selected: Hybrid. Reason: preserves transactional authority and leaves room for the later world/settlement systems without coupling onboarding to unfinished mechanics.
+- Acceptance: authorized by project continuation workflow.
 
-### IMP-063 — Generic API idempotency store
-- **Minimal/MVP:** per-command idempotency keys using existing domain tables.
-- **Systemic:** shared idempotency table keyed by actor + command + key, storing canonical response metadata.
-- **Advanced:** distributed idempotency service with retention policies and replay diagnostics.
-- **Hybrid — SELECTED:** shared PostgreSQL table first, compatible with later distributed extraction.
-
-### IMP-064 — Outbox leasing and retries
-- **Minimal/MVP:** poll unpublished rows and mark `published_at` after successful delivery.
-- **Systemic:** row leasing with ownership/expiry and retry counters.
-- **Advanced:** exponential backoff, dead-letter state, poison-event isolation and operational replay.
-- **Hybrid — SELECTED:** lease + retry/backoff first, dead-letter and advanced replay later.
-
-### IMP-065 — Stable API error envelope
-- **Minimal/MVP:** `{code, message, request_id}` for all application errors.
-- **Systemic:** typed error codes with field violations, retryability and domain metadata.
-- **Advanced:** versioned machine-readable error catalog shared with Android SDK generation.
-- **Hybrid — SELECTED:** stable envelope + typed codes now, generated catalog later.
-
-### IMP-066 — Constraint-aware database error mapping
-- **Minimal/MVP:** special-case known unique constraints at repository boundaries.
-- **Systemic:** centralized database exception mapper with constraint classification.
-- **Advanced:** catalogued DB constraints, diagnostics and operational error telemetry.
-- **Hybrid — SELECTED:** centralized mapper with safe application codes, preserving original exception as internal cause and never exposing SQL.
-
-### IMP-067 — Transactional semantics for in-memory test adapter
-- **Minimal/MVP:** expose rollback flags only and use tests to inspect them.
-- **Systemic:** implement full repository snapshot/restore semantics matching transactional expectations.
-- **Advanced:** nested transaction/savepoint simulation and fault-injection hooks.
-- **Hybrid — SELECTED:** snapshot/restore now, with deeper savepoint simulation only if later composition tests require it.
-
-### IMP-020 — Deterministic time/job scheduler
-- **Minimal/MVP:** inject a clock into services and provide a simple due-job polling loop.
-- **Systemic:** durable scheduler backed by persisted leases, deterministic ordering and crash-safe retries.
-- **Advanced:** distributed worker orchestration, partitioning, lag metrics, replay and simulation tick coordination.
-- **Hybrid — SELECTED:** injectable authoritative clock + deterministic due-job selection now; durable worker/lease orchestration later without changing domain rules.
-
-### IMP-023 — Domain event envelope and schema registry
-- **Minimal/MVP:** wrap each event in a stable envelope containing event ID, type, aggregate, timestamp and payload.
-- **Systemic:** registry validates every event type/version before it enters audit/outbox.
-- **Advanced:** compatibility matrix, event migrations and operational schema tooling for long-lived consumers.
-- **Hybrid — SELECTED:** versioned envelope + in-process registry now; compatibility/migration tooling later without changing the transport contract.
-
-### IMP-027 — Reconnect/resume protocol
-- **Minimal/MVP:** session resume cursor and authoritative snapshot refresh after reconnect.
-- **Systemic:** event cursor + persisted session state + replay of missed authoritative events.
-- **Advanced:** multi-device session continuity, resumable streams, conflict diagnostics and operational session telemetry.
-- **Hybrid — SELECTED:** explicit resume cursor + deterministic reconciliation result now; persisted event feed and richer replay later.
-
-### IMP-028 — Offline action journal and retry semantics
-- **Minimal/MVP:** client-side UUID command journal with exact duplicate suppression.
-- **Systemic:** durable pending-command queue with server acknowledgements, retry policy and idempotency integration.
-- **Advanced:** dependency-aware command DAG, conflict resolution, partial replay and telemetry.
-- **Hybrid — SELECTED:** stable UUID journal + exact-retry semantics now; durable mobile queue and richer conflict handling later.
-
-### IMP-026 — Structured observability
-- **Minimal/MVP:** structured command logs with request/correlation IDs.
-- **Systemic:** metrics for command latency, failures, DB transactions and scheduler lag plus tracing context.
-- **Advanced:** OpenTelemetry traces, production exporters, alerting, SLOs and privacy-safe dashboards.
-- **Hybrid — SELECTED:** framework-neutral structured records and command metrics now; production exporters/tracing after the command surface stabilizes.
-
-## Selection policy
-
-When a new improvement is discovered, add it here before implementation if it changes a core rule, persistent data model, economy, combat model, social contract or player progression.
-
-Small bug fixes, refactors and test improvements do not require a product decision unless they alter player-visible behavior or a locked invariant.
-
-The implementation plan should reference accepted IDs. This keeps the project ambitious without turning every good idea into accidental scope creep. Humanity has invented enough scope creep already.
+## IMP-069 — Player state snapshot API
+- Status: ACCEPTED — Hybrid
+- Goal: give Android clients one deterministic read model for reconnect/bootstrap instead of assembling state from multiple endpoints.
+- Variants:
+  1. Minimal: character + vehicles only.
+  2. Systemic: character, vehicles, wallet, inventory and active jobs.
+  3. Advanced: full world/session snapshot with versioned cursors.
+  4. Hybrid: account gameplay state now, world/session feed later.
+- Selected: Hybrid.
+- Acceptance: authorized by project continuation workflow.
