@@ -45,7 +45,7 @@ This is the decision register for meaningful improvements discovered during deve
 | IMP-023 | Domain event envelope and schema registry | ACCEPTED | Hybrid selected: stable envelope + registry now; compatibility/migration tooling later |
 | IMP-024 | Rate limiting and command budgets | PROPOSED | Protect authoritative commands and reduce automation abuse |
 | IMP-025 | Anti-cheat trust model and server-side action validation | PROPOSED | Harden economy, movement, combat, timers and rewards against manipulated clients |
-| IMP-026 | Structured observability: logs, metrics, traces and correlation IDs | PROPOSED | Diagnose production failures without inspecting player state manually |
+| IMP-026 | Structured observability: logs, metrics, traces and correlation IDs | ACCEPTED | Hybrid selected: structured command records + metrics primitives now; backend exporters/tracing later |
 | IMP-027 | Reconnect/resume protocol with authoritative state reconciliation | ACCEPTED | Hybrid selected: explicit resume cursor + reconciliation result now; persisted session/event feed later |
 | IMP-028 | Offline action journal and retry semantics | ACCEPTED | Hybrid selected: UUID command journal + exact-retry deduplication now; durable mobile queue integration later |
 | IMP-029 | Market order lifecycle, escrow and deterministic matching | PROPOSED | Formalize reservations, partial fills, cancellation and settlement |
@@ -166,6 +166,12 @@ The chosen variant must be recorded in the decision entry before product behavio
 - **Systemic:** durable pending-command queue with server acknowledgements, retry policy and idempotency integration.
 - **Advanced:** dependency-aware command DAG, conflict resolution, partial replay and telemetry.
 - **Hybrid — SELECTED:** stable UUID journal + exact-retry semantics now; durable mobile queue and richer conflict handling later.
+
+### IMP-026 — Structured observability
+- **Minimal/MVP:** structured command logs with request/correlation IDs.
+- **Systemic:** metrics for command latency, failures, DB transactions and scheduler lag plus tracing context.
+- **Advanced:** OpenTelemetry traces, production exporters, alerting, SLOs and privacy-safe dashboards.
+- **Hybrid — SELECTED:** framework-neutral structured records and command metrics now; production exporters/tracing after the command surface stabilizes.
 
 ## Selection policy
 
