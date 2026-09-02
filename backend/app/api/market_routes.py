@@ -86,8 +86,11 @@ def _market_lock(conn, region_id: UUID, item_definition_id: UUID) -> None:
 
 
 def _match(conn, order_id: UUID) -> None:
-    order = conn.execute(text("SELECT * FROM market_orders WHERE id = :id FOR UPDATE"), {"id": order_id}).mappings().one()
-    _market_lock(conn, UUID(str(order["region_id"])), UUID(str(order["item_definition_id"])))
+    identity = conn.execute(
+        text("SELECT region_id, item_definition_id FROM market_orders WHERE id = :id"),
+        {"id": order_id},
+    ).mappings().one()
+    _market_lock(conn, UUID(str(identity["region_id"])), UUID(str(identity["item_definition_id"])))
     order = conn.execute(text("SELECT * FROM market_orders WHERE id = :id FOR UPDATE"), {"id": order_id}).mappings().one()
     opposite = "sell" if order["side"] == "buy" else "buy"
     if order["side"] == "buy":
