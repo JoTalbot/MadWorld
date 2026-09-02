@@ -4,42 +4,41 @@ import android.content.Context
 import org.json.JSONObject
 import java.util.UUID
 
-class PlayerRepository(
-    context: Context,
-    private val api: MadWorldApi,
-) {
+class PlayerRepository(context: Context, private val api: MadWorldApi) {
     private val cache = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+    private val session = context.getSharedPreferences("player_session", Context.MODE_PRIVATE)
+
+    fun session(): SessionState? {
+        val playerId = session.getString("player_id", null)?.let(UUID::fromString) ?: return null
+        val handle = session.getString("handle", null) ?: return null
+        val token = session.getString("token", null) ?: return null
+        val expiresAt = session.getString("expires_at", null) ?: return null
+        return SessionState(playerId, handle, token, expiresAt)
+    }
+
+    fun createSession(handle: String): SessionState = api.createSession(handle).also { value ->
+        session.edit().putString("player_id", value.playerId.toString()).putString("handle", value.handle).putString("token", value.token).putString("expires_at", value.expiresAt).apply()
+    }
 
     fun cached(playerId: UUID): PlayerState? = cache.getString(playerId.toString(), null)?.let(::parseCached)
-
-    fun refresh(playerId: UUID): PlayerState = api.fetchPlayerState(playerId).also { save(playerId, it) }
-
-    fun bootstrap(playerId: UUID, characterName: String): PlayerState = api.bootstrap(playerId, characterName).also { save(playerId, it) }
+    fun refresh(session: SessionState): PlayerState = api.fetchPlayerState(session.playerId, session.token).also { save(session.playerId, it) }
+    fun bootstrap(session: SessionState, characterName: String): PlayerState = api.bootstrap(session.playerId, characterName, session.token).also { save(session.playerId, it) }
 
     private fun save(playerId: UUID, state: PlayerState) {
         val root = JSONObject()
-        state.character?.let { character ->
-            root.put("character", JSONObject().put("id", character.id).put("player_id", character.playerId).put("name", character.name).put("level", character.level).put("version", character.version))
-        } ?: root.put("character", JSONObject.NULL)
+        state.character?.let { c -> root.put("character", JSONObject().put("id", c.id).put("player_id", c.playerId).put("name", c.name).put("level", c.level).put("version", c.version)) } ?: root.put("character", JSONObject.NULL)
         val vehicles = org.json.JSONArray()
-        state.vehicles.forEach { vehicle ->
-            vehicles.put(JSONObject().put("id", vehicle.id).put("owner_id", vehicle.ownerId).put("code", vehicle.code).put("chassis_code", vehicle.chassisCode).put("durability", vehicle.durability).put("fuel", vehicle.fuel).put("state", vehicle.state).put("version", vehicle.version))
-        }
+        state.vehicles.forEach { v -> vehicles.put(JSONObject().put("id", v.id).put("owner_id", v.ownerId).put("code", v.code).put("chassis_code", v.chassisCode).put("durability", v.durability).put("fuel", v.fuel).put("state", v.state).put("version", v.version)) }
         root.put("vehicles", vehicles)
         cache.edit().putString(playerId.toString(), root.toString()).apply()
     }
 
     private fun parseCached(json: String): PlayerState {
         val root = JSONObject(json)
-        val character = if (root.isNull("character")) null else root.getJSONObject("character").let {
-            CharacterState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("player_id")), it.getString("name"), it.getInt("level"), it.getInt("version"))
-        }
+        val character = if (root.isNull("character")) null else root.getJSONObject("character").let { CharacterState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("player_id")), it.getString("name"), it.getInt("level"), it.getInt("version")) }
         val vehicles = buildList {
             val array = root.getJSONArray("vehicles")
-            for (index in 0 until array.length()) {
-                val it = array.getJSONObject(index)
-                add(VehicleState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("owner_id")), it.getString("code"), it.getString("chassis_code"), it.getInt("durability"), it.getInt("fuel"), it.getString("state"), it.getInt("version")))
-            }
+            for (index in 0 until array.length()) { val it = array.getJSONObject(index); add(VehicleState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("owner_id")), it.getString("code"), it.getString("chassis_code"), it.getInt("durability"), it.getInt("fuel"), it.getString("state"), it.getInt("version"))) }
         }
         return PlayerState(character, vehicles)
     }
