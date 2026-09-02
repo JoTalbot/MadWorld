@@ -153,15 +153,12 @@ This file is the persistent source of truth for improvement proposals and implem
 - Verification: PR #10 merged to `main` as merge commit `2334378a7f11b4e5a46069641c910b6ff3ff81be`. Android CI #21 passed; Backend CI #242 passed.
 - Deferred by design: building/world visualization, settlement mutation commands, offline settlement command journal/reconciliation, rich building interactions and world-map navigation. These require separate product slices and remain subject to backlog approval.
 
-## IMP-081 — Phase 2 Economy foundation
-- Status: PLANNED
-- Goal: begin the economic layer that turns the existing market/inventory/crafting/settlement foundations into a persistent regional production economy.
-- Discovery: `main` already has transactional regional player order books and trade history, authoritative inventory/wallet/crafting jobs, and settlement capability boundaries. The actual Phase 2 production/refining/warehouse/logistics layer is still largely a design-level target rather than implemented gameplay.
-- Variants considered:
-  - Minimal: price/trade history queries + basic refining recipes + simple production jobs.
-  - Systemic: versioned recipes, input/output reservations, production facilities, persistent warehouse capacity and regional price/volume history integrated with existing inventory, jobs and market transactions.
-  - Advanced: systemic production plus skills/specializations, facility modifiers, NPC supply/demand and logistics contracts with cargo capacity and route costs.
-  - Hybrid: systemic authoritative economy core now, with skills/NPC simulation/logistics expanded through compatible follow-up slices.
-- Proposed dependency order: warehouse/storage boundary → refining/production recipes and jobs → price/volume history → facility capacity/modifiers → logistics/cargo → NPC economy and dynamic supply/demand.
-- Approval required: select a variant before product-changing implementation begins.
-- Deferred until selection: NPC economy simulation, advanced logistics, territory-driven economic modifiers and live world-market simulation.
+## IMP-081 — Phase 2 Economy Foundation
+- Status: ACCEPTED — Hybrid
+- Selected by user: `4`, interpreted as Hybrid.
+- Goal: build the authoritative Phase 2 economy core connecting settlement storage, refining, production, market history and facilities, while leaving NPC economy simulation and deeper logistics as compatible follow-up layers.
+- Selected scope: warehouse/storage boundary; refining recipes and persistent jobs; production recipes and persistent jobs with transactional input reservation and deterministic output; facility definitions/levels/capability foundations; market trade/price-volume history; economy audit/outbox events; idempotent commands; authoritative backend and Android read models; extension points for logistics, skills/specialization and NPC supply/demand.
+- Implementation order: Warehouse → Refining → Production → Facility foundation → Price/volume history → economy read models.
+- Deferred by design: NPC supply/demand simulation, advanced skills/specialization progression, full logistics/cargo contracts and route simulation, insurance/recovery economy, live economy-driven procedural contract generation and advanced financial systems.
+- Verification target: backend unit/integration tests, idempotency/retry tests, concurrency tests, inventory conservation tests, job completion tests, market-history consistency tests and Android compile/contract tests.
+- Scope record: `docs/IMP-081-ECONOMY-HYBRID.md`.
