@@ -138,8 +138,8 @@ This file is the persistent source of truth for improvement proposals and implem
 - Goal: add a persistent player home/base that ties vehicle storage, inventory, repair/workshop access, contract acquisition and regional market interaction into a repeatable gameplay loop.
 - Variants considered: Minimal, Systemic, Advanced and Hybrid.
 - Selected by user: `4`, interpreted as Hybrid.
-- Selected scope: persistent settlement foundation with region identity, level, extensible module state and authoritative interaction capabilities for garage, warehouse, workshop, contracts and market; settlement API and transactional PostgreSQL persistence. Building progression, NPC services, production chains and deeper economy modifiers remain extensible follow-up layers.
-- Implementation: persistent player settlement state, settlement domain/application boundary, PostgreSQL and in-memory repositories with optimistic concurrency, authenticated settlement snapshot endpoint with lazy provisioning, versioned `settlement.created` audit/outbox event, migration, tests and design documentation.
+- Selected scope: persistent settlement foundation with region identity, level, extensible module state and authoritative interaction capabilities for garage, warehouse, workshop, contracts and market; settlement API and transactional PostgreSQL persistence. Building progression, NPC services, production chains and deeper settlement economy modifiers remain extensible follow-up layers.
+- Implementation: persistent settlement state, settlement domain/application boundary, PostgreSQL and in-memory repositories with optimistic concurrency, authenticated settlement snapshot endpoint with lazy provisioning, versioned `settlement.created` audit/outbox event, migration, tests and design documentation.
 - Verification: PR #9 merged to `main` as merge commit `a0c1b3701a2e2dc6cc6b67a7dd4399aa5dfbe933`; PR CI #238 passed successfully after fixing a SQLAlchemy migration bind-parsing issue.
 - Deferred by design: building upgrade progression, NPC services/population, production chains, territory control and deeper settlement economy modifiers.
 
@@ -154,11 +154,13 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred by design: building/world visualization, settlement mutation commands, offline settlement command journal/reconciliation, rich building interactions and world-map navigation. These require separate product slices and remain subject to backlog approval.
 
 ## IMP-081 — Phase 2 Economy Foundation
-- Status: ACCEPTED — Hybrid
+- Status: COMPLETE — Hybrid
 - Selected by user: `4`, interpreted as Hybrid.
 - Goal: build the authoritative Phase 2 economy core connecting settlement storage, refining, production, market history and facilities, while leaving NPC economy simulation and deeper logistics as compatible follow-up layers.
 - Selected scope: warehouse/storage boundary; refining recipes and persistent jobs; production recipes and persistent jobs with transactional input reservation and deterministic output; facility definitions/levels/capability foundations; market trade/price-volume history; economy audit/outbox events; idempotent commands; authoritative backend and Android read models; extension points for logistics, skills/specialization and NPC supply/demand.
 - Implementation order: Warehouse → Refining → Production → Facility foundation → Price/volume history → economy read models.
+- Implementation: initial IMP-081 Hybrid slice merged as PR #11, followed by PR #12 hardening. Hardening fixed authoritative migration execution with `exec_driver_sql`, enforced authoritative clock/facility/capacity boundaries, added transactional audit/outbox events and strengthened economy invariants/tests.
+- Verification: PR #12 merged to `main` as merge commit `661e67c9577ba9c073123c3141eff1af90bfbc27`. Backend CI runs #254 and #255 for the final head completed successfully, including database migrations and the full test step.
 - Deferred by design: NPC supply/demand simulation, advanced skills/specialization progression, full logistics/cargo contracts and route simulation, insurance/recovery economy, live economy-driven procedural contract generation and advanced financial systems.
-- Verification target: backend unit/integration tests, idempotency/retry tests, concurrency tests, inventory conservation tests, job completion tests, market-history consistency tests and Android compile/contract tests.
+- Follow-up note: migration SQL containing `%(`-like text now has regression protection through the raw-driver migration execution path; this is a technical reliability hardening, not a product change.
 - Scope record: `docs/IMP-081-ECONOMY-HYBRID.md`.
