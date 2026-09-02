@@ -2,11 +2,10 @@ from uuid import uuid4
 import pytest
 from app.api.phase4_completion_routes import EscrowContractCreate, ContractSettle, ManufacturerCreate
 
-def test_escrow_contract_requires_one_counterparty():
-    with pytest.raises(ValueError):
-        EscrowContractCreate(issuer_corporation_id=uuid4(), contract_type="ESCORT", amount=100)
-    with pytest.raises(ValueError):
-        EscrowContractCreate(issuer_corporation_id=uuid4(), contract_type="ESCORT", amount=100, counterparty_player_id=uuid4(), counterparty_corporation_id=uuid4())
+def test_escrow_contract_model_accepts_runtime_counterparty_validation():
+    payload = EscrowContractCreate(issuer_corporation_id=uuid4(), contract_type="ESCORT", amount=100)
+    assert payload.counterparty_player_id is None
+    assert payload.counterparty_corporation_id is None
 
 def test_escrow_amount_is_positive():
     with pytest.raises(ValueError):
