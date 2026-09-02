@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from app.scripts.world_tick_worker import LOCK_KEY, tick_once
+import importlib.util
+from pathlib import Path
+
+_WORKER_PATH = Path(__file__).resolve().parents[1] / "scripts" / "world_tick_worker.py"
+_SPEC = importlib.util.spec_from_file_location("world_tick_worker", _WORKER_PATH)
+assert _SPEC and _SPEC.loader
+worker = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(worker)
 
 
 class _Result:
@@ -39,8 +46,6 @@ class _Engine:
 
 
 def test_worker_skips_when_advisory_lock_is_owned(monkeypatch):
-    import app.scripts.world_tick_worker as worker
-
     called = False
 
     def fake_simulate(conn):
@@ -49,13 +54,11 @@ def test_worker_skips_when_advisory_lock_is_owned(monkeypatch):
         return {"tick": 1}
 
     monkeypatch.setattr(worker, "simulate_tick", fake_simulate)
-    assert tick_once(_Engine(_Connection(False))) is None
+    assert worker.tick_once(_Engine(_Connection(False))) is None
     assert called is False
 
 
 def test_worker_advances_only_after_advisory_lock(monkeypatch):
-    import app.scripts.world_tick_worker as worker
-
     seen = {}
 
     def fake_simulate(conn):
@@ -63,7 +66,7 @@ def test_worker_advances_only_after_advisory_lock(monkeypatch):
         return {"tick": 7, "generated_events": 1, "generated_missions": 0}
 
     monkeypatch.setattr(worker, "simulate_tick", fake_simulate)
-    result = tick_once(_Engine(_Connection(True)))
+    result = worker.tick_once(_Engine(_Connection(True)))
     assert result["tick"] == 7
     assert seen["conn"] is not None
-    assert LOCK_KEY == 6_2026_01
+    assert worker.LOCK_KEY == 6_2026_01
