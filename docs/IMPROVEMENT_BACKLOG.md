@@ -98,11 +98,13 @@
 - Implementation note: bearer-session enforcement is now wired into player bootstrap and player-state reads; requests cannot read or mutate another player's bootstrap/state by UUID alone.
 
 ## IMP-072 — Player-boundary session enforcement
-- Status: ACCEPTED — Security hardening
+- Status: ACCEPTED — Security hardening — COMPLETE for selected slice
 - Goal: ensure the persistent session credential is actually authoritative at the player boundary rather than merely being stored and sent by Android.
 - Variants:
   1. Minimal: enforce bearer token on state/bootstrap only.
   2. Systemic: enforce bearer identity across all player-owned commands and reads.
   3. Advanced: refresh/revocation/device binding plus scoped credentials.
   4. Hybrid: protect state/bootstrap immediately, then extend ownership enforcement across every player-owned command before production auth hardening.
-- Selected: Hybrid. State/bootstrap protection is implemented; broader command ownership enforcement remains next.
+- Selected: Hybrid.
+- Implementation: bearer authentication and ownership checks now cover wallet entries, inventory mutations, job creation/transitions, character creation/reads, vehicle creation/reads/mutations, plus bootstrap/state. Negative regression tests cover missing authentication and cross-player access.
+- Remaining production auth work: refresh/revocation, device binding and scoped credentials remain intentionally deferred.
