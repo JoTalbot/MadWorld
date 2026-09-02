@@ -11,7 +11,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
-from app.application.ports import UnitOfWork
+from app.application.ports import IdempotencyRecord, UnitOfWork
 from app.domain.primitives import InventoryStack, Job, JobState, LedgerEntry, Wallet
 from app.infrastructure.errors import map_integrity_error
 
@@ -134,6 +134,50 @@ class PostgresJobRepository:
             raise map_integrity_error(exc) from exc
 
 
+class PostgresIdempotencyRepository:
+    def __init__(self, conn: Connection) -> None:
+        self.conn = conn
+
+    @staticmethod
+    def _map(row: Any) -> IdempotencyRecord:
+        return IdempotencyRecord(
+            command_name=str(row["command_name"]),
+            idempotency_key=str(row["idempotency_key"]),
+            request_hash=str(row["request_hash"]),
+            response_status=int(row["response_status"]),
+            response_payload=dict(row["response_payload"]),
+            actor_id=UUID(str(row["actor_id"])) if row["actor_id"] else None,
+            created_at=row["created_at"],
+        )
+
+    def get(self, command_name: str, idempotency_key: str) -> IdempotencyRecord | None:
+        row = self.conn.execute(text("""
+            SELECT command_name, idempotency_key, request_hash, response_status,
+                   response_payload, actor_id, created_at
+            FROM idempotency_records
+            WHERE command_name = :command_name AND idempotency_key = :key
+        """), {"command_name": command_name, "key": idempotency_key}).mappings().first()
+        return self._map(row) if row else None
+
+    def put(self, record: IdempotencyRecord) -> None:
+        try:
+            self.conn.execute(text("""
+                INSERT INTO idempotency_records
+                    (actor_id, command_name, idempotency_key, request_hash, response_status, response_payload, created_at)
+                VALUES (:actor_id, :command_name, :key, :request_hash, :status, CAST(:payload AS JSONB), :created_at)
+            """), {
+                "actor_id": record.actor_id,
+                "command_name": record.command_name,
+                "key": record.idempotency_key,
+                "request_hash": record.request_hash,
+                "status": record.response_status,
+                "payload": _json(record.response_payload),
+                "created_at": record.created_at,
+            })
+        except IntegrityError as exc:
+            raise map_integrity_error(exc) from exc
+
+
 class PostgresAuditRepository:
     def __init__(self, conn: Connection) -> None:
         self.conn = conn
@@ -174,6 +218,7 @@ class PostgresUnitOfWork(UnitOfWork):
         self.wallets = PostgresWalletRepository(self.conn)
         self.inventories = PostgresInventoryRepository(self.conn)
         self.jobs = PostgresJobRepository(self.conn)
+        self.idempotency = PostgresIdempotencyRepository(self.conn)
         self.audit = PostgresAuditRepository(self.conn)
         self.outbox = PostgresOutboxRepository(self.conn)
         return self
