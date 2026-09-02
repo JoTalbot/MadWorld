@@ -94,7 +94,7 @@ class JobService:
         job = Job.create(owner_id, job_type, started_at, completes_at)
         self.uow.jobs.save(job)
         self.uow.jobs.bind_idempotency_key(idempotency_key, job.id)
-        self._record("job.created", job.id, {"job_type": job_type})
+        self._record("job.created", job.id, {"job_type": job_type}, job)
         return job
 
     def start(self, job_id: UUID) -> Job:
@@ -119,14 +119,11 @@ class JobService:
         return job
 
     def _save(self, job: Job, event_type: str) -> Job:
-        return self._record(event_type, job.id, {"state": job.state.value}, job)
+        self.uow.jobs.save(job)
+        self._record(event_type, job.id, {"state": job.state.value})
+        return job
 
-    def _record(self, event_type: str, aggregate_id: UUID, payload: dict, job: Job | None = None) -> Job:
+    def _record(self, event_type: str, aggregate_id: UUID, payload: dict, job: Job | None = None) -> None:
         event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload)
-        if job is not None:
-            self.uow.jobs.save(job)
         self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
         self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
-        if job is None:
-            raise RuntimeError("job event requires job state")
-        return job
