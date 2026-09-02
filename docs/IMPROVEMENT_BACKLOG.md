@@ -97,3 +97,14 @@
   4. Hybrid: handle + 30-day server session + Android persistence now; refresh/revocation/device security later.
 - Selected: Hybrid. The current slice adds the persistent session boundary while leaving production account security for the dedicated auth hardening phase.
 - Acceptance: authorized by project continuation workflow.
+- Implementation note: bearer-session enforcement is now wired into player bootstrap and player-state reads; requests cannot read or mutate another player's bootstrap/state by UUID alone.
+
+## IMP-072 — Player-boundary session enforcement
+- Status: ACCEPTED — Security hardening
+- Goal: ensure the persistent session credential is actually authoritative at the player boundary rather than merely being stored and sent by Android.
+- Variants:
+  1. Minimal: enforce bearer token on state/bootstrap only.
+  2. Systemic: enforce bearer identity across all player-owned commands and reads.
+  3. Advanced: refresh/revocation/device binding plus scoped credentials.
+  4. Hybrid: protect state/bootstrap immediately, then extend ownership enforcement across every player-owned command before production auth hardening.
+- Selected: Hybrid. The first enforcement step is implemented now; broader command ownership enforcement remains next.
