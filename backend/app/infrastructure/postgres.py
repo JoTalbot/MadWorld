@@ -7,7 +7,6 @@ persistence boundary.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -210,6 +209,28 @@ class PostgresJobRepository:
         return self._map(row) if row else None
 
     def save(self, job: Job) -> None:
+        if job.version == 0:
+            try:
+                self.conn.execute(
+                    text("""
+                        INSERT INTO jobs
+                            (id, owner_id, job_type, state, started_at, completes_at, idempotency_key, version)
+                        VALUES (:id, :owner_id, :job_type, :state, :started_at, :completes_at, :key, 1)
+                    """),
+                    {
+                        "id": job.id,
+                        "owner_id": job.owner_id,
+                        "job_type": job.job_type,
+                        "state": job.state.value,
+                        "started_at": job.started_at,
+                        "completes_at": job.completes_at,
+                        "key": f"pending:{job.id}",
+                    },
+                )
+                job.version = 1
+                return
+            except IntegrityError as exc:
+                raise ConcurrencyConflict("job was created concurrently") from exc
         result = self.conn.execute(
             text("""
                 UPDATE jobs
@@ -225,10 +246,12 @@ class PostgresJobRepository:
 
     def bind_idempotency_key(self, key: str, job_id: UUID) -> None:
         try:
-            self.conn.execute(
-                text("UPDATE jobs SET idempotency_key = :key WHERE id = :id"),
-                {"key": key, "id": job_id},
+            result = self.conn.execute(
+                text("UPDATE jobs SET idempotency_key = :key WHERE id = :id AND idempotency_key = :placeholder"),
+                {"key": key, "id": job_id, "placeholder": f"pending:{job_id}"},
             )
+            if result.rowcount != 1:
+                raise IdempotencyConflict("job idempotency key cannot be rebound")
         except IntegrityError as exc:
             raise IdempotencyConflict("job idempotency key already exists") from exc
 
