@@ -47,10 +47,13 @@ def create_session(payload: SessionCreateRequest) -> SessionResponse:
         row = conn.execute(text("SELECT id, handle FROM players WHERE handle = :handle"), {"handle": payload.handle}).mappings().first()
         if row is None:
             row = conn.execute(text("INSERT INTO players (handle) VALUES (:handle) RETURNING id, handle"), {"handle": payload.handle}).mappings().one()
+        player_id = row["id"]
+        conn.execute(text("""INSERT INTO wallets (owner_id) VALUES (:player_id) ON CONFLICT (owner_id) DO NOTHING"""), {"player_id": player_id})
+        conn.execute(text("""INSERT INTO inventories (owner_id, name) VALUES (:player_id, 'personal') ON CONFLICT DO NOTHING"""), {"player_id": player_id})
         conn.execute(
             text("""INSERT INTO player_sessions (player_id, token_hash, created_at, last_seen_at, expires_at)
                      VALUES (:player_id, :token_hash, :created_at, :last_seen_at, :expires_at)"""),
-            {"player_id": row["id"], "token_hash": token_hash, "created_at": now, "last_seen_at": now, "expires_at": expires},
+            {"player_id": player_id, "token_hash": token_hash, "created_at": now, "last_seen_at": now, "expires_at": expires},
         )
 
     return SessionResponse(player_id=UUID(str(row["id"])), handle=str(row["handle"]), token=token, expires_at=expires.isoformat())
@@ -69,8 +72,5 @@ def resolve_session(token: str) -> UUID:
         ).mappings().first()
         if row is None:
             raise HTTPException(status_code=401, detail="invalid or expired session")
-        conn.execute(
-            text("UPDATE player_sessions SET last_seen_at = :now WHERE token_hash = :token_hash"),
-            {"now": now, "token_hash": _hash_token(token)},
-        )
+        conn.execute(text("UPDATE player_sessions SET last_seen_at = :now WHERE token_hash = :token_hash"), {"now": now, "token_hash": _hash_token(token)})
         return UUID(str(row["player_id"]))
