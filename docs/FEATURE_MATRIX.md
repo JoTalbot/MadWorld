@@ -4,18 +4,18 @@
 
 - [ ] Accounts and sessions
 - [ ] Characters
-- [ ] Server-authoritative inventory
-- [ ] Item stacks and containers
-- [ ] Currency wallet and immutable ledger
-- [ ] Time-based jobs
+- [x] Server-authoritative inventory
+- [x] Item stacks and containers
+- [x] Currency wallet and immutable ledger
+- [x] Time-based jobs
 - [ ] Notifications
-- [ ] Audit events
+- [x] Audit events
 
 ## Exploration
 
 - [ ] World map
-- [ ] Regions and routes
-- [ ] Resource nodes
+- [x] Regions and routes
+- [x] Resource nodes
 - [ ] Scavenging sites
 - [ ] Discovery/scouting
 - [ ] Dynamic points of interest
@@ -23,23 +23,23 @@
 
 ## Vehicles
 
-- [ ] Chassis database
-- [ ] Modular fitting
-- [ ] Vehicle stats
-- [ ] Fuel
-- [ ] Repairs
-- [ ] Component damage
-- [ ] Salvage
-- [ ] Vehicle recovery
-- [ ] Convoys
+- [x] Chassis database
+- [x] Modular fitting
+- [x] Vehicle stats
+- [x] Fuel
+- [x] Repairs
+- [x] Component damage
+- [x] Salvage
+- [x] Vehicle recovery
+- [x] Convoys
 
 ## Industry
 
 - [ ] Blueprints
-- [ ] Refining
-- [ ] Manufacturing
-- [ ] Facility levels
-- [ ] Production queues
+- [x] Refining
+- [x] Manufacturing
+- [x] Facility levels
+- [x] Production queues
 - [ ] Skills
 - [ ] Research
 - [ ] Quality/efficiency
@@ -47,11 +47,11 @@
 
 ## Economy
 
-- [ ] Regional order books
-- [ ] Buy/sell orders
-- [ ] Matching engine
-- [ ] Transaction history
-- [ ] Price history
+- [x] Regional order books
+- [x] Buy/sell orders
+- [x] Matching engine
+- [x] Transaction history
+- [x] Price history
 - [ ] Market taxes
 - [ ] NPC sinks/sources
 - [ ] Regional scarcity
@@ -63,7 +63,7 @@
 - [ ] Route planning
 - [ ] Cargo capacity
 - [ ] Risk estimation
-- [ ] Escorts
+- [x] Escorts
 - [ ] Delivery verification
 - [ ] Contract escrow
 - [ ] Insurance/recovery
@@ -71,15 +71,15 @@
 
 ## Combat
 
-- [ ] Vehicle combat
-- [ ] Targeting
-- [ ] Weapons
-- [ ] Component damage
+- [x] Vehicle combat foundation
+- [x] Targeting foundation
+- [x] Weapons foundation
+- [x] Component damage
 - [ ] NPC encounters
 - [ ] PvP encounters
 - [ ] Convoy battles
 - [ ] Settlement defense
-- [ ] Combat salvage
+- [x] Combat salvage foundation
 
 ## Social
 
@@ -119,7 +119,7 @@
 - [ ] Research progression
 - [ ] Skill queues
 - [ ] Blueprint discovery
-- [ ] Reputation
+- [x] Reputation
 - [ ] Achievement/career milestones
 - [ ] Seasonal world arcs
 - [ ] Player-created economic organizations
@@ -129,8 +129,8 @@
 - [ ] One-handed core controls
 - [ ] Low-bandwidth mode
 - [ ] Background job notifications
-- [ ] Fast market actions
+- [x] Fast market actions foundation
 - [ ] Map-first navigation
 - [ ] Fleet/vehicle dashboard
 - [ ] Compact combat controls
-- [ ] Offline cache for read-only data
+- [x] Offline cache for read-only data
