@@ -13,6 +13,7 @@ from uuid import UUID
 from app.application.clock import Clock
 from app.application.ports import UnitOfWork
 from app.application.services import JobService
+from app.domain.primitives import JobState
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,7 +32,7 @@ class JobScheduler:
         result: list[DueJob] = []
         for job_id in job_ids:
             job = self.uow.jobs.get(job_id)
-            if job is not None and job.state.value in {"QUEUED", "RUNNING"} and job.completes_at <= now:
+            if job is not None and job.state in {JobState.QUEUED, JobState.RUNNING} and job.completes_at <= now:
                 result.append(DueJob(job.id, job.completes_at))
         return result
 
