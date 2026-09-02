@@ -22,13 +22,10 @@ class WalletService:
         if wallet is None: raise NotFound("wallet not found")
         if amount >= 0: wallet.credit(amount)
         else: wallet.debit(-amount)
-        entry = LedgerEntry(uuid4(), wallet_id, amount, reason, idempotency_key, utc_now())
-        self.uow.wallets.save(wallet); self.uow.wallets.add_ledger_entry(entry)
-        self._record("wallet.entry_posted", "wallet", wallet_id, {"entry_id": str(entry.id), "amount": amount, "reason": reason, "actor_id": str(actor_id) if actor_id else None})
-        return entry
+        entry = LedgerEntry(uuid4(), wallet_id, amount, reason, idempotency_key, utc_now()); self.uow.wallets.save(wallet); self.uow.wallets.add_ledger_entry(entry)
+        self._record("wallet.entry_posted", "wallet", wallet_id, {"entry_id": str(entry.id), "amount": amount, "reason": reason, "actor_id": str(actor_id) if actor_id else None}); return entry
     def _record(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, aggregate_type, aggregate_id, payload)
-        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, aggregate_type, aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
 
 
 class InventoryService:
@@ -50,8 +47,7 @@ class InventoryService:
         else: stack.quantity = remaining; self.uow.inventories.save_stack(inventory_id, stack); result = stack
         self._record("inventory.item_removed", inventory_id, {"item_definition_id": str(item_definition_id), "quantity": quantity}); return result
     def _record(self, event_type: str, inventory_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "inventory", inventory_id, payload)
-        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "inventory", inventory_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
 
 
 class JobService:
@@ -71,31 +67,28 @@ class JobService:
         return job
     def _save(self, job: Job, event_type: str) -> Job: self.uow.jobs.save(job); self._record(event_type, job.id, {"state": job.state.value}); return job
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload)
-        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
 
 
 class CharacterService:
     def __init__(self, uow: UnitOfWork) -> None: self.uow = uow
     def create(self, player_id: UUID, name: str) -> Character:
         if self.uow.characters.get_by_player_id(player_id) is not None: raise ValueError("player already has a character")
-        character = Character.create(player_id, name); self.uow.characters.save(character)
-        self._record("character.created", character.id, {"player_id": str(player_id), "name": character.name}); return character
+        character = Character.create(player_id, name); self.uow.characters.save(character); self._record("character.created", character.id, {"player_id": str(player_id), "name": character.name}); return character
     def get_for_player(self, player_id: UUID) -> Character:
         character = self.uow.characters.get_by_player_id(player_id)
         if character is None: raise NotFound("character not found")
         return character
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "character", aggregate_id, payload)
-        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "character", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
 
 
 class VehicleService:
     def __init__(self, uow: UnitOfWork) -> None: self.uow = uow
-    def create_starter(self, owner_id: UUID, code: str = "starter-runner", chassis_code: str = "light_runner") -> Vehicle:
+    def create_starter(self, owner_id: UUID, code: str | None = None, chassis_code: str = "light_runner") -> Vehicle:
         if self.uow.vehicles.list_by_owner(owner_id): raise ValueError("starter vehicle can only be created for an owner without vehicles")
-        vehicle = Vehicle.create(owner_id, code, chassis_code, fuel=25); self.uow.vehicles.save(vehicle)
-        self._record("vehicle.created", vehicle.id, {"owner_id": str(owner_id), "code": vehicle.code, "chassis_code": vehicle.chassis_code, "starter": True}); return vehicle
+        code = code or f"starter-{owner_id.hex[:12]}"
+        vehicle = Vehicle.create(owner_id, code, chassis_code, fuel=25); self.uow.vehicles.save(vehicle); self._record("vehicle.created", vehicle.id, {"owner_id": str(owner_id), "code": vehicle.code, "chassis_code": vehicle.chassis_code, "starter": True}); return vehicle
     def get(self, vehicle_id: UUID) -> Vehicle:
         vehicle = self.uow.vehicles.get(vehicle_id)
         if vehicle is None: raise NotFound("vehicle not found")
@@ -106,5 +99,4 @@ class VehicleService:
     def refuel(self, vehicle_id: UUID, amount: int) -> Vehicle:
         vehicle = self.get(vehicle_id); vehicle.refuel(amount); self.uow.vehicles.save(vehicle); return vehicle
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "vehicle", aggregate_id, payload)
-        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "vehicle", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
