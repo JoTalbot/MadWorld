@@ -27,19 +27,20 @@ class PlayerRepository(context: Context, private val api: MadWorldApi) {
     private fun save(playerId: UUID, state: PlayerState) {
         val root = JSONObject()
         state.character?.let { c -> root.put("character", JSONObject().put("id", c.id).put("player_id", c.playerId).put("name", c.name).put("level", c.level).put("version", c.version)) } ?: root.put("character", JSONObject.NULL)
-        val vehicles = org.json.JSONArray()
-        state.vehicles.forEach { v -> vehicles.put(JSONObject().put("id", v.id).put("owner_id", v.ownerId).put("code", v.code).put("chassis_code", v.chassisCode).put("durability", v.durability).put("fuel", v.fuel).put("state", v.state).put("version", v.version)) }
-        root.put("vehicles", vehicles)
+        val vehicles = org.json.JSONArray(); state.vehicles.forEach { v -> vehicles.put(JSONObject().put("id", v.id).put("owner_id", v.ownerId).put("code", v.code).put("chassis_code", v.chassisCode).put("durability", v.durability).put("fuel", v.fuel).put("state", v.state).put("version", v.version)) }; root.put("vehicles", vehicles)
+        state.wallet?.let { w -> root.put("wallet", JSONObject().put("id", w.id).put("balance", w.balance).put("version", w.version)) } ?: root.put("wallet", JSONObject.NULL)
+        val inventory = org.json.JSONArray(); state.inventory.forEach { i -> inventory.put(JSONObject().put("inventory_id", i.inventoryId).put("item_definition_id", i.itemDefinitionId).put("quantity", i.quantity).put("condition", i.condition).put("version", i.version)) }; root.put("inventory", inventory)
+        val jobs = org.json.JSONArray(); state.activeJobs.forEach { j -> jobs.put(JSONObject().put("id", j.id).put("owner_id", j.ownerId).put("job_type", j.jobType).put("started_at", j.startedAt).put("completes_at", j.completesAt).put("state", j.state).put("version", j.version)) }; root.put("active_jobs", jobs)
         cache.edit().putString(playerId.toString(), root.toString()).apply()
     }
 
     private fun parseCached(json: String): PlayerState {
         val root = JSONObject(json)
         val character = if (root.isNull("character")) null else root.getJSONObject("character").let { CharacterState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("player_id")), it.getString("name"), it.getInt("level"), it.getInt("version")) }
-        val vehicles = buildList {
-            val array = root.getJSONArray("vehicles")
-            for (index in 0 until array.length()) { val it = array.getJSONObject(index); add(VehicleState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("owner_id")), it.getString("code"), it.getString("chassis_code"), it.getInt("durability"), it.getInt("fuel"), it.getString("state"), it.getInt("version"))) }
-        }
-        return PlayerState(character, vehicles)
+        val vehicles = buildList { val array = root.getJSONArray("vehicles"); for (index in 0 until array.length()) { val it = array.getJSONObject(index); add(VehicleState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("owner_id")), it.getString("code"), it.getString("chassis_code"), it.getInt("durability"), it.getInt("fuel"), it.getString("state"), it.getInt("version"))) } }
+        val wallet = if (root.isNull("wallet")) null else root.getJSONObject("wallet").let { WalletState(UUID.fromString(it.getString("id")), it.getLong("balance"), it.getInt("version")) }
+        val inventory = buildList { val array = root.getJSONArray("inventory"); for (index in 0 until array.length()) { val it = array.getJSONObject(index); add(InventoryState(UUID.fromString(it.getString("inventory_id")), UUID.fromString(it.getString("item_definition_id")), it.getLong("quantity"), it.getInt("condition"), it.getInt("version"))) } }
+        val jobs = buildList { val array = root.getJSONArray("active_jobs"); for (index in 0 until array.length()) { val it = array.getJSONObject(index); add(JobState(UUID.fromString(it.getString("id")), UUID.fromString(it.getString("owner_id")), it.getString("job_type"), it.getString("started_at"), it.getString("completes_at"), it.getString("state"), it.getInt("version"))) } }
+        return PlayerState(character, vehicles, wallet, inventory, jobs)
     }
 }
