@@ -62,8 +62,7 @@
   2. Systemic: one atomic server-side bootstrap command creates character, starter vehicle, wallet/inventory foundations and returns a snapshot.
   3. Advanced: bootstrap also provisions settlement, starter resources, tutorial state and region assignment.
   4. Hybrid: atomic character + starter vehicle + required account foundations now; settlement/tutorial/world provisioning remains separate.
-- Selected: Hybrid. Reason: preserves transactional authority and leaves room for the later world/settlement systems without coupling onboarding to unfinished mechanics.
-- Acceptance: authorized by project continuation workflow.
+- Selected: Hybrid. Account wallet and personal inventory foundations are now provisioned transactionally when a session is created or resumed for an existing player; character + starter vehicle remain atomic in bootstrap. Settlement/tutorial/world provisioning remains separate.
 
 ## IMP-069 — Player state snapshot API
 - Status: ACCEPTED — Hybrid
@@ -74,7 +73,8 @@
   3. Advanced: full world/session snapshot with versioned cursors.
   4. Hybrid: account gameplay state now, world/session feed later.
 - Selected: Hybrid.
-- Acceptance: authorized by project continuation workflow.
+- Implementation: deterministic snapshot now returns character, vehicles, wallet, inventory stacks and active jobs; world/session feed remains later.
+- Status after implementation: COMPLETE for the selected slice.
 
 ## IMP-070 — Android authoritative-state client
 - Status: ACCEPTED — Hybrid
@@ -84,8 +84,7 @@
   2. Systemic: typed API client, repository, ViewModel and persistent state cache.
   3. Advanced: offline command journal, reconnect cursor and optimistic UI reconciliation.
   4. Hybrid: typed client + repository + ViewModel + cache now; offline journal/reconciliation builds on IMP-027/028 later.
-- Selected: Hybrid. Reason: establishes the correct client architecture without prematurely duplicating server simulation on Android.
-- Acceptance: authorized by project continuation workflow.
+- Selected: Hybrid. The typed client, repository and cache now consume the expanded authoritative snapshot; offline journal/reconciliation remains later.
 
 ## IMP-071 — Persistent player sessions
 - Status: ACCEPTED — Hybrid
@@ -96,7 +95,6 @@
   3. Advanced: refresh/revocation/device binding and full account security flows.
   4. Hybrid: handle + 30-day server session + Android persistence now; refresh/revocation/device security later.
 - Selected: Hybrid. The current slice adds the persistent session boundary while leaving production account security for the dedicated auth hardening phase.
-- Acceptance: authorized by project continuation workflow.
 - Implementation note: bearer-session enforcement is now wired into player bootstrap and player-state reads; requests cannot read or mutate another player's bootstrap/state by UUID alone.
 
 ## IMP-072 — Player-boundary session enforcement
@@ -107,4 +105,4 @@
   2. Systemic: enforce bearer identity across all player-owned commands and reads.
   3. Advanced: refresh/revocation/device binding plus scoped credentials.
   4. Hybrid: protect state/bootstrap immediately, then extend ownership enforcement across every player-owned command before production auth hardening.
-- Selected: Hybrid. The first enforcement step is implemented now; broader command ownership enforcement remains next.
+- Selected: Hybrid. State/bootstrap protection is implemented; broader command ownership enforcement remains next.
