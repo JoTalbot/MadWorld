@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -18,6 +19,7 @@ from app.api.session_routes import router as session_router
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict, NotFound
 from app.domain.primitives import DomainError
 
+logger = logging.getLogger("madworld.api")
 app = FastAPI(title="MadWorld API", version="0.1.0")
 app.include_router(api_v1_router)
 app.include_router(session_router)
@@ -32,6 +34,24 @@ app.include_router(damage_router)
 async def request_id_middleware(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or str(uuid4())
     request.state.request_id = request_id
+    if request.method == "POST" and request.url.path.startswith("/api/v1/vehicles/") and request.url.path.endswith("/repair"):
+        logger.info("legacy_repair_api_used path=%s request_id=%s", request.url.path, request_id)
+        response = JSONResponse(
+            status_code=410,
+            content={
+                "code": "LEGACY_API_GONE",
+                "message": "The direct vehicle repair endpoint has been retired. Use POST /api/v1/vehicles/{vehicle_id}/repair-job with inventory_id and amount.",
+                "request_id": request_id,
+                "details": {"replacement": "/api/v1/vehicles/{vehicle_id}/repair-job", "migration": "/docs/api-migration.md"},
+            },
+            headers={
+                "Deprecation": "true",
+                "Sunset": "Wed, 30 Sep 2026 00:00:00 GMT",
+                "X-MadWorld-Migration": "vehicle-repair-v2",
+            },
+        )
+        response.headers["X-Request-ID"] = request_id
+        return response
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
