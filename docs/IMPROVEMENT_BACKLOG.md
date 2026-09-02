@@ -132,3 +132,10 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implementation: persistent server-side expedition jobs; region/distance/risk planning; authoritative duration and fuel consumption; deterministic stored outcomes; deterministic loot and component-aware vehicle damage; guarded time-based completion with exactly-once resolution; completion audit/outbox event; contract progression hook; authenticated/idempotent API; ownership validation for vehicle and inventory; focused domain/application tests; expedition design documentation.
 - Verification: PR #8 merged to `main` as merge commit `63c6b60bddd48912801e5edb493721fb83fd06bd`. PR CI #233 passed with 68 tests passed and 0 failures before merge.
 - Deferred by design: dynamic world-generated routes, NPC encounters/combat, convoy/group expeditions, weather/disaster modifiers, insurance/recovery and live-economy-driven loot generation.
+
+## IMP-079 — Settlement / base-point gameplay loop
+- Status: ACCEPTED — Hybrid
+- Goal: add a persistent player home/base that ties vehicle storage, inventory, repair/workshop access, contract acquisition and regional market interaction into a repeatable gameplay loop.
+- Variants considered: Minimal, Systemic, Advanced and Hybrid.
+- Selected by user: `4`, interpreted as Hybrid.
+- Selected scope: persistent settlement foundation with region identity, level, extensible module state and authoritative interaction capabilities for garage, warehouse, workshop, contracts and market; settlement API and transactional PostgreSQL persistence. Building progression, NPC services, production chains and deeper economy modifiers remain extensible follow-up layers.

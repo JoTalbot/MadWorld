@@ -57,6 +57,7 @@ def build_default_registry() -> EventSchemaRegistry:
     registry.register("vehicle.component_repaired", 1, _require_keys("component", "amount", "durability"))
     registry.register("resource.gathered", 1, _require_keys("player_id", "inventory_id", "item_definition_id", "quantity"))
     registry.register("expedition.completed", 1, _require_keys("player_id", "vehicle_id", "inventory_id", "region", "distance_km", "risk", "loot", "damage"))
+    registry.register("settlement.created", 1, _require_keys("owner_id", "region", "level", "modules"))
     registry.register("api.legacy_repair_deprecated", 1, _require_keys("player_id", "vehicle_id", "replacement"))
     return registry
 
