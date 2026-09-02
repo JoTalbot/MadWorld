@@ -30,6 +30,7 @@ jobs:
         working-directory: backend
     env:
       MADWORLD_DATABASE_URL: postgresql+psycopg://madworld:madworld@localhost:5432/madworld_test
+      PYTHONPATH: ${{ github.workspace }}/backend
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -42,6 +43,8 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt pytest
       - name: Apply database migrations
-        run: PYTHONPATH=. python scripts/migrate.py
+        run: python scripts/migrate.py
+      - name: Verify application module resolution
+        run: python -c "import app.main; print(app.main.__file__); print('routes=', len(app.main.app.routes)); assert any(r.path == '/api/v1/travel/plan' for r in app.main.app.routes)"
       - name: Run tests
-        run: PYTHONPATH=. python -m pytest -q
+        run: python -m pytest -q
