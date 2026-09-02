@@ -67,6 +67,40 @@ class JobResponse(BaseModel):
     version: int
 
 
+class CharacterCreateRequest(BaseModel):
+    player_id: UUID
+    name: str = Field(min_length=1, max_length=80)
+
+
+class CharacterResponse(BaseModel):
+    id: UUID
+    player_id: UUID
+    name: str
+    level: int
+    version: int
+
+
+class VehicleCreateRequest(BaseModel):
+    owner_id: UUID
+    code: str | None = Field(default=None, min_length=1, max_length=100)
+    chassis_code: str = Field(default="light_runner", min_length=1, max_length=100)
+
+
+class VehicleMutationRequest(BaseModel):
+    amount: int = Field(gt=0)
+
+
+class VehicleResponse(BaseModel):
+    id: UUID
+    owner_id: UUID
+    code: str
+    chassis_code: str
+    durability: int
+    fuel: int
+    state: str
+    version: int
+
+
 class ErrorResponse(BaseModel):
     code: str
     message: str
