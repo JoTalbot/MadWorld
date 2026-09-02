@@ -83,7 +83,9 @@ def test_character_and_vehicle_api_commands_are_idempotent() -> None:
         vehicle_payload = {"owner_id": str(player_id)}; vehicle = client.post("/api/v1/vehicles/starter", json=vehicle_payload, headers={"Idempotency-Key": "vehicle-1"}); vehicle_repeat = client.post("/api/v1/vehicles/starter", json=vehicle_payload, headers={"Idempotency-Key": "vehicle-1"})
         assert vehicle.status_code == 201 and vehicle_repeat.status_code == 201 and vehicle.json() == vehicle_repeat.json(); assert vehicle.json()["chassis_code"] == "light_runner" and vehicle.json()["durability"] == 100 and vehicle.json()["fuel"] == 25
         listed = client.get(f"/api/v1/vehicles/by-owner/{player_id}"); assert listed.status_code == 200 and listed.json() == [vehicle.json()]
-        vehicle_id = vehicle.json()["id"]; repaired = client.post(f"/api/v1/vehicles/{vehicle_id}/repair", json={"amount": 10}, headers={"Idempotency-Key": "repair-1"}); assert repaired.status_code == 200 and repaired.json()["durability"] == 100
+        vehicle_id = vehicle.json()["id"]
+        legacy_repair = client.post(f"/api/v1/vehicles/{vehicle_id}/repair", json={"amount": 10}, headers={"Idempotency-Key": "repair-1"})
+        assert legacy_repair.status_code == 410
         refueled = client.post(f"/api/v1/vehicles/{vehicle_id}/refuel", json={"amount": 15}, headers={"Idempotency-Key": "refuel-1"}); refueled_repeat = client.post(f"/api/v1/vehicles/{vehicle_id}/refuel", json={"amount": 15}, headers={"Idempotency-Key": "refuel-1"})
         assert refueled.status_code == 200 and refueled_repeat.status_code == 200 and refueled.json() == refueled_repeat.json() and refueled.json()["fuel"] == 40
     finally: app.dependency_overrides.clear()

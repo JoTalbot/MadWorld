@@ -33,6 +33,9 @@ class ContractService:
     def apply_event(self, player_id: UUID, event_type: str, payload: dict, now=None):
         now=now or utc_now(); out=[]
         for c in self.repo.list_for_player(player_id):
+            if c.state is ContractState.COMPLETED:
+                out.append(c)
+                continue
             if c.state is not ContractState.ACTIVE: continue
             t=self.repo.get_template(c.template_id)
             if t is None: continue

@@ -7,6 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app.api.contract_routes import router as contract_router
 from app.api.damage_routes import router as damage_router
+from app.api.expedition_routes import router as expedition_router
 from app.api.gathering_routes import router as gathering_router
 from app.api.market_routes import router as market_router
 from app.api.crafting_routes import router as crafting_router
@@ -17,7 +18,7 @@ from app.application.errors import ConcurrencyConflict, IdempotencyConflict, Not
 from app.domain.primitives import DomainError
 logger=logging.getLogger("madworld.api")
 app=FastAPI(title="MadWorld API",version="0.1.0")
-app.include_router(api_v1_router); app.include_router(session_router); app.include_router(market_router); app.include_router(gathering_router); app.include_router(crafting_router); app.include_router(repair_router); app.include_router(damage_router); app.include_router(contract_router)
+app.include_router(api_v1_router); app.include_router(session_router); app.include_router(market_router); app.include_router(gathering_router); app.include_router(crafting_router); app.include_router(repair_router); app.include_router(damage_router); app.include_router(contract_router); app.include_router(expedition_router)
 @app.middleware("http")
 async def request_id_middleware(request:Request,call_next):
     request_id=request.headers.get("X-Request-ID") or str(uuid4()); request.state.request_id=request_id
