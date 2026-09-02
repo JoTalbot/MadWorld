@@ -26,9 +26,9 @@ class ComponentVehicleRepository:
                 str(row["component_code"]): VehicleComponent(int(row["condition"]), int(row["max_condition"]), int(row["armor"]))
                 for row in rows
             }
+            vehicle._sync_durability()
         else:
             vehicle.components = default_vehicle_components()
-        vehicle._sync_durability()
         return vehicle
 
     def get(self, vehicle_id: UUID) -> Vehicle | None:
