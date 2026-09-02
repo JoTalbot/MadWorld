@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import Connection, text
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
 from app.application.ports import UnitOfWork
@@ -26,7 +27,7 @@ class PostgresWalletRepository:
         if row is None:
             return None
         balance = self.conn.execute(
-            text("SELECT COALESCE(SUM(amount), 0) AS balance FROM ledger_entries WHERE wallet_id = :id"),
+            text("SELECT COALESCE(SUM(amount), 0) FROM ledger_entries WHERE wallet_id = :id"),
             {"id": wallet_id},
         ).scalar_one()
         return Wallet(UUID(str(row["id"])), int(balance), int(row["version"]))
@@ -199,7 +200,8 @@ class PostgresAuditRepository:
                 INSERT INTO audit_events (event_type, aggregate_type, aggregate_id, payload)
                 VALUES (:event_type, :aggregate_type, :aggregate_id, CAST(:payload AS JSONB))
             """),
-            {"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": _json(payload)},
+            {"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id,
+             "payload": _json(payload)},
         )
 
 
@@ -213,12 +215,12 @@ class PostgresOutboxRepository:
                 INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload)
                 VALUES (:aggregate_type, :aggregate_id, :event_type, CAST(:payload AS JSONB))
             """),
-            {"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": _json(payload)},
+            {"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id,
+             "payload": _json(payload)},
         )
 
 
 def _json(payload: dict) -> str:
-    import json
     return json.dumps(payload, separators=(",", ":"), default=str)
 
 
