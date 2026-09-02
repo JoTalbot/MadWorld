@@ -19,7 +19,6 @@ def test_health_exposes_request_id() -> None:
 def test_wallet_command_is_idempotent_and_returns_contract() -> None:
     wallet_id = uuid4()
     uow = InMemoryUnitOfWork(wallets=None)
-    # Build the default repositories explicitly so this test remains readable.
     from app.infrastructure.memory import InMemoryWalletRepository
     uow.wallets = InMemoryWalletRepository({wallet_id: Wallet(wallet_id, 100)})
 
@@ -36,6 +35,14 @@ def test_wallet_command_is_idempotent_and_returns_contract() -> None:
         assert second.status_code == 201
         assert first.json() == second.json()
         assert uow.wallets.wallets[wallet_id].balance == 125
+
+        conflict = client.post(
+            "/api/v1/wallet/entries",
+            json={"wallet_id": str(wallet_id), "amount": 50, "reason": "different"},
+            headers={"Idempotency-Key": "wallet-test-1"},
+        )
+        assert conflict.status_code == 409
+        assert conflict.json()["code"] == "IDEMPOTENCY_CONFLICT"
     finally:
         app.dependency_overrides.clear()
 
@@ -74,9 +81,28 @@ def test_inventory_and_job_commands() -> None:
         )
         assert job.status_code == 201
         job_id = job.json()["id"]
-        started = client.post(f"/api/v1/jobs/{job_id}/start")
+
+        started = client.post(f"/api/v1/jobs/{job_id}/start", headers={"Idempotency-Key": "job-start-1"})
+        repeated = client.post(f"/api/v1/jobs/{job_id}/start", headers={"Idempotency-Key": "job-start-1"})
         assert started.status_code == 200
+        assert repeated.status_code == 200
+        assert started.json() == repeated.json()
         assert started.json()["state"] == "running"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_state_changing_job_commands_require_idempotency_key() -> None:
+    uow = InMemoryUnitOfWork()
+    job_id = uuid4()
+
+    def override_uow():
+        yield uow
+
+    app.dependency_overrides[get_uow] = override_uow
+    try:
+        response = TestClient(app).post(f"/api/v1/jobs/{job_id}/start")
+        assert response.status_code == 400
     finally:
         app.dependency_overrides.clear()
 
