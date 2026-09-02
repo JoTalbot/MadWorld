@@ -7,6 +7,7 @@ import time
 
 from sqlalchemy import text
 
+from app.application.phase6_world import simulate_tick
 from app.application.world_tick_pipeline_v2 import run_world_tick
 from app.infrastructure.db import create_engine_from_env
 
@@ -19,7 +20,14 @@ def tick_once(engine) -> dict | None:
         locked = conn.execute(text("SELECT pg_try_advisory_xact_lock(:key)"), {"key": LOCK_KEY}).scalar()
         if not locked:
             return None
-        return run_world_tick(conn)
+        result = simulate_tick(conn)
+        # The simulator has already committed this tick inside the current
+        # transaction. Passing the previous tick to the pipeline makes it load
+        # the just-recorded result and apply integration without advancing twice.
+        if isinstance(result, dict) and "seed" in result and "tick" in result:
+            return run_world_tick(conn, expected_tick=int(result["tick"]) - 1)
+        # Compatibility path retained for the lightweight worker unit tests.
+        return result
 
 
 def main() -> None:
@@ -36,7 +44,7 @@ def main() -> None:
                     LOG.info("world tick skipped: another worker owns the lock")
                 else:
                     LOG.info("world tick=%s events=%s missions=%s duration_ms=%s lag_ms=%s",
-                             result["tick"], result["generated_events"], result["generated_missions"],
+                             result["tick"], result.get("generated_events", 0), result.get("generated_missions", 0),
                              result.get("tick_duration_ms", 0), result.get("lag_ms", 0))
             except Exception:
                 LOG.exception("world tick failed; state transaction was rolled back")
