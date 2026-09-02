@@ -35,6 +35,8 @@ async def concurrency_handler(request:Request,exc:ConcurrencyConflict)->JSONResp
 async def idempotency_handler(request:Request,exc:IdempotencyConflict)->JSONResponse:return _error_response(request,409,"IDEMPOTENCY_CONFLICT",str(exc))
 @app.exception_handler(DomainError)
 async def domain_error_handler(request:Request,exc:DomainError)->JSONResponse:return _error_response(request,400,"DOMAIN_ERROR",str(exc))
+@app.exception_handler(PermissionError)
+async def permission_handler(request:Request,exc:PermissionError)->JSONResponse:return _error_response(request,403,"FORBIDDEN",str(exc))
 @app.exception_handler(ValueError)
 async def value_error_handler(request:Request,exc:ValueError)->JSONResponse:return _error_response(request,400,"INVALID_ARGUMENT",str(exc))
 @app.exception_handler(RequestValidationError)
