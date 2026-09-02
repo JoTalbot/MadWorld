@@ -49,6 +49,7 @@ class LedgerEntry:
 class Wallet:
     id: UUID
     balance: int = 0
+    version: int = 0
 
     def credit(self, amount: int) -> None:
         if amount <= 0:
@@ -68,6 +69,7 @@ class InventoryStack:
     item_definition_id: UUID
     quantity: int
     condition: int = 100
+    version: int = 0
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:
@@ -84,6 +86,7 @@ class Job:
     started_at: datetime
     completes_at: datetime
     state: JobState = JobState.QUEUED
+    version: int = 0
 
     @classmethod
     def create(
