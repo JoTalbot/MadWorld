@@ -1,0 +1,58 @@
+"""Application service tests using the in-memory transactional adapter."""
+
+from datetime import timedelta
+from uuid import uuid4
+
+import pytest
+
+from app.application.errors import IdempotencyConflict
+from app.application.services import InventoryService, JobService, WalletService
+from app.domain.primitives import Wallet, utc_now
+from app.infrastructure.memory import InMemoryUnitOfWork
+
+
+def test_wallet_entry_is_idempotent_and_emits_audit_and_outbox() -> None:
+    uow = InMemoryUnitOfWork()
+    wallet_id = uuid4()
+    uow.wallets.save(Wallet(wallet_id, 100))
+    service = WalletService(uow)
+
+    first = service.post_entry(wallet_id, -30, "fuel", "fuel-1")
+    second = service.post_entry(wallet_id, -30, "fuel", "fuel-1")
+
+    assert first == second
+    assert uow.wallets.get(wallet_id).balance == 70
+    assert len(uow.wallets.ledger) == 1
+    assert len(uow.audit.events) == 1
+    assert len(uow.outbox.events) == 1
+
+
+def test_reusing_idempotency_key_for_different_operation_is_rejected() -> None:
+    uow = InMemoryUnitOfWork()
+    wallet_id = uuid4()
+    uow.wallets.save(Wallet(wallet_id, 100))
+    service = WalletService(uow)
+    service.post_entry(wallet_id, -10, "fuel", "same-key")
+    with pytest.raises(IdempotencyConflict):
+        service.post_entry(wallet_id, -20, "fuel", "same-key")
+
+
+def test_inventory_add_and_remove_emit_events() -> None:
+    uow = InMemoryUnitOfWork()
+    inventory_id, item_id = uuid4(), uuid4()
+    service = InventoryService(uow)
+    service.add(inventory_id, item_id, 5)
+    service.remove(inventory_id, item_id, 2)
+    stack = uow.inventories.get_stack(inventory_id, item_id)
+    assert stack is not None and stack.quantity == 3
+    assert len(uow.outbox.events) == 2
+
+
+def test_job_service_records_completion() -> None:
+    uow = InMemoryUnitOfWork()
+    now = utc_now()
+    job = JobService(uow).create(uuid4(), "craft", now, now + timedelta(seconds=1), "job-1")
+    JobService(uow).start(job.id)
+    completed = JobService(uow).complete(job.id, now + timedelta(seconds=1))
+    assert completed.state.value == "completed"
+    assert [e["event_type"] for e in uow.outbox.events] == ["job.created", "job.started", "job.completed"]
