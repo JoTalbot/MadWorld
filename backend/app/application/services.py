@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 from app.application.errors import IdempotencyConflict, NotFound
 from app.application.ports import UnitOfWork
+from app.domain.events import DEFAULT_EVENT_REGISTRY
 from app.domain.primitives import InventoryStack, Job, LedgerEntry, utc_now
 
 
@@ -34,8 +35,9 @@ class WalletService:
         return entry
 
     def _record(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
-        self.uow.audit.append(event_type, aggregate_type, aggregate_id, payload)
-        self.uow.outbox.enqueue(event_type, aggregate_type, aggregate_id, payload)
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, aggregate_type, aggregate_id, payload)
+        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
 
 
 class InventoryService:
@@ -74,8 +76,9 @@ class InventoryService:
         return result
 
     def _record(self, event_type: str, inventory_id: UUID, payload: dict) -> None:
-        self.uow.audit.append(event_type, "inventory", inventory_id, payload)
-        self.uow.outbox.enqueue(event_type, "inventory", inventory_id, payload)
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "inventory", inventory_id, payload)
+        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
 
 
 class JobService:
@@ -91,8 +94,7 @@ class JobService:
         job = Job.create(owner_id, job_type, started_at, completes_at)
         self.uow.jobs.save(job)
         self.uow.jobs.bind_idempotency_key(idempotency_key, job.id)
-        self.uow.audit.append("job.created", "job", job.id, {"job_type": job_type})
-        self.uow.outbox.enqueue("job.created", "job", job.id, {"job_type": job_type})
+        self._record("job.created", job.id, {"job_type": job_type})
         return job
 
     def start(self, job_id: UUID) -> Job:
@@ -117,7 +119,14 @@ class JobService:
         return job
 
     def _save(self, job: Job, event_type: str) -> Job:
-        self.uow.jobs.save(job)
-        self.uow.audit.append(event_type, "job", job.id, {"state": job.state.value})
-        self.uow.outbox.enqueue(event_type, "job", job.id, {"state": job.state.value})
+        return self._record(event_type, job.id, {"state": job.state.value}, job)
+
+    def _record(self, event_type: str, aggregate_id: UUID, payload: dict, job: Job | None = None) -> Job:
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload)
+        if job is not None:
+            self.uow.jobs.save(job)
+        self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        if job is None:
+            raise RuntimeError("job event requires job state")
         return job
