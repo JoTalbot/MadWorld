@@ -57,3 +57,43 @@ Player actions should change stock, prices, infrastructure, territory, faction r
 ## 14. EVE-inspired systems, original MadWorld identity
 
 We borrow high-level sandbox principles such as specialization, player markets, industry, logistics, corporations and territorial conflict. We do not copy proprietary characters, assets, terminology, lore or content.
+
+## 15. The world map is dynamic
+
+Roads, bridges, checkpoints, settlements, resource sites and danger levels can change through persistent world events and player activity. Navigation is a strategic system, not a static wallpaper.
+
+## 16. Specialization must be meaningful
+
+A character or corporation can become exceptionally good at a narrow discipline, but broad mastery carries opportunity cost. Build diversity must matter economically and operationally.
+
+## 17. Items have quality and history
+
+Meaningful assets can have quality, wear, repair state, manufacturing origin and provenance. High-value items can become recognizable assets rather than anonymous stack counts.
+
+## 18. Manufacturers and brands can matter
+
+Players and corporations may eventually create branded components and vehicles. Reputation, quality consistency and production history can become part of market value without becoming mandatory complexity for every item.
+
+## 19. Finance is a risk system, not free money
+
+Credit, collateral, insurance, investment and other financial instruments are potential economic tools. Every instrument must have a controlled source of capital, risk, sink, default/recovery behavior and anti-inflation rules.
+
+## 20. NPC factions are economic agents
+
+NPC factions and settlements should gather, produce, consume, trade, suffer shortages, lose assets and react to world events. NPC activity must be bounded and simulated rather than functioning as an infinite item/currency faucet.
+
+## 21. Infrastructure is an economic asset
+
+Player-built garages, workshops, warehouses, depots, fuel/water facilities and fortified posts should create real strategic value, upkeep costs and vulnerabilities.
+
+## 22. Intelligence can be a tradable service
+
+Route reports, price intelligence, resource discoveries, convoy sightings and strategic information can be valuable outputs of scouting and networks. Information must age, have uncertainty and avoid becoming an omniscient UI feed.
+
+## 23. Simulation must be deterministic enough to audit
+
+World ticks, NPC decisions, market effects and scheduled events should use canonical server time, versioned rules and reproducible inputs where practical. Important state transitions must remain explainable from logs.
+
+## 24. Improve continuously, but separate proposals from commitments
+
+During development, every meaningful improvement discovered by engineering, design, testing or player-flow analysis is recorded in `docs/IMPROVEMENT_BACKLOG.md`. A proposal is not automatically implemented. It is explicitly marked as accepted, rejected or deferred before it changes a locked system.
