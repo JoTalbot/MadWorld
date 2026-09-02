@@ -67,7 +67,7 @@ class JobService:
         return job
     def _save(self, job: Job, event_type: str) -> Job: self.uow.jobs.save(job); self._record(event_type, job.id, {"state": job.state.value}); return job
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, aggregate_id, event.to_dict())
 
 
 class CharacterService:
@@ -86,7 +86,6 @@ class CharacterService:
 class VehicleService:
     def __init__(self, uow: UnitOfWork) -> None: self.uow = uow
     def create_starter(self, owner_id: UUID, code: str | None = None, chassis_code: str = "light_runner") -> Vehicle:
-        self.uow.vehicles.lock_owner_for_starter(owner_id)
         if self.uow.vehicles.list_by_owner(owner_id): raise ValueError("starter vehicle can only be created for an owner without vehicles")
         code = code or f"starter-{owner_id.hex[:12]}"
         vehicle = Vehicle.create(owner_id, code, chassis_code, fuel=25); self.uow.vehicles.save(vehicle); self._record("vehicle.created", vehicle.id, {"owner_id": str(owner_id), "code": vehicle.code, "chassis_code": vehicle.chassis_code, "starter": True}); return vehicle
