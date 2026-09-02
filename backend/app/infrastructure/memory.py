@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
 from app.application.ports import IdempotencyRecord, OutboxEvent
 from app.domain.primitives import Character, InventoryStack, Job, LedgerEntry, Vehicle, Wallet
-
+from app.domain.settlements import Settlement
 
 @dataclass
 class InMemoryWalletRepository:
@@ -28,7 +28,6 @@ class InMemoryWalletRepository:
         self.ledger[entry.idempotency_key] = entry
     def get_ledger_entry_by_idempotency_key(self, key: str) -> LedgerEntry | None: return self.ledger.get(key)
 
-
 @dataclass
 class InMemoryInventoryRepository:
     stacks: dict[tuple[UUID, UUID], InventoryStack] = field(default_factory=dict)
@@ -42,7 +41,6 @@ class InMemoryInventoryRepository:
         key = (inventory_id, item_definition_id); current = self.stacks.get(key)
         if current is None or current.version != expected_version: raise ConcurrencyConflict("inventory stack changed since it was read")
         del self.stacks[key]
-
 
 @dataclass
 class InMemoryJobRepository:
@@ -61,7 +59,6 @@ class InMemoryJobRepository:
         if existing is not None and existing != job_id: raise IdempotencyConflict("idempotency key is already bound")
         self.idempotency[key] = job_id
 
-
 @dataclass
 class InMemoryCharacterRepository:
     characters: dict[UUID, Character] = field(default_factory=dict)
@@ -75,21 +72,30 @@ class InMemoryCharacterRepository:
         if current is not None and current.version != character.version: raise ConcurrencyConflict("character changed since it was read")
         character.version += 1; self.characters[character.id] = deepcopy(character)
 
-
 @dataclass
 class InMemoryVehicleRepository:
     vehicles: dict[UUID, Vehicle] = field(default_factory=dict)
     def get(self, vehicle_id: UUID) -> Vehicle | None:
         vehicle = self.vehicles.get(vehicle_id); return deepcopy(vehicle) if vehicle else None
-    def list_by_owner(self, owner_id: UUID) -> list[Vehicle]:
-        return [deepcopy(v) for v in self.vehicles.values() if v.owner_id == owner_id]
-    def lock_owner_for_starter(self, owner_id: UUID) -> None:
-        return None
+    def list_by_owner(self, owner_id: UUID) -> list[Vehicle]: return [deepcopy(v) for v in self.vehicles.values() if v.owner_id == owner_id]
+    def lock_owner_for_starter(self, owner_id: UUID) -> None: return None
     def save(self, vehicle: Vehicle) -> None:
         current = self.vehicles.get(vehicle.id)
         if current is not None and current.version != vehicle.version: raise ConcurrencyConflict("vehicle changed since it was read")
         vehicle.version += 1; self.vehicles[vehicle.id] = deepcopy(vehicle)
 
+@dataclass
+class InMemorySettlementRepository:
+    settlements: dict[UUID, Settlement] = field(default_factory=dict)
+    def get_by_owner(self, owner_id: UUID) -> Settlement | None:
+        settlement = next((s for s in self.settlements.values() if s.owner_id == owner_id), None)
+        return deepcopy(settlement) if settlement else None
+    def get(self, settlement_id: UUID) -> Settlement | None:
+        settlement = self.settlements.get(settlement_id); return deepcopy(settlement) if settlement else None
+    def save(self, settlement: Settlement) -> None:
+        current = self.settlements.get(settlement.id)
+        if current is not None and current.version != settlement.version: raise ConcurrencyConflict("settlement changed since it was read")
+        settlement.version += 1; self.settlements[settlement.id] = deepcopy(settlement)
 
 @dataclass
 class InMemoryIdempotencyRepository:
@@ -100,25 +106,20 @@ class InMemoryIdempotencyRepository:
         if existing is not None and existing.request_hash != record.request_hash: raise IdempotencyConflict("idempotency key belongs to a different request")
         self.records[key] = record
 
-
 @dataclass
 class InMemoryAuditRepository:
     events: list[dict] = field(default_factory=list)
-    def append(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
-        self.events.append({"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": payload})
-
+    def append(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: self.events.append({"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": payload})
 
 @dataclass
 class InMemoryOutboxRepository:
     events: list[dict] = field(default_factory=list)
-    def enqueue(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None:
-        self.events.append({"id": uuid4(), "event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": deepcopy(payload), "attempts": 0, "lease_owner": None, "lease_until": None, "published": False})
+    def enqueue(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: self.events.append({"id": uuid4(), "event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": deepcopy(payload), "attempts": 0, "lease_owner": None, "lease_until": None, "published": False})
     def claim(self, owner: str, limit: int = 50, lease_seconds: int = 60, max_attempts: int = 10) -> list[OutboxEvent]:
         now = datetime.now(timezone.utc); result = []
         for event in self.events:
             if len(result) >= limit: break
-            if event["published"] or event["attempts"] >= max_attempts: continue
-            if event["lease_until"] and event["lease_until"] > now: continue
+            if event["published"] or event["attempts"] >= max_attempts or (event["lease_until"] and event["lease_until"] > now): continue
             event["attempts"] += 1; event["lease_owner"] = owner; event["lease_until"] = now + timedelta(seconds=lease_seconds)
             result.append(OutboxEvent(event["id"], event["event_type"], event["aggregate_type"], event["aggregate_id"], deepcopy(event["payload"]), event["attempts"], owner, event["lease_until"]))
         return result
@@ -131,7 +132,6 @@ class InMemoryOutboxRepository:
             if event["id"] == event_id and event["lease_owner"] == owner: event["lease_until"] = datetime.now(timezone.utc) + timedelta(seconds=retry_after_seconds); event["last_error"] = error; return
         raise ConcurrencyConflict("outbox event is not leased by this owner")
 
-
 @dataclass
 class InMemoryUnitOfWork:
     wallets: InMemoryWalletRepository = field(default_factory=InMemoryWalletRepository)
@@ -139,6 +139,7 @@ class InMemoryUnitOfWork:
     jobs: InMemoryJobRepository = field(default_factory=InMemoryJobRepository)
     characters: InMemoryCharacterRepository = field(default_factory=InMemoryCharacterRepository)
     vehicles: InMemoryVehicleRepository = field(default_factory=InMemoryVehicleRepository)
+    settlements: InMemorySettlementRepository = field(default_factory=InMemorySettlementRepository)
     idempotency: InMemoryIdempotencyRepository = field(default_factory=InMemoryIdempotencyRepository)
     audit: InMemoryAuditRepository = field(default_factory=InMemoryAuditRepository)
     outbox: InMemoryOutboxRepository = field(default_factory=InMemoryOutboxRepository)
@@ -146,13 +147,12 @@ class InMemoryUnitOfWork:
     rolled_back: bool = False
     _snapshot: dict | None = field(default=None, init=False, repr=False)
     def __enter__(self) -> "InMemoryUnitOfWork":
-        self._snapshot = {"wallets": deepcopy(self.wallets), "inventories": deepcopy(self.inventories), "jobs": deepcopy(self.jobs), "characters": deepcopy(self.characters), "vehicles": deepcopy(self.vehicles), "idempotency": deepcopy(self.idempotency), "audit": deepcopy(self.audit), "outbox": deepcopy(self.outbox)}
+        self._snapshot = {"wallets": deepcopy(self.wallets), "inventories": deepcopy(self.inventories), "jobs": deepcopy(self.jobs), "characters": deepcopy(self.characters), "vehicles": deepcopy(self.vehicles), "settlements": deepcopy(self.settlements), "idempotency": deepcopy(self.idempotency), "audit": deepcopy(self.audit), "outbox": deepcopy(self.outbox)}
         return self
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         if exc_type is None: self.commit()
         else: self.rollback()
-    def commit(self) -> None:
-        self.committed = True; self._snapshot = None
+    def commit(self) -> None: self.committed = True; self._snapshot = None
     def rollback(self) -> None:
         if self._snapshot is not None:
             for name in self._snapshot: setattr(self, name, self._snapshot[name])
