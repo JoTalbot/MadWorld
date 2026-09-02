@@ -106,9 +106,9 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred: wallet funding policies and richer treasury/reporting UI.
 
 ### IMP-094 — Shared hangars and corporate assets
-- Status: COMPLETE — Hybrid foundation.
-- Implemented: hangar capacity and corporate asset ownership/assignment model.
-- Deferred: transactional vehicle/item movement and capacity accounting.
+- Status: IN PROGRESS — Hybrid.
+- Implemented: hangar capacity and corporate asset custody registration/move/assignment endpoints with row locking and capacity checks.
+- Deferred: transactional vehicle/item ownership transfer and deeper asset provenance rules.
 
 ### IMP-095 — Alliances
 - Status: IN PROGRESS — Hybrid.
@@ -143,7 +143,7 @@ This file is the persistent source of truth for improvement proposals and implem
 ### IMP-101 — Phase 4 social lifecycle hardening
 - Status: ACCEPTED — Hybrid, approved by user continuation of Phase 4 implementation.
 - Implemented: contract transition invariants, reputation mutation invariants, escrow/invitation state validation, persistence for escrow/history/invitations.
-- Deferred: full economic settlement, asset accounting and Android mutation UI.
+- Deferred: full economic settlement and Android mutation UI.
 
 ### IMP-102 — Phase 4 social database integrity hardening
 - Status: COMPLETE — Technical hardening.
@@ -153,15 +153,15 @@ This file is the persistent source of truth for improvement proposals and implem
 ### IMP-103 — Phase 4 authoritative financial/social operations
 - Status: IN PROGRESS — Hybrid.
 - Scope: idempotent corporate wallet operations, completed alliance lifecycle, hangar/asset accounting, contract escrow settlement and contract-driven reputation propagation.
-- Implemented in current slice: corporate wallet balance/transfer commands, deterministic wallet locking, immutable ledger entries, request idempotency and migration `018_phase4_corporate_wallets.sql` allowing corporation-owned wallets while retaining one player wallet per player.
+- Implemented in current slice: corporate wallet balance/transfer commands, deterministic wallet locking, immutable ledger entries, request idempotency, corporation-owned wallet schema support via migration `018_phase4_corporate_wallets.sql`, and authoritative corporate asset custody/hangar operations.
 - Product-changing choices remain deferred where they alter the intended ownership/membership model.
 
 ### Phase 4 verification note
-- Backend CI #304: SUCCESS on the latest verified push before the current wallet-operation slice.
+- Backend CI #304: SUCCESS on the latest verified push before the current wallet/asset-operation slice.
 - Android CI #34: SUCCESS after the Android bootstrap restoration.
 - Migration `016_phase4_social_operations.sql` and lifecycle rules/tests are present.
 - Migration `017_phase4_social_integrity.sql` is present for reputation and membership integrity.
-- Migration `018_phase4_corporate_wallets.sql` is now present and fixes the schema mismatch that previously made corporation wallet creation incompatible with the original player-owned wallet constraint.
-- Corporate wallet routes are registered in `main` and include idempotency, deterministic locking, insufficient-funds protection, audit and outbox events.
-- New CI verification is required for the current wallet slice.
-- Phase 4 remains IN PROGRESS until financial settlement, asset accounting, contract escrow settlement and Android management UI are verified end-to-end.
+- Migration `018_phase4_corporate_wallets.sql` fixes the schema mismatch that previously made corporation wallet creation incompatible with the original player-owned wallet constraint.
+- Corporate wallet and asset routes are registered in `main`; wallet transfers use idempotency, deterministic locking, insufficient-funds protection, audit and outbox events.
+- New CI verification is required for the current wallet/asset slice.
+- Phase 4 remains IN PROGRESS until contract escrow settlement, deeper asset accounting and Android management UI are verified end-to-end.
