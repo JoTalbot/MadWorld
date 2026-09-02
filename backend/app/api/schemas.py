@@ -106,6 +106,7 @@ class ResourceGatherResponse(BaseModel):
     gathered_quantity: int
     remaining_quantity: int
     next_available_at: datetime
+    version: int
 class ErrorResponse(BaseModel):
     code: str
     message: str
