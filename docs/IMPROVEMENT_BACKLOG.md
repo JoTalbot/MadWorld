@@ -46,8 +46,8 @@ This is the decision register for meaningful improvements discovered during deve
 | IMP-024 | Rate limiting and command budgets | PROPOSED | Protect authoritative commands and reduce automation abuse |
 | IMP-025 | Anti-cheat trust model and server-side action validation | PROPOSED | Harden economy, movement, combat, timers and rewards against manipulated clients |
 | IMP-026 | Structured observability: logs, metrics, traces and correlation IDs | PROPOSED | Diagnose production failures without inspecting player state manually |
-| IMP-027 | Reconnect/resume protocol with authoritative state reconciliation | PROPOSED | Mobile networks disconnect; sessions must resume without duplication or rollback |
-| IMP-028 | Offline action journal and retry semantics | PROPOSED | Make mobile command retries safe across timeouts and reconnects |
+| IMP-027 | Reconnect/resume protocol with authoritative state reconciliation | ACCEPTED | Hybrid selected: explicit resume cursor + reconciliation result now; persisted session/event feed later |
+| IMP-028 | Offline action journal and retry semantics | ACCEPTED | Hybrid selected: UUID command journal + exact-retry deduplication now; durable mobile queue integration later |
 | IMP-029 | Market order lifecycle, escrow and deterministic matching | PROPOSED | Formalize reservations, partial fills, cancellation and settlement |
 | IMP-030 | Regional price history and market analytics | PROPOSED | Give players useful information without creating a global auction house |
 | IMP-031 | Logistics route planner with risk/cost/time trade-offs | PROPOSED | Turn geography and danger into meaningful economic decisions |
@@ -154,6 +154,18 @@ The chosen variant must be recorded in the decision entry before product behavio
 - **Systemic:** registry validates every event type/version before it enters audit/outbox.
 - **Advanced:** compatibility matrix, event migrations and operational schema tooling for long-lived consumers.
 - **Hybrid — SELECTED:** versioned envelope + in-process registry now; compatibility/migration tooling later without changing the transport contract.
+
+### IMP-027 — Reconnect/resume protocol
+- **Minimal/MVP:** session resume cursor and authoritative snapshot refresh after reconnect.
+- **Systemic:** event cursor + persisted session state + replay of missed authoritative events.
+- **Advanced:** multi-device session continuity, resumable streams, conflict diagnostics and operational session telemetry.
+- **Hybrid — SELECTED:** explicit resume cursor + deterministic reconciliation result now; persisted event feed and richer replay later.
+
+### IMP-028 — Offline action journal and retry semantics
+- **Minimal/MVP:** client-side UUID command journal with exact duplicate suppression.
+- **Systemic:** durable pending-command queue with server acknowledgements, retry policy and idempotency integration.
+- **Advanced:** dependency-aware command DAG, conflict resolution, partial replay and telemetry.
+- **Hybrid — SELECTED:** stable UUID journal + exact-retry semantics now; durable mobile queue and richer conflict handling later.
 
 ## Selection policy
 
