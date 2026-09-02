@@ -45,7 +45,7 @@ class PostgresWalletRepository:
         row = self.conn.execute(text("SELECT id, wallet_id, amount, reason, idempotency_key, created_at FROM ledger_entries WHERE idempotency_key = :key"), {"key": key}).mappings().first()
         if row is None:
             return None
-        return LedgerEntry(UUID(str(row["id"])), UUID(str(row["wallet_id"])), int(row["amount"]), int(row["reason"]) if False else str(row["amount"]), str(row["idempotency_key"]), row["created_at"])
+        return LedgerEntry(UUID(str(row["id"])), UUID(str(row["wallet_id"])), int(row["amount"]), str(row["reason"]), str(row["idempotency_key"]), row["created_at"])
 
 
 class PostgresInventoryRepository:
@@ -160,13 +160,12 @@ def _json(payload: dict) -> str:
 
 
 class PostgresUnitOfWork(UnitOfWork):
-    """One database connection and transaction shared by all repositories."""
+    """One database connection; commits may be used by multiple commands before exit."""
 
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
         self.conn: Connection | None = None
         self.transaction = None
-        self._closed = False
 
     def __enter__(self) -> "PostgresUnitOfWork":
         self.conn = self.engine.connect()
@@ -179,22 +178,27 @@ class PostgresUnitOfWork(UnitOfWork):
         return self
 
     def commit(self) -> None:
+        if self.conn is None:
+            raise RuntimeError("unit of work is not active")
         if self.transaction is not None and self.transaction.is_active:
             self.transaction.commit()
-        self._closed = True
+        self.transaction = self.conn.begin()
 
     def rollback(self) -> None:
+        if self.conn is None:
+            raise RuntimeError("unit of work is not active")
         if self.transaction is not None and self.transaction.is_active:
             self.transaction.rollback()
-        self._closed = True
+        self.transaction = self.conn.begin()
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         try:
-            if exc_type is None and not self._closed:
-                self.commit()
-            elif exc_type is not None:
+            if exc_type is not None:
                 self.rollback()
+            elif self.transaction is not None and self.transaction.is_active:
+                self.commit()
         finally:
             if self.conn is not None:
                 self.conn.close()
                 self.conn = None
+                self.transaction = None
