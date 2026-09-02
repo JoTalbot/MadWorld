@@ -36,10 +36,6 @@ This file is the persistent source of truth for improvement proposals and implem
 ## IMP-029 — Regional player markets
 - Status: ACCEPTED — Hybrid
 - Selected: regional player order book first, NPC liquidity/simulation later.
-- Implemented slice: PostgreSQL market orders, sell-item escrow, deterministic price/time/id tie-breaking, transactional matching, buy-side currency reservation, reserve refund after filled limit orders, regional order-book read API, trade history and request-level idempotency by player/key.
-- API: `GET /api/v1/market/{region_id}/{item_definition_id}`, `POST /api/v1/market/buy`, `POST /api/v1/market/sell`.
-- Deferred: cancellation/release flow, market fees/taxes, NPC liquidity, advanced price simulation, richer order types and production market UI.
-- Verification: CI runs #173 and #174 passed after idempotency hardening and conflict regression coverage.
 - Status after implementation: COMPLETE for the selected slice.
 
 ## IMP-061 — Inventory authority
@@ -65,8 +61,6 @@ This file is the persistent source of truth for improvement proposals and implem
 ## IMP-066 — API idempotency
 - Status: ACCEPTED
 - Selected: request-hash checked idempotency records with exact replay.
-- Implementation: market order replay now validates that a reused player-scoped idempotency key represents the same request payload; mismatches return `IDEMPOTENCY_CONFLICT` without mutation.
-- Verification: CI #174 passed with explicit conflicting-payload regression coverage.
 - Status after implementation: COMPLETE for the selected slice.
 
 ## IMP-067 — In-memory transactional semantics
@@ -75,86 +69,56 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ## IMP-068 — Player bootstrap vertical slice
 - Status: ACCEPTED — Hybrid
-- Goal: make first login produce one coherent authoritative player state instead of requiring clients to orchestrate several independent commands.
-- Variants:
-  1. Minimal: client calls character creation and starter-vehicle creation separately.
-  2. Systemic: one atomic server-side bootstrap command creates character, starter vehicle, wallet/inventory foundations and returns a snapshot.
-  3. Advanced: bootstrap also provisions settlement, starter resources, tutorial state and region assignment.
-  4. Hybrid: atomic character + starter vehicle + required account foundations now; settlement/tutorial/world provisioning remains separate.
-- Selected: Hybrid. Account wallet and personal inventory foundations are now provisioned transactionally when a session is created or resumed for an existing player; character + starter vehicle remain atomic in bootstrap. Settlement/tutorial/world provisioning remains separate.
+- Selected: atomic character + starter vehicle + required account foundations now; settlement/tutorial/world provisioning remains separate.
 
 ## IMP-069 — Player state snapshot API
 - Status: ACCEPTED — Hybrid
-- Goal: give Android clients one deterministic read model for reconnect/bootstrap instead of assembling state from multiple endpoints.
-- Variants:
-  1. Minimal: character + vehicles only.
-  2. Systemic: character, vehicles, wallet, inventory and active jobs.
-  3. Advanced: full world/session snapshot with versioned cursors.
-  4. Hybrid: account gameplay state now, world/session feed later.
-- Selected: Hybrid.
-- Implementation: deterministic snapshot now returns character, vehicles, wallet, inventory stacks and active jobs; world/session feed remains later.
+- Selected: deterministic gameplay snapshot now; world/session feed later.
 - Status after implementation: COMPLETE for the selected slice.
 
 ## IMP-070 — Android authoritative-state client
 - Status: ACCEPTED — Hybrid
-- Goal: connect the Android shell to the server's bootstrap/state contracts while keeping the client thin and authoritative-state driven.
-- Variants:
-  1. Minimal: HTTP client plus raw state screen.
-  2. Systemic: typed API client, repository, ViewModel and persistent state cache.
-  3. Advanced: offline command journal, reconnect cursor and optimistic UI reconciliation.
-  4. Hybrid: typed client + repository + ViewModel + cache now; offline journal/reconciliation builds on IMP-027/028 later.
-- Selected: Hybrid. The typed client, repository and cache now consume the expanded authoritative snapshot; offline journal/reconciliation remains later.
+- Selected: typed client + repository + ViewModel + cache now; offline journal/reconciliation later.
 
 ## IMP-071 — Persistent player sessions
 - Status: ACCEPTED — Hybrid
-- Goal: replace the Android development UUID with a server-created persistent player identity and session credential.
-- Variants:
-  1. Minimal: anonymous player creation with a persistent player UUID.
-  2. Systemic: player handle + expiring server session token + Android credential cache.
-  3. Advanced: refresh/revocation/device binding and full account security flows.
-  4. Hybrid: handle + 30-day server session + Android persistence now; refresh/revocation/device security later.
-- Selected: Hybrid. The current slice adds the persistent session boundary while leaving production account security for the dedicated auth hardening phase.
-- Implementation note: bearer-session enforcement is now wired into player bootstrap and player-state reads; requests cannot read or mutate another player's bootstrap/state by UUID alone.
+- Selected: persistent session boundary now; production auth security later.
 
 ## IMP-072 — Player-boundary session enforcement
-- Status: ACCEPTED — Security hardening — COMPLETE for selected slice
-- Goal: ensure the persistent session credential is actually authoritative at the player boundary rather than merely being stored and sent by Android.
-- Variants:
-  1. Minimal: enforce bearer token on state/bootstrap only.
-  2. Systemic: enforce bearer identity across all player-owned commands and reads.
-  3. Advanced: refresh/revocation/device binding plus scoped credentials.
-  4. Hybrid: protect state/bootstrap immediately, then extend ownership enforcement across every player-owned command before production auth hardening.
-- Selected: Hybrid.
-- Implementation: bearer authentication and ownership checks now cover wallet entries, inventory mutations, job creation/transitions, character creation/reads, vehicle creation/reads, plus bootstrap/state. Negative regression tests cover missing authentication and cross-player access.
-- Remaining production auth work: refresh/revocation, device binding and scoped credentials remain intentionally deferred.
+- Status: ACCEPTED — Hybrid — COMPLETE for selected slice
+- Remaining production auth work: refresh/revocation, device binding and scoped credentials.
 
 ## IMP-073 — Regional market matching concurrency hardening
 - Status: COMPLETE — Technical hardening
-- Finding: cross-side concurrent buy/sell matching could deadlock if each transaction locked its own order row before attempting to synchronize the shared regional/item order book.
-- Implementation: `_match` now resolves the order's `(region_id, item_definition_id)` first, acquires a PostgreSQL transaction-scoped advisory lock for that regional/item book, and only then acquires the order row lock and performs matching. This serializes matching per regional item without changing market behavior.
-- Verification: corrected implementation committed as `367b950d6ab0b0c7d24c450a2f965dd257df7d4c`; CI run #177 passed migrations and the complete test suite.
+- Verification: commit `367b950d6ab0b0c7d24c450a2f965dd257df7d4c`; CI #177 passed.
 
 ## IMP-074 — Vehicle repair vertical slice
 - Status: COMPLETE — Hybrid
-- Goal: add an authoritative garage repair loop that consumes repair resources, advances vehicle condition through a server-time job, and provides the foundation for component-aware damage without prematurely implementing the full combat damage model.
-- Variants:
-  1. Minimal: direct durability restoration for a resource cost.
-  2. Systemic: persistent repair job + resource consumption + authoritative time + garage requirement + transactional mutation.
-  3. Advanced: component damage, repair quality, mechanic skills and facility modifiers.
-  4. Hybrid: systemic repair job now + extensible component/quality foundations for later combat.
-- Selected: Hybrid.
-- Implementation status: COMPLETE. Merged to `main` via PR #2, merge commit `509ab41883cda32a1e20ba78abf6f5162a02854e`.
-- Verification: CI run #206 passed after fixing completion ordering so an early completion cannot mutate vehicle durability.
+- Selected: systemic repair job + extensible component/quality foundations for later combat.
+- Implementation: authoritative repair jobs, resource consumption, server time, idempotency and guarded completion.
+- Verification: PR #2 merged to `main`; CI #206 passed after the early-completion durability regression was fixed.
 - Deferred: full component-aware combat damage, repair-quality progression, mechanic skills and facility modifiers.
 
 ## IMP-075 — Legacy vehicle repair API migration
 - Status: PLANNED — Product/API change; not approved
-- Goal: retire the legacy direct vehicle-repair endpoint now that authoritative repair jobs are available, without breaking existing clients unexpectedly.
+- Goal: retire the legacy direct vehicle-repair endpoint without breaking existing clients unexpectedly.
 - Variants:
-  1. Minimal: remove the legacy endpoint in the next breaking API release.
-  2. Systemic: redirect/translate legacy requests into authoritative repair jobs and document the migration.
-  3. Advanced: versioned API migration with compatibility window, telemetry, deprecation headers and explicit sunset release.
-  4. Hybrid: compatibility adapter + deprecation headers/telemetry now, then remove the legacy endpoint after migration criteria are met.
+  1. Minimal: remove it in the next breaking API release.
+  2. Systemic: redirect/translate legacy requests into authoritative repair jobs and document migration.
+  3. Advanced: versioned migration with compatibility window, telemetry, deprecation headers and sunset release.
+  4. Hybrid: compatibility adapter + deprecation headers/telemetry now, removal after migration criteria are met.
 - Recommendation: Hybrid.
-- Reason: preserves compatibility while making the authoritative repair-job flow the only long-term implementation.
-- Acceptance: requires explicit product decision before implementation.
+- Acceptance: requires explicit product decision.
+
+## IMP-076 — Component-aware vehicle damage
+- Status: ACCEPTED — Advanced + Systemic; maximum-option scope
+- Goal: replace total-durability-only damage with persistent component condition, armor-aware damage types, component destruction and gameplay effects while retaining total durability as the aggregate compatibility surface.
+- Variants considered:
+  1. Minimal: component data only.
+  2. Systemic: persistent component state and component-specific damage/repair.
+  3. Advanced: damage types, armor mitigation, destruction states and gameplay effects.
+  4. Hybrid: systemic persistence plus advanced combat model incrementally.
+- Selected by user: `3 + 2`, interpreted as Advanced + Systemic, with maximum available options included in the implementation scope.
+- Implementation in progress: engine, hull, wheels and fuel-system components; kinetic/explosive/fire/impact damage types; per-component armor; destruction state; component-derived aggregate durability; engine/mobility/fuel-efficiency effects; component repair; authoritative API and transactional persistence adapter.
+- Verification pending: full CI, PostgreSQL migration and API regression suite.
+- Deferred after this slice: richer hit-location simulation, weapon-specific penetration tables, repair quality progression, mechanic skills, facility modifiers and advanced combat telemetry.
