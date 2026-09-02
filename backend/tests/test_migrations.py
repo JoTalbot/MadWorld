@@ -22,3 +22,13 @@ def test_migration_checksum_mismatch_is_rejected() -> None:
         conn.execute(text("INSERT INTO schema_migrations (version, name, checksum, applied_at) VALUES (1, '001_foundation.sql', 'bad', 'now')"))
         with pytest.raises(RuntimeError, match="checksum mismatch"):
             apply_migrations(conn, Path(__file__).parents[1] / "migrations")
+
+
+def test_phase6_world_outbox_bridge_is_transactional_and_idempotent() -> None:
+    migration = (Path(__file__).parents[1] / "migrations" / "023_phase6_world_outbox_bridge.sql").read_text()
+    assert "CREATE OR REPLACE FUNCTION bridge_world_event_to_outbox()" in migration
+    assert "AFTER INSERT ON world_events" in migration
+    assert "'world.' || NEW.event_type" in migration
+    assert "world_event_id" in migration
+    assert "CREATE TABLE IF NOT EXISTS world_event_consumptions" in migration
+    assert "PRIMARY KEY (consumer_name, world_event_id)" in migration
