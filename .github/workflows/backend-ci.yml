@@ -30,11 +30,6 @@ jobs:
         working-directory: backend
     env:
       MADWORLD_DATABASE_URL: postgresql+psycopg://madworld:madworld@localhost:5432/madworld_test
-      PGPASSWORD: madworld
-      PGHOST: localhost
-      PGPORT: 5432
-      PGUSER: madworld
-      PGDATABASE: madworld_test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,6 +42,6 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt pytest
       - name: Apply database migrations
-        run: for migration in migrations/*.sql; do psql -v ON_ERROR_STOP=1 -f "$migration"; done
+        run: PYTHONPATH=. python scripts/migrate.py
       - name: Run tests
-        run: python -m pytest -q
+        run: PYTHONPATH=. python -m pytest -q
