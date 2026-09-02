@@ -51,8 +51,12 @@ class InMemoryInventoryRepository:
         stack.version += 1
         self.stacks[key] = deepcopy(stack)
 
-    def delete_stack(self, inventory_id: UUID, item_definition_id: UUID) -> None:
-        self.stacks.pop((inventory_id, item_definition_id), None)
+    def delete_stack(self, inventory_id: UUID, item_definition_id: UUID, expected_version: int) -> None:
+        key = (inventory_id, item_definition_id)
+        current = self.stacks.get(key)
+        if current is None or current.version != expected_version:
+            raise ConcurrencyConflict("inventory stack changed since it was read")
+        del self.stacks[key]
 
 
 @dataclass
