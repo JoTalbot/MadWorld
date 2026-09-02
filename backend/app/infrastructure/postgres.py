@@ -1,9 +1,4 @@
-"""PostgreSQL repositories and transactional Unit of Work.
-
-The adapter deliberately uses SQLAlchemy Core rather than ORM models. Domain
-objects stay dependency-free and the SQL is explicit at the authoritative
-persistence boundary.
-"""
+"""PostgreSQL repositories and transactional Unit of Work."""
 
 from __future__ import annotations
 
@@ -25,28 +20,20 @@ class PostgresWalletRepository:
 
     def get(self, wallet_id: UUID) -> Wallet | None:
         row = self.conn.execute(
-            text("""
-                SELECT w.id, w.version,
-                       COALESCE(SUM(l.amount), 0) AS balance
-                FROM wallets w
-                LEFT JOIN ledger_entries l ON l.wallet_id = w.id
-                WHERE w.id = :id
-                GROUP BY w.id, w.version
-                FOR UPDATE OF w
-            """),
+            text("SELECT id, version FROM wallets WHERE id = :id FOR UPDATE"),
             {"id": wallet_id},
         ).mappings().first()
         if row is None:
             return None
-        return Wallet(UUID(str(row["id"])), int(row["balance"]), int(row["version"]))
+        balance = self.conn.execute(
+            text("SELECT COALESCE(SUM(amount), 0) AS balance FROM ledger_entries WHERE wallet_id = :id"),
+            {"id": wallet_id},
+        ).scalar_one()
+        return Wallet(UUID(str(row["id"])), int(balance), int(row["version"]))
 
     def save(self, wallet: Wallet) -> None:
         result = self.conn.execute(
-            text("""
-                UPDATE wallets
-                   SET version = version + 1
-                 WHERE id = :id AND version = :version
-            """),
+            text("UPDATE wallets SET version = version + 1 WHERE id = :id AND version = :version"),
             {"id": wallet.id, "version": wallet.version},
         )
         if result.rowcount != 1:
@@ -61,37 +48,21 @@ class PostgresWalletRepository:
                         (id, idempotency_key, wallet_id, amount, reason, created_at)
                     VALUES (:id, :key, :wallet_id, :amount, :reason, :created_at)
                 """),
-                {
-                    "id": entry.id,
-                    "key": entry.idempotency_key,
-                    "wallet_id": entry.wallet_id,
-                    "amount": entry.amount,
-                    "reason": entry.reason,
-                    "created_at": entry.created_at,
-                },
+                {"id": entry.id, "key": entry.idempotency_key, "wallet_id": entry.wallet_id,
+                 "amount": entry.amount, "reason": entry.reason, "created_at": entry.created_at},
             )
         except IntegrityError as exc:
             raise IdempotencyConflict("ledger idempotency key already exists") from exc
 
     def get_ledger_entry_by_idempotency_key(self, key: str) -> LedgerEntry | None:
         row = self.conn.execute(
-            text("""
-                SELECT id, wallet_id, amount, reason, idempotency_key, created_at
-                FROM ledger_entries
-                WHERE idempotency_key = :key
-            """),
+            text("SELECT id, wallet_id, amount, reason, idempotency_key, created_at FROM ledger_entries WHERE idempotency_key = :key"),
             {"key": key},
         ).mappings().first()
         if row is None:
             return None
-        return LedgerEntry(
-            UUID(str(row["id"])),
-            UUID(str(row["wallet_id"])),
-            int(row["amount"]),
-            str(row["reason"]),
-            str(row["idempotency_key"]),
-            row["created_at"],
-        )
+        return LedgerEntry(UUID(str(row["id"])), UUID(str(row["wallet_id"])), int(row["amount"]),
+                           str(row["reason"]), str(row["idempotency_key"]), row["created_at"])
 
 
 class PostgresInventoryRepository:
@@ -103,39 +74,27 @@ class PostgresInventoryRepository:
             text("""
                 SELECT item_definition_id, quantity, condition, version
                 FROM inventory_items
-                WHERE inventory_id = :inventory_id
-                  AND item_definition_id = :item_definition_id
+                WHERE inventory_id = :inventory_id AND item_definition_id = :item_definition_id
                 FOR UPDATE
             """),
             {"inventory_id": inventory_id, "item_definition_id": item_definition_id},
         ).mappings().first()
         if row is None:
             return None
-        return InventoryStack(
-            UUID(str(row["item_definition_id"])),
-            int(row["quantity"]),
-            int(row["condition"]),
-            int(row["version"]),
-        )
+        return InventoryStack(UUID(str(row["item_definition_id"])), int(row["quantity"]),
+                              int(row["condition"]), int(row["version"]))
 
     def save_stack(self, inventory_id: UUID, stack: InventoryStack) -> None:
         result = self.conn.execute(
             text("""
                 UPDATE inventory_items
-                   SET quantity = :quantity,
-                       condition = :condition,
-                       version = version + 1
+                   SET quantity = :quantity, condition = :condition, version = version + 1
                  WHERE inventory_id = :inventory_id
                    AND item_definition_id = :item_definition_id
                    AND version = :version
             """),
-            {
-                "inventory_id": inventory_id,
-                "item_definition_id": stack.item_definition_id,
-                "quantity": stack.quantity,
-                "condition": stack.condition,
-                "version": stack.version,
-            },
+            {"inventory_id": inventory_id, "item_definition_id": stack.item_definition_id,
+             "quantity": stack.quantity, "condition": stack.condition, "version": stack.version},
         )
         if result.rowcount == 1:
             stack.version += 1
@@ -149,12 +108,8 @@ class PostgresInventoryRepository:
                         (inventory_id, item_definition_id, quantity, condition, version)
                     VALUES (:inventory_id, :item_definition_id, :quantity, :condition, 1)
                 """),
-                {
-                    "inventory_id": inventory_id,
-                    "item_definition_id": stack.item_definition_id,
-                    "quantity": stack.quantity,
-                    "condition": stack.condition,
-                },
+                {"inventory_id": inventory_id, "item_definition_id": stack.item_definition_id,
+                 "quantity": stack.quantity, "condition": stack.condition},
             )
             stack.version = 1
         except IntegrityError as exc:
@@ -168,11 +123,7 @@ class PostgresInventoryRepository:
                    AND item_definition_id = :item_definition_id
                    AND version = :version
             """),
-            {
-                "inventory_id": inventory_id,
-                "item_definition_id": item_definition_id,
-                "version": expected_version,
-            },
+            {"inventory_id": inventory_id, "item_definition_id": item_definition_id, "version": expected_version},
         )
         if result.rowcount != 1:
             raise ConcurrencyConflict("inventory stack changed since it was read")
@@ -184,15 +135,8 @@ class PostgresJobRepository:
 
     @staticmethod
     def _map(row: Any) -> Job:
-        return Job(
-            UUID(str(row["id"])),
-            UUID(str(row["owner_id"])),
-            str(row["job_type"]),
-            row["started_at"],
-            row["completes_at"],
-            JobState(str(row["state"])),
-            int(row["version"]),
-        )
+        return Job(UUID(str(row["id"])), UUID(str(row["owner_id"])), str(row["job_type"]),
+                   row["started_at"], row["completes_at"], JobState(str(row["state"])), int(row["version"]))
 
     def get(self, job_id: UUID) -> Job | None:
         row = self.conn.execute(
@@ -217,27 +161,16 @@ class PostgresJobRepository:
                             (id, owner_id, job_type, state, started_at, completes_at, idempotency_key, version)
                         VALUES (:id, :owner_id, :job_type, :state, :started_at, :completes_at, :key, 1)
                     """),
-                    {
-                        "id": job.id,
-                        "owner_id": job.owner_id,
-                        "job_type": job.job_type,
-                        "state": job.state.value,
-                        "started_at": job.started_at,
-                        "completes_at": job.completes_at,
-                        "key": f"pending:{job.id}",
-                    },
+                    {"id": job.id, "owner_id": job.owner_id, "job_type": job.job_type,
+                     "state": job.state.value, "started_at": job.started_at, "completes_at": job.completes_at,
+                     "key": f"pending:{job.id}"},
                 )
                 job.version = 1
                 return
             except IntegrityError as exc:
                 raise ConcurrencyConflict("job was created concurrently") from exc
         result = self.conn.execute(
-            text("""
-                UPDATE jobs
-                   SET state = :state,
-                       version = version + 1
-                 WHERE id = :id AND version = :version
-            """),
+            text("UPDATE jobs SET state = :state, version = version + 1 WHERE id = :id AND version = :version"),
             {"id": job.id, "state": job.state.value, "version": job.version},
         )
         if result.rowcount != 1:
@@ -290,7 +223,7 @@ def _json(payload: dict) -> str:
 
 
 class PostgresUnitOfWork(UnitOfWork):
-    """One database connection + one transaction shared by all repositories."""
+    """One database connection and transaction shared by all repositories."""
 
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
