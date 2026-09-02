@@ -80,12 +80,13 @@ class CharacterService:
         if character is None: raise NotFound("character not found")
         return character
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "character", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "character", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, aggregate_id, event.to_dict())
 
 
 class VehicleService:
     def __init__(self, uow: UnitOfWork) -> None: self.uow = uow
     def create_starter(self, owner_id: UUID, code: str | None = None, chassis_code: str = "light_runner") -> Vehicle:
+        self.uow.vehicles.lock_owner_for_starter(owner_id)
         if self.uow.vehicles.list_by_owner(owner_id): raise ValueError("starter vehicle can only be created for an owner without vehicles")
         code = code or f"starter-{owner_id.hex[:12]}"
         vehicle = Vehicle.create(owner_id, code, chassis_code, fuel=25); self.uow.vehicles.save(vehicle); self._record("vehicle.created", vehicle.id, {"owner_id": str(owner_id), "code": vehicle.code, "chassis_code": vehicle.chassis_code, "starter": True}); return vehicle
@@ -99,7 +100,7 @@ class VehicleService:
     def refuel(self, vehicle_id: UUID, amount: int) -> Vehicle:
         vehicle = self.get(vehicle_id); vehicle.refuel(amount); self.uow.vehicles.save(vehicle); return vehicle
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "vehicle", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "vehicle", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, aggregate_id, event.to_dict())
 
 
 class PlayerBootstrapService:
