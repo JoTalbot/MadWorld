@@ -101,11 +101,7 @@ def _match(conn, order_id: UUID) -> None:
             if buyer_stack is not None and int(buyer_stack["quantity"]) + qty > int(item_def["stack_limit"]):
                 raise ValueError("buyer inventory stack limit exceeded")
             conn.execute(text("INSERT INTO inventory_items (inventory_id, item_definition_id, quantity, condition) VALUES (:inv,:item,:qty,:condition) ON CONFLICT (inventory_id,item_definition_id) DO UPDATE SET quantity=inventory_items.quantity+:qty"), {"inv": buyer_inv["id"], "item": order["item_definition_id"], "qty": qty, "condition": sell_escrow["condition"]})
-            escrow_remaining = int(sell_escrow["quantity"]) - qty
-            if escrow_remaining == 0:
-                conn.execute(text("DELETE FROM market_sell_escrow WHERE order_id=:id"), {"id": sell["id"]})
-            else:
-                conn.execute(text("UPDATE market_sell_escrow SET quantity=:remaining WHERE order_id=:id"), {"id": sell["id"], "remaining": escrow_remaining})
+            conn.execute(text("UPDATE market_sell_escrow SET quantity=quantity-:qty WHERE order_id=:id"), {"id": sell["id"], "qty": qty})
             _ledger(conn, UUID(str(seller_wallet["id"])), amount, "market_sale", UUID(str(sell["owner_id"])), trade_key)
             for current in (order, other):
                 new_remaining = int(current["remaining_quantity"]) - qty
