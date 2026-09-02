@@ -60,7 +60,10 @@ def apply_migrations(conn: Connection, directory: Path) -> list[str]:
             if previous != migration.checksum:
                 raise RuntimeError(f"migration checksum mismatch: {migration.name}")
             continue
-        conn.execute(text(migration.sql))
+        # Migration files are already complete SQL programs. Execute them at the
+        # DB-driver level so SQLAlchemy's text() parameter parser cannot mistake
+        # JSON/SQL contents such as "%(5)s" for application bind parameters.
+        conn.exec_driver_sql(migration.sql)
         conn.execute(
             text("INSERT INTO schema_migrations (name, checksum) VALUES (:name, :checksum)"),
             {"name": migration.name, "checksum": migration.checksum},
