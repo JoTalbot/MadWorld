@@ -109,6 +109,28 @@ def test_market_buy_is_idempotent_for_same_owner_and_key(engine, monkeypatch):
         app.dependency_overrides.clear()
 
 
+def test_market_idempotency_key_reuse_with_different_payload_is_rejected(engine, monkeypatch):
+    region_id, item_id, seller_id, buyer_id, *_ = seed_market_players(engine)
+    monkeypatch.setattr(market_routes, "get_engine", lambda: engine)
+    client = TestClient(app)
+    try:
+        auth(buyer_id)
+        first_payload = {"region_id": str(region_id), "item_definition_id": str(item_id), "quantity": 2, "unit_price": 10}
+        changed_payload = {"region_id": str(region_id), "item_definition_id": str(item_id), "quantity": 3, "unit_price": 10}
+        first = client.post("/api/v1/market/buy", json=first_payload, headers={"Idempotency-Key": "conflict-key"})
+        second = client.post("/api/v1/market/buy", json=changed_payload, headers={"Idempotency-Key": "conflict-key"})
+        assert first.status_code == 200
+        assert second.status_code == 409
+        assert second.json()["code"] == "IDEMPOTENCY_CONFLICT"
+        with engine.connect() as conn:
+            orders = conn.execute(text("SELECT count(*) FROM market_orders WHERE owner_id=:owner AND idempotency_key=:key"), {"owner": buyer_id, "key": "conflict-key"}).scalar_one()
+            reserves = conn.execute(text("SELECT count(*) FROM ledger_entries WHERE wallet_id=(SELECT id FROM wallets WHERE owner_id=:owner) AND reason='market_buy_reserve'"), {"owner": buyer_id}).scalar_one()
+        assert orders == 1
+        assert reserves == 1
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_market_isolates_region_and_item_order_books(engine, monkeypatch):
     region_id, item_id, seller_id, buyer_id, *_ = seed_market_players(engine)
     other_region, other_item = uuid4(), uuid4()
