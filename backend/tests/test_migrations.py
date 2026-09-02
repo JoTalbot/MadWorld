@@ -39,3 +39,21 @@ def test_phase6_resource_seed_covers_all_supported_resources() -> None:
     assert "('scrap'), ('fuel'), ('water')" in migration
     assert "CROSS JOIN" in migration
     assert "ON CONFLICT (region_id, resource_type) DO NOTHING" in migration
+
+
+def test_master_b1_b2_migration_has_replay_travel_and_recovery_invariants() -> None:
+    migration = (Path(__file__).parents[1] / "migrations" / "025_master_b1_b2_integration.sql").read_text()
+    assert "world_region_bindings" in migration
+    assert "world_region_effects" in migration
+    assert "world_replay_checkpoints" in migration
+    assert "player_travel_sessions" in migration
+    assert "travel_encounters" in migration
+    assert "salvage_recovery_cases" in migration
+    assert "idempotency_key TEXT NOT NULL UNIQUE" in migration
+
+
+def test_master_b1_b2_economy_signal_is_idempotent() -> None:
+    migration = (Path(__file__).parents[1] / "migrations" / "026_master_b1_b2_economy_signals.sql").read_text()
+    assert "world_economy_signals" in migration
+    assert "world_event_id UUID PRIMARY KEY" in migration
+    assert "CREATE UNIQUE INDEX IF NOT EXISTS idx_dynamic_missions_source_unique" in migration
