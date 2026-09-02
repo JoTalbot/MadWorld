@@ -32,3 +32,10 @@ def test_phase6_world_outbox_bridge_is_transactional_and_idempotent() -> None:
     assert "world_event_id" in migration
     assert "CREATE TABLE IF NOT EXISTS world_event_consumptions" in migration
     assert "PRIMARY KEY (consumer_name, world_event_id)" in migration
+
+
+def test_phase6_resource_seed_covers_all_supported_resources() -> None:
+    migration = (Path(__file__).parents[1] / "migrations" / "024_phase6_resource_seed.sql").read_text()
+    assert "('scrap'), ('fuel'), ('water')" in migration
+    assert "CROSS JOIN" in migration
+    assert "ON CONFLICT (region_id, resource_type) DO NOTHING" in migration
