@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.api.dependencies import get_uow
+from app.api.dependencies import get_authenticated_player, get_uow
 from app.infrastructure.memory import InMemoryUnitOfWork
 from app.main import app
 
@@ -10,7 +10,9 @@ from app.main import app
 def test_player_bootstrap_is_atomic_and_idempotent() -> None:
     player_id = uuid4(); uow = InMemoryUnitOfWork()
     def override_uow(): yield uow
+    def override_auth(): return player_id
     app.dependency_overrides[get_uow] = override_uow
+    app.dependency_overrides[get_authenticated_player] = override_auth
     try:
         client = TestClient(app); payload = {"player_id": str(player_id), "character_name": "Rook"}; headers = {"Idempotency-Key": "bootstrap-1"}
         first = client.post("/api/v1/players/bootstrap", json=payload, headers=headers); second = client.post("/api/v1/players/bootstrap", json=payload, headers=headers)
@@ -22,7 +24,9 @@ def test_player_bootstrap_is_atomic_and_idempotent() -> None:
 def test_player_state_snapshot_reads_coherent_bootstrap_state() -> None:
     player_id = uuid4(); uow = InMemoryUnitOfWork()
     def override_uow(): yield uow
+    def override_auth(): return player_id
     app.dependency_overrides[get_uow] = override_uow
+    app.dependency_overrides[get_authenticated_player] = override_auth
     try:
         client = TestClient(app)
         response = client.post("/api/v1/players/bootstrap", json={"player_id": str(player_id), "character_name": "Dust"}, headers={"Idempotency-Key": "bootstrap-state-1"})
