@@ -43,9 +43,13 @@ for router in (
     economy_router, economy_loop_router, phase3_router, phase4_router, phase4_alliance_router,
     phase4_alliance_extra_router, phase4_wallet_router, phase4_asset_router,
     phase4_asset_provenance_router, phase4_completion_router, phase5_territory_router,
-    phase6_world_router, travel_router,
+    phase6_world_router,
 ):
     app.include_router(router)
+
+# Keep the gameplay-critical B2 surface explicit. This is intentionally separate
+# from the broad router list so a future refactor cannot silently drop travel.
+app.include_router(travel_router)
 
 
 @app.middleware("http")
