@@ -118,5 +118,5 @@ This file is the persistent source of truth for improvement proposals and implem
   4. Hybrid: systemic persistence plus advanced combat model incrementally.
 - Selected by user: `3 + 2`, interpreted as Advanced + Systemic, with maximum available options included in the implementation scope.
 - Implementation: engine, hull, wheels and fuel-system components; kinetic/explosive/fire/impact damage types; per-component armor; destruction state; component-derived aggregate durability; engine/mobility/fuel-efficiency effects; component repair; authoritative API and transactional persistence adapter.
-- Verification: PR #3 merged to `main` as merge commit `61ae299ea6380f945a8c6a860190bf4f982da4`.
+- Verification: PR #3 merged to `main` as merge commit `61ae299ea6380f0b945a8c6a860190bf4f982da4`.
 - Deferred after this slice: richer hit-location simulation, weapon-specific penetration tables, repair quality progression, mechanic skills, facility modifiers and advanced combat telemetry.
