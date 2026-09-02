@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.application.errors import IdempotencyConflict
+from app.application.errors import ConcurrencyConflict, IdempotencyConflict
 from app.application.services import InventoryService, JobService, WalletService
 from app.domain.primitives import Wallet, utc_now
 from app.infrastructure.memory import InMemoryUnitOfWork
@@ -56,3 +56,36 @@ def test_job_service_records_completion() -> None:
     completed = JobService(uow).complete(job.id, now + timedelta(seconds=1))
     assert completed.state.value == "completed"
     assert [e["event_type"] for e in uow.outbox.events] == ["job.created", "job.started", "job.completed"]
+
+
+def test_stale_job_write_is_rejected() -> None:
+    uow = InMemoryUnitOfWork()
+    now = utc_now()
+    job = JobService(uow).create(uuid4(), "craft", now, now + timedelta(seconds=1), "job-concurrency")
+    first_read = uow.jobs.get(job.id)
+    second_read = uow.jobs.get(job.id)
+    assert first_read is not None and second_read is not None
+
+    first_read.start()
+    uow.jobs.save(first_read)
+
+    second_read.start()
+    with pytest.raises(ConcurrencyConflict):
+        uow.jobs.save(second_read)
+
+
+def test_stale_inventory_write_is_rejected() -> None:
+    uow = InMemoryUnitOfWork()
+    inventory_id, item_id = uuid4(), uuid4()
+    service = InventoryService(uow)
+    service.add(inventory_id, item_id, 5)
+    first_read = uow.inventories.get_stack(inventory_id, item_id)
+    second_read = uow.inventories.get_stack(inventory_id, item_id)
+    assert first_read is not None and second_read is not None
+
+    first_read.quantity += 1
+    uow.inventories.save_stack(inventory_id, first_read)
+
+    second_read.quantity += 1
+    with pytest.raises(ConcurrencyConflict):
+        uow.inventories.save_stack(inventory_id, second_read)
