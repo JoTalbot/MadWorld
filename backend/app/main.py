@@ -9,11 +9,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.api.routes import router as api_v1_router
+from app.api.session_routes import router as session_router
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict, NotFound
 from app.domain.primitives import DomainError
 
 app = FastAPI(title="MadWorld API", version="0.1.0")
 app.include_router(api_v1_router)
+app.include_router(session_router)
 
 
 @app.middleware("http")
@@ -26,15 +28,7 @@ async def request_id_middleware(request: Request, call_next):
 
 
 def _error_response(request: Request, status_code: int, code: str, message: str, details: dict | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status_code,
-        content={
-            "code": code,
-            "message": message,
-            "request_id": request.state.request_id,
-            "details": details,
-        },
-    )
+    return JSONResponse(status_code=status_code, content={"code": code, "message": message, "request_id": request.state.request_id, "details": details})
 
 
 @app.exception_handler(NotFound)
@@ -64,13 +58,7 @@ async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse
 
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    return _error_response(
-        request,
-        422,
-        "VALIDATION_ERROR",
-        "request validation failed",
-        {"errors": exc.errors()},
-    )
+    return _error_response(request, 422, "VALIDATION_ERROR", "request validation failed", {"errors": exc.errors()})
 
 
 @app.get("/health")
@@ -80,12 +68,4 @@ def health() -> dict[str, str]:
 
 @app.get("/api/v1/world")
 def world() -> dict:
-    return {
-        "season": 1,
-        "tick": 0,
-        "regions": [
-            {"id": "dust_basin", "name": "Dust Basin", "security": "lawless"},
-            {"id": "iron_ruins", "name": "Iron Ruins", "security": "contested"},
-            {"id": "salt_coast", "name": "Salt Coast", "security": "frontier"},
-        ],
-    }
+    return {"season": 1, "tick": 0, "regions": [{"id": "dust_basin", "name": "Dust Basin", "security": "lawless"}, {"id": "iron_ruins", "name": "Iron Ruins", "security": "contested"}, {"id": "salt_coast", "name": "Salt Coast", "security": "frontier"}]}
