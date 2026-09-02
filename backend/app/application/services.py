@@ -67,7 +67,7 @@ class JobService:
         return job
     def _save(self, job: Job, event_type: str) -> Job: self.uow.jobs.save(job); self._record(event_type, job.id, {"state": job.state.value}); return job
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "job", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, aggregate_id, event.to_dict())
 
 
 class CharacterService:
@@ -100,7 +100,7 @@ class VehicleService:
     def refuel(self, vehicle_id: UUID, amount: int) -> Vehicle:
         vehicle = self.get(vehicle_id); vehicle.refuel(amount); self.uow.vehicles.save(vehicle); return vehicle
     def _record(self, event_type: str, aggregate_id: UUID, payload: dict) -> None:
-        event = DEFAULT_EVENT_REGISTRY.create(event_type, "vehicle", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, aggregate_id, event.to_dict())
+        event = DEFAULT_EVENT_REGISTRY.create(event_type, "vehicle", aggregate_id, payload); self.uow.audit.append(event.event_type, event.aggregate_type, aggregate_id, event.to_dict()); self.uow.outbox.enqueue(event.event_type, event.aggregate_type, aggregate_id, event.to_dict())
 
 
 class PlayerBootstrapService:
