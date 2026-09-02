@@ -25,11 +25,12 @@ from app.api.phase4_wallet_routes import router as phase4_wallet_router
 from app.api.phase4_asset_routes import router as phase4_asset_router
 from app.api.phase4_asset_provenance_routes import router as phase4_asset_provenance_router
 from app.api.phase4_completion_routes import router as phase4_completion_router
+from app.api.phase5_territory_routes import router as phase5_territory_router
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict, NotFound
 from app.domain.primitives import DomainError
 logger=logging.getLogger("madworld.api")
 app=FastAPI(title="MadWorld API",version="0.1.0")
-app.include_router(api_v1_router); app.include_router(session_router); app.include_router(market_router); app.include_router(gathering_router); app.include_router(crafting_router); app.include_router(repair_router); app.include_router(damage_router); app.include_router(contract_router); app.include_router(expedition_router); app.include_router(settlement_router); app.include_router(economy_router); app.include_router(economy_loop_router); app.include_router(phase3_router); app.include_router(phase4_router); app.include_router(phase4_alliance_router); app.include_router(phase4_alliance_extra_router); app.include_router(phase4_wallet_router); app.include_router(phase4_asset_router); app.include_router(phase4_asset_provenance_router); app.include_router(phase4_completion_router)
+app.include_router(api_v1_router); app.include_router(session_router); app.include_router(market_router); app.include_router(gathering_router); app.include_router(crafting_router); app.include_router(repair_router); app.include_router(damage_router); app.include_router(contract_router); app.include_router(expedition_router); app.include_router(settlement_router); app.include_router(economy_router); app.include_router(economy_loop_router); app.include_router(phase3_router); app.include_router(phase4_router); app.include_router(phase4_alliance_router); app.include_router(phase4_alliance_extra_router); app.include_router(phase4_wallet_router); app.include_router(phase4_asset_router); app.include_router(phase4_asset_provenance_router); app.include_router(phase4_completion_router); app.include_router(phase5_territory_router)
 @app.middleware("http")
 async def request_id_middleware(request:Request,call_next):
     request_id=request.headers.get("X-Request-ID") or str(uuid4()); request.state.request_id=request_id
