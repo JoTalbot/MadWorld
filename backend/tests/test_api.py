@@ -125,3 +125,54 @@ def test_api_error_envelope_for_missing_wallet() -> None:
         assert response.json()["request_id"] == "req-404"
     finally:
         app.dependency_overrides.clear()
+
+
+def test_character_and_vehicle_api_commands_are_idempotent() -> None:
+    player_id = uuid4()
+    uow = InMemoryUnitOfWork()
+
+    def override_uow():
+        yield uow
+
+    app.dependency_overrides[get_uow] = override_uow
+    try:
+        client = TestClient(app)
+        character_payload = {"player_id": str(player_id), "name": "Rook"}
+        first = client.post("/api/v1/characters", json=character_payload, headers={"Idempotency-Key": "character-1"})
+        repeated = client.post("/api/v1/characters", json=character_payload, headers={"Idempotency-Key": "character-1"})
+        assert first.status_code == 201
+        assert repeated.status_code == 201
+        assert first.json() == repeated.json()
+        assert first.json()["name"] == "Rook"
+
+        fetched = client.get(f"/api/v1/characters/by-player/{player_id}")
+        assert fetched.status_code == 200
+        assert fetched.json() == first.json()
+
+        vehicle_payload = {"owner_id": str(player_id)}
+        vehicle = client.post("/api/v1/vehicles/starter", json=vehicle_payload, headers={"Idempotency-Key": "vehicle-1"})
+        vehicle_repeat = client.post("/api/v1/vehicles/starter", json=vehicle_payload, headers={"Idempotency-Key": "vehicle-1"})
+        assert vehicle.status_code == 201
+        assert vehicle_repeat.status_code == 201
+        assert vehicle.json() == vehicle_repeat.json()
+        assert vehicle.json()["chassis_code"] == "light_runner"
+        assert vehicle.json()["durability"] == 100
+        assert vehicle.json()["fuel"] == 25
+
+        listed = client.get(f"/api/v1/vehicles/by-owner/{player_id}")
+        assert listed.status_code == 200
+        assert listed.json() == [vehicle.json()]
+
+        vehicle_id = vehicle.json()["id"]
+        repaired = client.post(f"/api/v1/vehicles/{vehicle_id}/repair", json={"amount": 10}, headers={"Idempotency-Key": "repair-1"})
+        assert repaired.status_code == 200
+        assert repaired.json()["durability"] == 100
+
+        refueled = client.post(f"/api/v1/vehicles/{vehicle_id}/refuel", json={"amount": 15}, headers={"Idempotency-Key": "refuel-1"})
+        refueled_repeat = client.post(f"/api/v1/vehicles/{vehicle_id}/refuel", json={"amount": 15}, headers={"Idempotency-Key": "refuel-1"})
+        assert refueled.status_code == 200
+        assert refueled_repeat.status_code == 200
+        assert refueled.json() == refueled_repeat.json()
+        assert refueled.json()["fuel"] == 40
+    finally:
+        app.dependency_overrides.clear()
