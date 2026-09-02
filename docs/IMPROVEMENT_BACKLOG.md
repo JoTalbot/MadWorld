@@ -75,3 +75,14 @@
   4. Hybrid: account gameplay state now, world/session feed later.
 - Selected: Hybrid.
 - Acceptance: authorized by project continuation workflow.
+
+## IMP-070 — Android authoritative-state client
+- Status: ACCEPTED — Hybrid
+- Goal: connect the Android shell to the server's bootstrap/state contracts while keeping the client thin and authoritative-state driven.
+- Variants:
+  1. Minimal: HTTP client plus raw state screen.
+  2. Systemic: typed API client, repository, ViewModel and persistent state cache.
+  3. Advanced: offline command journal, reconnect cursor and optimistic UI reconciliation.
+  4. Hybrid: typed client + repository + ViewModel + cache now; offline journal/reconciliation builds on IMP-027/028 later.
+- Selected: Hybrid. Reason: establishes the correct client architecture without prematurely duplicating server simulation on Android.
+- Acceptance: authorized by project continuation workflow.
