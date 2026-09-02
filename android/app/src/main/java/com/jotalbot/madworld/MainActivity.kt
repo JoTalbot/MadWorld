@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -113,6 +114,6 @@ private fun SettlementPanel(state: PlayerUiState.Ready, onRefresh: () -> Unit) {
 }
 
 @Composable
-private fun CapabilityButton(label: String, enabled: Boolean) {
+private fun RowScope.CapabilityButton(label: String, enabled: Boolean) {
     OutlinedButton(onClick = {}, enabled = enabled, modifier = Modifier.weight(1f)) { Text(label) }
 }
