@@ -7,9 +7,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-
-class DomainError(ValueError):
-    """Base error for rejected domain commands."""
+class DomainError(ValueError): pass
 class InsufficientFunds(DomainError): pass
 class InvalidQuantity(DomainError): pass
 class InvalidTransition(DomainError): pass
@@ -19,12 +17,10 @@ class JobState(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
-
 class VehicleState(StrEnum):
     ACTIVE = "active"
     DESTROYED = "destroyed"
     STORED = "stored"
-
 class DamageType(StrEnum):
     KINETIC = "kinetic"
     EXPLOSIVE = "explosive"
@@ -63,7 +59,6 @@ class LedgerEntry:
     reason: str
     idempotency_key: str
     created_at: datetime
-
 @dataclass(slots=True)
 class Wallet:
     id: UUID
@@ -76,7 +71,6 @@ class Wallet:
         if amount <= 0: raise InvalidQuantity("debit amount must be positive")
         if self.balance < amount: raise InsufficientFunds("wallet balance is insufficient")
         self.balance -= amount
-
 @dataclass(slots=True)
 class InventoryStack:
     item_definition_id: UUID
@@ -86,7 +80,6 @@ class InventoryStack:
     def __post_init__(self) -> None:
         if self.quantity <= 0: raise InvalidQuantity("inventory quantity must be positive")
         if not 0 <= self.condition <= 100: raise InvalidQuantity("condition must be between 0 and 100")
-
 @dataclass(slots=True)
 class Job:
     id: UUID
@@ -111,7 +104,6 @@ class Job:
     def cancel(self) -> None:
         if self.state in (JobState.COMPLETED, JobState.CANCELLED): raise InvalidTransition("terminal job cannot be cancelled")
         self.state = JobState.CANCELLED
-
 @dataclass(slots=True)
 class Character:
     id: UUID
@@ -123,7 +115,6 @@ class Character:
     def create(cls, player_id: UUID, name: str) -> "Character":
         if not name.strip(): raise ValueError("character name must not be blank")
         return cls(uuid4(), player_id, name.strip())
-
 @dataclass(slots=True)
 class Vehicle:
     id: UUID
@@ -143,6 +134,9 @@ class Vehicle:
     def repair(self, amount: int) -> None:
         if amount <= 0: raise InvalidQuantity("repair amount must be positive")
         if self.state is VehicleState.DESTROYED: raise InvalidTransition("destroyed vehicle must be recovered before repair")
+        if all(component.condition == component.max_condition for component in self.components.values()):
+            self.durability = min(100, self.durability + amount)
+            return
         remaining = amount
         for component in self.components.values():
             if remaining <= 0: break
