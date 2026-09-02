@@ -111,9 +111,9 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred: transactional vehicle/item movement and capacity accounting.
 
 ### IMP-095 — Alliances
-- Status: COMPLETE — Hybrid foundation.
-- Implemented: alliance membership and invitation persistence.
-- Deferred: complete create/join/leave workflow.
+- Status: IN PROGRESS — Hybrid.
+- Implemented: alliance membership/invitation persistence plus authoritative create/invite/accept/leave lifecycle routes.
+- Deferred: alliance-level economic/territory effects and richer diplomatic governance.
 
 ### IMP-096 — Diplomacy
 - Status: COMPLETE — Advanced foundation.
@@ -143,21 +143,22 @@ This file is the persistent source of truth for improvement proposals and implem
 ### IMP-101 — Phase 4 social lifecycle hardening
 - Status: ACCEPTED — Hybrid, approved by user continuation of Phase 4 implementation.
 - Implemented: contract transition invariants, reputation mutation invariants, escrow/invitation state validation, persistence for escrow/history/invitations.
-- Deferred: full alliance workflow, escrow wallet settlement, asset transfer accounting, Android mutation UI.
+- Deferred: full economic settlement, asset accounting and Android mutation UI.
 
 ### IMP-102 — Phase 4 social database integrity hardening
 - Status: COMPLETE — Technical hardening.
-- Implemented: partial unique indexes for player/corporation reputation targets, plus database-enforced one-primary-corporation membership under concurrent requests.
+- Implemented: shared corporate wallet compatibility, partial unique indexes for player/corporation reputation targets, and database-enforced one-primary-corporation membership under concurrent requests.
 - Verification: migration `017_phase4_social_integrity.sql` added to `main`.
 
 ### IMP-103 — Phase 4 authoritative financial/social operations
 - Status: IN PROGRESS — Hybrid.
-- Scope: idempotent corporate wallet operations, alliance lifecycle, hangar/asset accounting, contract escrow settlement and contract-driven reputation propagation.
+- Scope: idempotent corporate wallet operations, completed alliance lifecycle, hangar/asset accounting, contract escrow settlement and contract-driven reputation propagation.
 - Product-changing choices remain deferred where they alter the intended ownership/membership model.
 
 ### Phase 4 verification note
-- Backend CI #298: SUCCESS on `main` after Android bootstrap restoration.
-- Android CI #34: SUCCESS on `main` after Android bootstrap restoration.
+- Backend CI #298: SUCCESS on the Android bootstrap restoration commit.
+- Android CI #34: SUCCESS on the Android bootstrap restoration commit.
 - Migration `016_phase4_social_operations.sql` and lifecycle rules/tests are present.
-- Migration `017_phase4_social_integrity.sql` is now present and closes PostgreSQL NULL-uniqueness and concurrent membership integrity gaps.
-- Phase 4 remains IN PROGRESS until financial settlement, alliance workflow, asset accounting and Android management UI are verified end-to-end.
+- Migration `017_phase4_social_integrity.sql` is present and closes wallet ownership compatibility, PostgreSQL NULL-uniqueness and concurrent membership integrity gaps.
+- Alliance lifecycle routes are now registered in `main`; new CI verification is required before declaring them complete.
+- Phase 4 remains IN PROGRESS until financial settlement, asset accounting and Android management UI are verified end-to-end.
