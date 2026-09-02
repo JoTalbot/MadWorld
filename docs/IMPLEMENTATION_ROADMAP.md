@@ -4,6 +4,10 @@
 
 Potential improvements are recorded in `docs/IMPROVEMENT_BACKLOG.md`. Only `ACCEPTED` items become implementation commitments. This prevents good ideas from silently expanding the scope of the current milestone.
 
+## Master execution contract
+
+The roadmap is executed through the finite production batches defined in `docs/BATCH_IMPLEMENTATION_CONTRACT.md`. Each batch is a coherent vertical/system integration unit and is not considered complete until its backend, persistence, API, Android, security, telemetry, tests and operational gates pass.
+
 ## Phase 0 — Foundation
 
 - Repository structure
@@ -138,6 +142,48 @@ Finance and advanced provenance should ship only after the core economy can meas
 - Onboarding
 - Live operations tools
 - Disaster recovery exercises
+
+## Production batch sequence
+
+### B1 — World Integration
+
+Connect World Simulation to Economy, Territory, Convoys, Discoveries, Faction Regional Dynamics, Dynamic Missions, Outbox and Replay/Telemetry without allowing simulation code to bypass domain authority.
+
+### B2 — Gameplay Integration
+
+Connect travel, vehicles, cargo, combat, salvage, recovery, convoys, territory effects, faction encounters and persistent expeditions into one authoritative gameplay loop.
+
+### B3 — Advanced Economy
+
+Complete regional order books, economic state, production/refining, facilities, skills, warehouses, logistics and economic stress/invariant tooling.
+
+### B4 — NPC Faction Simulation
+
+Implement bounded strategic NPC observation, decision making, logistics, diplomacy and persistent faction actions through authoritative commands/events.
+
+### B5 — Territory Warfare
+
+Complete claims, infrastructure damage/repair, checkpoints, supply lines, strategic objective chains, reinforcement, siege/disruption and alliance warfare.
+
+### B6 — Finance & Provenance
+
+Implement secured credit, collateral, repayment/default/recovery, insurance, financing, provenance and advanced asset history after economic telemetry is sufficiently reliable.
+
+### B7 — Full Android Game
+
+Complete all critical MMO screens and flows, authoritative command handling, offline queue, reconnect/resume, stale-state handling, notifications, localization and accessibility foundations.
+
+### B8 — Security, Anti-Abuse & Reliability
+
+Perform a full mutation-endpoint audit and implement replay, duplication, race, impossible-state, market, financial and reward-abuse defenses plus rate limits, circuit breakers and regression tests.
+
+### B9 — Scale, Operations & LiveOps
+
+Finalize production services, world worker deployment, catch-up policy, observability, load/stress testing, device matrix, analytics, backup/restore and disaster recovery.
+
+### B10 — Final Release Gate
+
+Validate all critical gameplay loops, technical systems, security controls, Android release artifacts and production operations. Only this gate may declare the first complete production candidate release-ready.
 
 ## Definition of done for each feature
 
