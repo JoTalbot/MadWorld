@@ -56,6 +56,7 @@ def test_inventory_and_job_commands() -> None:
         response = client.post(
             "/api/v1/inventory/remove",
             json={"inventory_id": str(inventory_id), "item_definition_id": str(item_id), "quantity": 2},
+            headers={"Idempotency-Key": "inventory-remove-1"},
         )
         assert response.status_code == 200
         assert response.json()["quantity"] == 3
