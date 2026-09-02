@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.dependencies import get_uow
@@ -37,7 +39,7 @@ def _wallet_response(entry) -> WalletEntryResponse:
     )
 
 
-def _job_response(job: object) -> JobResponse:
+def _job_response(job) -> JobResponse:
     return JobResponse(
         id=job.id,
         owner_id=job.owner_id,
@@ -65,7 +67,7 @@ def post_wallet_entry(
     return _wallet_response(entry)
 
 
-@router.post("/inventory/add", response_model=InventoryResponse, status_code=status.HTTP_200_OK)
+@router.post("/inventory/add", response_model=InventoryResponse)
 def add_inventory(payload: InventoryAddRequest, uow: UnitOfWork = Depends(get_uow)) -> InventoryResponse:
     stack = InventoryService(uow).add(
         payload.inventory_id,
@@ -111,18 +113,15 @@ def create_job(
 
 
 @router.post("/jobs/{job_id}/start", response_model=JobResponse)
-def start_job(job_id: str, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
-    from uuid import UUID
-    return _job_response(JobService(uow).start(UUID(job_id)))
+def start_job(job_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
+    return _job_response(JobService(uow).start(job_id))
 
 
 @router.post("/jobs/{job_id}/complete", response_model=JobResponse)
-def complete_job(job_id: str, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
-    from uuid import UUID
-    return _job_response(JobService(uow).complete(UUID(job_id)))
+def complete_job(job_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
+    return _job_response(JobService(uow).complete(job_id))
 
 
 @router.post("/jobs/{job_id}/cancel", response_model=JobResponse)
-def cancel_job(job_id: str, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
-    from uuid import UUID
-    return _job_response(JobService(uow).cancel(UUID(job_id)))
+def cancel_job(job_id: UUID, uow: UnitOfWork = Depends(get_uow)) -> JobResponse:
+    return _job_response(JobService(uow).cancel(job_id))
