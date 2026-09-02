@@ -44,16 +44,10 @@ private fun MadWorldApp(viewModel: PlayerViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var handle by remember { mutableStateOf("Wanderer") }
     var characterName by remember { mutableStateOf("Wanderer") }
-
     LaunchedEffect(Unit) { viewModel.load() }
-
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("MadWorld", style = MaterialTheme.typography.headlineLarge)
                 Text("Persistent wasteland online")
                 when (val state = uiState) {
@@ -71,6 +65,7 @@ private fun MadWorldApp(viewModel: PlayerViewModel = viewModel()) {
                             Button(onClick = { viewModel.bootstrap(characterName) }, modifier = Modifier.fillMaxWidth()) { Text("Enter the wasteland") }
                         }
                         SettlementPanel(state, onRefresh = viewModel::refreshSettlement)
+                        EconomyPanel(state, onRefresh = viewModel::refreshEconomy)
                         if (state.offline) Text("Cached state", color = MaterialTheme.colorScheme.secondary)
                     }
                     is PlayerUiState.Error -> {
@@ -89,26 +84,44 @@ private fun SettlementPanel(state: PlayerUiState.Ready, onRefresh: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Settlement", style = MaterialTheme.typography.titleLarge)
             val settlement = state.settlement
-            if (settlement == null) {
-                Text(state.settlementError ?: "Loading settlement…", color = MaterialTheme.colorScheme.error)
-            } else {
+            if (settlement == null) Text(state.settlementError ?: "Loading settlement…", color = MaterialTheme.colorScheme.error)
+            else {
                 Text("Region: ${settlement.region}")
                 Text("Level: ${settlement.level} · version ${settlement.version}")
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CapabilityButton("Garage", settlement.capabilities["garage"] == true)
-                    CapabilityButton("Warehouse", settlement.capabilities["warehouse"] == true)
-                }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CapabilityButton("Workshop", settlement.capabilities["workshop"] == true)
-                    CapabilityButton("Contracts", settlement.capabilities["contracts"] == true)
-                    CapabilityButton("Market", settlement.capabilities["market"] == true)
-                }
-                if (settlement.modules.isNotEmpty()) {
-                    Text("Modules")
-                    settlement.modules.toSortedMap().forEach { (name, level) -> Text("$name: $level") }
-                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { CapabilityButton("Garage", settlement.capabilities["garage"] == true); CapabilityButton("Warehouse", settlement.capabilities["warehouse"] == true) }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { CapabilityButton("Workshop", settlement.capabilities["workshop"] == true); CapabilityButton("Contracts", settlement.capabilities["contracts"] == true); CapabilityButton("Market", settlement.capabilities["market"] == true) }
+                if (settlement.modules.isNotEmpty()) { Text("Modules"); settlement.modules.toSortedMap().forEach { (name, level) -> Text("$name: $level") } }
             }
             OutlinedButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) { Text("Refresh settlement") }
+        }
+    }
+}
+
+@Composable
+private fun EconomyPanel(state: PlayerUiState.Ready, onRefresh: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Economy loop", style = MaterialTheme.typography.titleLarge)
+            val economy = state.economy
+            if (economy == null) Text(state.economyError ?: "Loading economy…", color = MaterialTheme.colorScheme.error)
+            else {
+                Text("Region: ${economy.region}")
+                Text("Warehouse: ${economy.warehouseUsed}/${economy.warehouseCapacity}")
+                Text("Active production: ${economy.activeJobs.size}")
+                Text("Available contracts: ${economy.contractCount}")
+                Text("Expedition-ready vehicles: ${economy.readyVehicles}")
+                Text("Market history points (7d): ${economy.marketPricePoints}")
+                Text("Next action: ${economy.nextAction.replace('_', ' ')}")
+                if (economy.facilities.isNotEmpty()) {
+                    Text("Facilities")
+                    economy.facilities.forEach { Text("${it.code}: L${it.level} · ${it.efficiencyBps / 100.0}% efficiency") }
+                }
+                if (economy.activeJobs.isNotEmpty()) {
+                    Text("Production queue")
+                    economy.activeJobs.forEach { Text("${it.kind}: ${it.completesAt}") }
+                }
+            }
+            OutlinedButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) { Text("Refresh economy") }
         }
     }
 }
