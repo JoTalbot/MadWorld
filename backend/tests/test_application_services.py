@@ -56,6 +56,7 @@ def test_job_service_records_completion() -> None:
     completed = JobService(uow).complete(job.id, now + timedelta(seconds=1))
     assert completed.state.value == "completed"
     assert [e["event_type"] for e in uow.outbox.events] == ["job.created", "job.started", "job.completed"]
+    assert all("event_id" in e["payload"] and e["payload"]["schema_version"] == 1 for e in uow.outbox.events)
 
 
 def test_stale_job_write_is_rejected() -> None:
@@ -89,3 +90,23 @@ def test_stale_inventory_write_is_rejected() -> None:
     second_read.quantity += 1
     with pytest.raises(ConcurrencyConflict):
         uow.inventories.save_stack(inventory_id, second_read)
+
+
+def test_in_memory_uow_rollback_restores_domain_audit_outbox_and_idempotency() -> None:
+    wallet_id = uuid4()
+    uow = InMemoryUnitOfWork()
+    uow.wallets.save(Wallet(wallet_id, 100))
+
+    with pytest.raises(RuntimeError, match="fault injection"):
+        with uow:
+            WalletService(uow).post_entry(wallet_id, -40, "rollback", "rollback-1")
+            raise RuntimeError("fault injection")
+
+    wallet = uow.wallets.get(wallet_id)
+    assert wallet is not None and wallet.balance == 100
+    assert uow.wallets.get_ledger_entry_by_idempotency_key("rollback-1") is None
+    assert uow.audit.events == []
+    assert uow.outbox.events == []
+    assert uow.idempotency.records == {}
+    assert uow.rolled_back is True
+    assert uow.committed is False
