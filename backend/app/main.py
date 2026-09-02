@@ -18,11 +18,12 @@ from app.api.routes import router as api_v1_router
 from app.api.session_routes import router as session_router
 from app.api.settlement_routes import router as settlement_router
 from app.api.phase3_routes import router as phase3_router
+from app.api.phase4_routes import router as phase4_router
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict, NotFound
 from app.domain.primitives import DomainError
 logger=logging.getLogger("madworld.api")
 app=FastAPI(title="MadWorld API",version="0.1.0")
-app.include_router(api_v1_router); app.include_router(session_router); app.include_router(market_router); app.include_router(gathering_router); app.include_router(crafting_router); app.include_router(repair_router); app.include_router(damage_router); app.include_router(contract_router); app.include_router(expedition_router); app.include_router(settlement_router); app.include_router(economy_router); app.include_router(economy_loop_router); app.include_router(phase3_router)
+app.include_router(api_v1_router); app.include_router(session_router); app.include_router(market_router); app.include_router(gathering_router); app.include_router(crafting_router); app.include_router(repair_router); app.include_router(damage_router); app.include_router(contract_router); app.include_router(expedition_router); app.include_router(settlement_router); app.include_router(economy_router); app.include_router(economy_loop_router); app.include_router(phase3_router); app.include_router(phase4_router)
 @app.middleware("http")
 async def request_id_middleware(request:Request,call_next):
     request_id=request.headers.get("X-Request-ID") or str(uuid4()); request.state.request_id=request_id
