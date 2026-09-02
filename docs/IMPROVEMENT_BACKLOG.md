@@ -134,8 +134,11 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred by design: dynamic world-generated routes, NPC encounters/combat, convoy/group expeditions, weather/disaster modifiers, insurance/recovery and live-economy-driven loot generation.
 
 ## IMP-079 — Settlement / base-point gameplay loop
-- Status: ACCEPTED — Hybrid
+- Status: COMPLETE — Hybrid
 - Goal: add a persistent player home/base that ties vehicle storage, inventory, repair/workshop access, contract acquisition and regional market interaction into a repeatable gameplay loop.
 - Variants considered: Minimal, Systemic, Advanced and Hybrid.
 - Selected by user: `4`, interpreted as Hybrid.
 - Selected scope: persistent settlement foundation with region identity, level, extensible module state and authoritative interaction capabilities for garage, warehouse, workshop, contracts and market; settlement API and transactional PostgreSQL persistence. Building progression, NPC services, production chains and deeper economy modifiers remain extensible follow-up layers.
+- Implementation: persistent player settlement state, settlement domain/application boundary, PostgreSQL and in-memory repositories with optimistic concurrency, authenticated settlement snapshot endpoint with lazy provisioning, versioned `settlement.created` audit/outbox event, migration, tests and design documentation.
+- Verification: PR #9 merged to `main` as merge commit `a0c1b3701a2e2dc6cc6b67a7dd4399aa5dfbe933`; PR CI #238 passed successfully after fixing a SQLAlchemy migration bind-parsing issue.
+- Deferred by design: building upgrade progression, NPC services/population, production chains, territory control and deeper settlement economy modifiers.
