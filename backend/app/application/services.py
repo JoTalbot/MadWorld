@@ -66,7 +66,7 @@ class InventoryService:
             raise ValueError("inventory quantity is insufficient")
         remaining = stack.quantity - quantity
         if remaining == 0:
-            self.uow.inventories.delete_stack(inventory_id, item_definition_id)
+            self.uow.inventories.delete_stack(inventory_id, item_definition_id, stack.version)
             result = None
         else:
             stack.quantity = remaining
