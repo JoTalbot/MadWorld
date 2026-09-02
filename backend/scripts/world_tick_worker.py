@@ -11,7 +11,7 @@ import time
 
 from sqlalchemy import text
 
-from app.application.phase6_world import simulate_tick
+from app.application.world_tick_pipeline import run_world_tick
 from app.infrastructure.db import create_engine_from_env
 
 LOG = logging.getLogger("madworld.world_tick")
@@ -26,7 +26,7 @@ def tick_once(engine) -> dict | None:
         ).scalar()
         if not locked:
             return None
-        return simulate_tick(conn)
+        return run_world_tick(conn)
 
 
 def main() -> None:
@@ -43,8 +43,9 @@ def main() -> None:
                     LOG.info("world tick skipped: another worker owns the lock")
                 else:
                     LOG.info(
-                        "world tick=%s events=%s missions=%s",
+                        "world tick=%s events=%s missions=%s duration_ms=%s lag_ms=%s",
                         result["tick"], result["generated_events"], result["generated_missions"],
+                        result.get("tick_duration_ms", 0), result.get("lag_ms", 0),
                     )
             except Exception:
                 LOG.exception("world tick failed; state transaction was rolled back")
