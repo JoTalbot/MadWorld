@@ -132,6 +132,6 @@ This file is the persistent source of truth for improvement proposals and implem
   3. Advanced: contract chains, branching objectives, reputation/factions, risk tiers, dynamic conditions and progression hooks.
   4. Hybrid: systemic persistence plus advanced contract mechanics incrementally.
 - Selected by user: `3 + 2`, interpreted as Advanced + Systemic, with maximum available options included in the implementation scope.
-- Implementation status: PLANNED FOR IMPLEMENTATION.
+- Implementation status: ACCEPTED; implementation starts next.
 - Planned scope: persistent contract templates/instances, objective evaluation, lifecycle/state machine, deadlines using authoritative time, deterministic rewards, prerequisite/chain support, reputation/faction hooks, risk tiers and integration points for gathering/crafting/market/expedition outcomes.
 - Deferred by design: fully procedural world-generated contracts, complex branching narrative content and live economy-driven contract generation.
