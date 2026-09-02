@@ -120,3 +120,10 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implementation: engine, hull, wheels and fuel-system components; kinetic/explosive/fire/impact damage types; per-component armor; destruction state; component-derived aggregate durability; engine/mobility/fuel-efficiency effects; component repair; authoritative API and transactional persistence adapter.
 - Verification: PR #3 merged to `main` as merge commit `61ae299ea6380f0b945a8c6a860190bf4f982da4`.
 - Deferred after this slice: richer hit-location simulation, weapon-specific penetration tables, repair quality progression, mechanic skills, facility modifiers and advanced combat telemetry.
+
+## IMP-077 — Contract system
+- Status: COMPLETE — Advanced + Systemic; maximum-option scope
+- Selected by user: `3 + 2`.
+- Implementation: persistent contract templates and player instances; lifecycle state machine; authoritative deadlines; sequential multi-objective progression; prerequisite chains; faction/reputation requirements and rewards; risk tiers; deterministic wallet rewards with idempotent reward keys; PostgreSQL persistence; player contract API; gathering-event integration; contract design documentation.
+- Verification: dedicated contract lifecycle/progression tests added. Full CI verification runs on the PR.
+- Deferred by design: fully procedural world-generated contracts, complex branching narrative content and live economy-driven contract generation.
