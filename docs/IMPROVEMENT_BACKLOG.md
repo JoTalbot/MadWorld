@@ -2,7 +2,7 @@
 
 This is the decision register for meaningful improvements discovered during development.
 
-**Rule:** a proposal is recorded first. It is implemented only after it is marked `ACCEPTED`. `DEFERRED` means intentionally postponed. `REJECTED` means it conflicts with the product direction or creates unacceptable complexity/risk.
+**Rule:** a proposal is recorded first. It is implemented only after it is marked `ACCEPTED`. `DEFERRED` means intentionally postponed. `REJECTED` means explicitly excluded.
 
 ## Decision states
 
@@ -80,11 +80,12 @@ This is the decision register for meaningful improvements discovered during deve
 | IMP-058 | Moderation, reporting and anti-harassment tooling | PROPOSED | Necessary for a persistent social sandbox at scale |
 | IMP-059 | Player safety controls and communication preferences | PROPOSED | Give players control over notifications, chat exposure and social interactions |
 | IMP-060 | Analytics/event taxonomy with privacy-safe aggregation | PROPOSED | Measure retention and systems health without coupling gameplay to invasive tracking |
-| IMP-061 | Deterministic SQL migration runner and schema history | PROPOSED | Replace CI-only ordered glob execution with authoritative migration tracking |
-| IMP-062 | Transaction boundary ownership | PROPOSED | Move commit/rollback ownership from individual services to the command/request boundary |
-| IMP-063 | Generic API idempotency store | PROPOSED | Standardize replay protection across future authoritative commands |
-| IMP-064 | Outbox leasing, retry and dead-letter processing | PROPOSED | Turn persisted outbox rows into reliable asynchronous delivery |
-| IMP-065 | Stable API error envelope | PROPOSED | Give Android a predictable machine-readable error contract |
+| IMP-061 | Deterministic SQL migration runner and schema history | ACCEPTED | Hybrid selected: ordered SQL + checksums + CI verification; no destructive automatic rollback |
+| IMP-062 | Transaction boundary ownership | ACCEPTED | Hybrid selected: command boundary owns lifecycle; savepoints only when composition requires them |
+| IMP-063 | Generic API idempotency store | ACCEPTED | Hybrid selected: shared PostgreSQL table first, compatible with later distributed extraction |
+| IMP-064 | Outbox leasing, retry and dead-letter processing | ACCEPTED | Hybrid selected: lease + retry/backoff first; dead-letter and replay later |
+| IMP-065 | Stable API error envelope | ACCEPTED | Hybrid selected: stable envelope + typed codes now; generated catalog later |
+| IMP-066 | Constraint-aware database error mapping | ACCEPTED | Hybrid selected: centralized mapper with safe machine codes and no SQL leakage |
 
 ## Variant policy
 
@@ -97,42 +98,43 @@ For every new improvement, record all materially different implementation varian
 
 The chosen variant must be recorded in the decision entry before product behavior is enabled. Technical bug fixes and invariant-preserving refactors remain exempt from product approval.
 
-## Variant notes for newly discovered technical improvements
+## Variant notes for accepted technical improvements
 
 ### IMP-061 — Deterministic SQL migration runner
-
 - **Minimal/MVP:** ordered SQL files plus a `schema_migrations` table storing migration name and applied timestamp.
-- **Systemic:** migration metadata with checksums, dependency/order validation and startup/CI verification.
+- **Systemic:** metadata with checksums, dependency/order validation and startup/CI verification.
 - **Advanced:** checksums plus repair tooling, drift detection, deployment gates and explicit recovery metadata.
-- **Hybrid:** ordered SQL + checksums + CI verification, with no destructive automatic rollback.
+- **Hybrid — SELECTED:** ordered SQL + checksums + CI verification, with no destructive automatic rollback.
 
 ### IMP-062 — Transaction boundary ownership
-
 - **Minimal/MVP:** keep service-level commits and prohibit multi-command UoW reuse.
 - **Systemic:** command/application boundary owns commit and rollback; services only mutate the UoW.
 - **Advanced:** explicit nested transactions/savepoints and composable command pipelines.
-- **Hybrid:** application boundary owns transaction lifecycle, with savepoints added only where composition requires them.
+- **Hybrid — SELECTED:** application boundary owns transaction lifecycle, with savepoints added only where composition requires them.
 
 ### IMP-063 — Generic API idempotency store
-
 - **Minimal/MVP:** per-command idempotency keys using existing domain tables.
 - **Systemic:** shared idempotency table keyed by actor + command + key, storing canonical response metadata.
 - **Advanced:** distributed idempotency service with retention policies and replay diagnostics.
-- **Hybrid:** shared PostgreSQL table first, compatible with later distributed extraction.
+- **Hybrid — SELECTED:** shared PostgreSQL table first, compatible with later distributed extraction.
 
 ### IMP-064 — Outbox leasing and retries
-
 - **Minimal/MVP:** poll unpublished rows and mark `published_at` after successful delivery.
 - **Systemic:** row leasing with ownership/expiry and retry counters.
 - **Advanced:** exponential backoff, dead-letter state, poison-event isolation and operational replay.
-- **Hybrid:** lease + retry/backoff first, dead-letter and advanced replay later.
+- **Hybrid — SELECTED:** lease + retry/backoff first, dead-letter and advanced replay later.
 
 ### IMP-065 — Stable API error envelope
-
 - **Minimal/MVP:** `{code, message, request_id}` for all application errors.
 - **Systemic:** typed error codes with field violations, retryability and domain metadata.
 - **Advanced:** versioned machine-readable error catalog shared with Android SDK generation.
-- **Hybrid:** stable envelope + typed codes now, generated catalog later.
+- **Hybrid — SELECTED:** stable envelope + typed codes now, generated catalog later.
+
+### IMP-066 — Constraint-aware database error mapping
+- **Minimal/MVP:** special-case known unique constraints at repository boundaries.
+- **Systemic:** centralized database exception mapper with constraint classification.
+- **Advanced:** catalogued DB constraints, diagnostics and operational error telemetry.
+- **Hybrid — SELECTED:** centralized mapper with safe application codes, preserving original exception as internal cause and never exposing SQL.
 
 ## Selection policy
 
