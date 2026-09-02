@@ -77,7 +77,17 @@ def _ledger(conn, wallet_id: UUID, amount: int, reason: str, actor_id: UUID, key
     conn.execute(text("INSERT INTO ledger_entries (wallet_id, amount, reason, actor_id, idempotency_key) VALUES (:wallet_id, :amount, :reason, :actor_id, :key)"), {"wallet_id": wallet_id, "amount": amount, "reason": reason, "actor_id": actor_id, "key": key})
 
 
+def _market_lock(conn, region_id: UUID, item_definition_id: UUID) -> None:
+    """Serialize matching per regional order book to prevent cross-side deadlocks."""
+    conn.execute(
+        text("SELECT pg_advisory_xact_lock(hashtextextended(CAST(:region AS text) || ':' || CAST(:item AS text), 0))"),
+        {"region": region_id, "item": item_definition_id},
+    )
+
+
 def _match(conn, order_id: UUID) -> None:
+    order = conn.execute(text("SELECT * FROM market_orders WHERE id = :id FOR UPDATE"), {"id": order_id}).mappings().one()
+    _market_lock(conn, UUID(str(order["region_id"])), UUID(str(order["item_definition_id"])))
     order = conn.execute(text("SELECT * FROM market_orders WHERE id = :id FOR UPDATE"), {"id": order_id}).mappings().one()
     opposite = "sell" if order["side"] == "buy" else "buy"
     if order["side"] == "buy":
