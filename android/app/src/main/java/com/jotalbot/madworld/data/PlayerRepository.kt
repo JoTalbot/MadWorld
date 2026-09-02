@@ -25,6 +25,7 @@ class PlayerRepository(context: Context, private val api: MadWorldApi) {
     fun cachedSettlement(playerId: UUID): SettlementState? = settlementCache.getString(playerId.toString(), null)?.let(::parseSettlement)
     fun refresh(session: SessionState): PlayerState = api.fetchPlayerState(session.playerId, session.token).also { save(session.playerId, it) }
     fun refreshSettlement(session: SessionState): SettlementState = api.fetchSettlement(session.playerId, session.token).also { saveSettlement(session.playerId, it) }
+    fun refreshEconomy(session: SessionState): EconomyOverviewState = api.fetchEconomyOverview(session.playerId, session.token)
     fun bootstrap(session: SessionState, characterName: String): PlayerState = api.bootstrap(session.playerId, characterName, session.token).also { save(session.playerId, it) }
 
     private fun saveSettlement(playerId: UUID, state: SettlementState) {
@@ -37,9 +38,9 @@ class PlayerRepository(context: Context, private val api: MadWorldApi) {
         val root = JSONObject()
         state.character?.let { c -> root.put("character", JSONObject().put("id", c.id).put("player_id", c.playerId).put("name", c.name).put("level", c.level).put("version", c.version)) } ?: root.put("character", JSONObject.NULL)
         val vehicles = org.json.JSONArray(); state.vehicles.forEach { v -> vehicles.put(JSONObject().put("id", v.id).put("owner_id", v.ownerId).put("code", v.code).put("chassis_code", v.chassisCode).put("durability", v.durability).put("fuel", v.fuel).put("state", v.state).put("version", v.version)) }; root.put("vehicles", vehicles)
-        state.wallet?.let { w -> root.put("wallet", JSONObject().put("id", w.id).put("balance", w.balance).put("version", w.version)) } ?: root.put("wallet", JSONObject.NULL)
         val inventory = org.json.JSONArray(); state.inventory.forEach { i -> inventory.put(JSONObject().put("inventory_id", i.inventoryId).put("item_definition_id", i.itemDefinitionId).put("quantity", i.quantity).put("condition", i.condition).put("version", i.version)) }; root.put("inventory", inventory)
         val jobs = org.json.JSONArray(); state.activeJobs.forEach { j -> jobs.put(JSONObject().put("id", j.id).put("owner_id", j.ownerId).put("job_type", j.jobType).put("started_at", j.startedAt).put("completes_at", j.completesAt).put("state", j.state).put("version", j.version)) }; root.put("active_jobs", jobs)
+        state.wallet?.let { w -> root.put("wallet", JSONObject().put("id", w.id).put("balance", w.balance).put("version", w.version)) } ?: root.put("wallet", JSONObject.NULL)
         cache.edit().putString(playerId.toString(), root.toString()).apply()
     }
 
