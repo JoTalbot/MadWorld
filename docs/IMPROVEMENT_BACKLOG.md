@@ -30,16 +30,16 @@ This is the decision register for meaningful improvements discovered during deve
 
 | ID | Improvement | Status | Trigger for review |
 |---|---|---|---|
-| IMP-011 | Transactional outbox for domain events | PROPOSED | Needed before reliable asynchronous world/event processing |
-| IMP-012 | Optimistic concurrency/version checks on mutable aggregates | PROPOSED | Needed when concurrent commands can target the same asset |
-| IMP-013 | Explicit asset state machines | PROPOSED | Needed to prevent illegal transitions for cargo, vehicles, jobs and facilities |
+| IMP-011 | Transactional outbox for domain events | ACCEPTED | Required foundation for reliable asynchronous world/event processing |
+| IMP-012 | Optimistic concurrency/version checks on mutable aggregates | ACCEPTED | Required foundation before concurrent commands target the same asset |
+| IMP-013 | Explicit asset state machines | ACCEPTED | Required to prevent illegal transitions for jobs and persistent assets |
 | IMP-014 | Content versioning and feature flags | PROPOSED | Needed for safe live balancing and staged rollout |
 | IMP-015 | Reproducible simulation seeds and audit snapshots | PROPOSED | Needed for debugging contested world/economy outcomes |
 | IMP-016 | Economic abuse detection and anomaly scoring | PROPOSED | Needed before meaningful player-driven markets and finance |
 | IMP-017 | Economic telemetry and balance dashboards | PROPOSED | Needed to balance inflation, scarcity, destruction and concentration |
 | IMP-018 | Disaster/recovery strategy for authoritative state | PROPOSED | Needed before persistent player assets become valuable |
 | IMP-019 | Server-side notification/event feed | PROPOSED | Needed for offline jobs, market changes, contracts and world events |
-| IMP-020 | Deterministic time/job scheduler | PROPOSED | Needed for offline production, repair, contracts and simulation ticks |
+| IMP-020 | Deterministic time/job scheduler | ACCEPTED | Required foundation for offline production, repair, contracts and simulation ticks |
 
 ## Selection policy
 
