@@ -50,6 +50,10 @@ class InventoryResponse(BaseModel):
     version: int
 
 
+class InventorySnapshot(InventoryResponse):
+    inventory_id: UUID
+
+
 class JobCreateRequest(BaseModel):
     owner_id: UUID
     job_type: str = Field(min_length=1, max_length=100)
@@ -101,6 +105,12 @@ class VehicleResponse(BaseModel):
     version: int
 
 
+class WalletSnapshot(BaseModel):
+    id: UUID
+    balance: int
+    version: int
+
+
 class PlayerBootstrapRequest(BaseModel):
     player_id: UUID
     character_name: str = Field(min_length=1, max_length=80)
@@ -114,6 +124,9 @@ class PlayerBootstrapResponse(BaseModel):
 class PlayerStateResponse(BaseModel):
     character: CharacterResponse | None
     vehicles: list[VehicleResponse]
+    wallet: WalletSnapshot | None = None
+    inventory: list[InventorySnapshot] = Field(default_factory=list)
+    active_jobs: list[JobResponse] = Field(default_factory=list)
 
 
 class ErrorResponse(BaseModel):
