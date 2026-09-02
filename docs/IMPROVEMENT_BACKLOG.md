@@ -102,8 +102,8 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-093 — Shared wallets
 - Status: COMPLETE — Hybrid foundation.
-- Implemented: corporation wallet ownership model linked to the existing wallet authority.
-- Deferred: role-authorized debit/credit mutation wiring and transaction policy.
+- Implemented: corporation wallet ownership model linked to existing wallet authority.
+- Deferred: role-authorized debit/credit mutation wiring.
 
 ### IMP-094 — Shared hangars and corporate assets
 - Status: COMPLETE — Hybrid foundation.
@@ -112,8 +112,8 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-095 — Alliances
 - Status: COMPLETE — Hybrid foundation.
-- Implemented: alliance and corporation membership persistence.
-- Deferred: full create/join/leave mutation workflow.
+- Implemented: alliance membership and invitation persistence.
+- Deferred: complete create/join/leave workflow.
 
 ### IMP-096 — Diplomacy
 - Status: COMPLETE — Advanced foundation.
@@ -121,14 +121,14 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred: world/NPC/market effects.
 
 ### IMP-097 — Social contracts
-- Status: COMPLETE — Hybrid foundation.
-- Implemented: player/group counterparty model, terms JSON and lifecycle state.
-- Deferred: escrow/payment/delivery settlement.
+- Status: IN PROGRESS — Hybrid.
+- Implemented: participant validation, authoritative lifecycle transitions, audit trail and escrow persistence foundation.
+- Deferred: wallet locking/release/refund settlement and delivery verification.
 
 ### IMP-098 — Social reputation
-- Status: COMPLETE — Hybrid foundation.
-- Implemented: player/corporation reputation records with bounded standings.
-- Deferred: event-driven reputation propagation into services and NPC reactions.
+- Status: IN PROGRESS — Hybrid.
+- Implemented: bounded authoritative reputation mutation and immutable history.
+- Deferred: event-driven propagation into economy/NPC/world services.
 
 ### IMP-099 — Manufacturers / brands
 - Status: COMPLETE — Hybrid foundation.
@@ -136,14 +136,16 @@ This file is the persistent source of truth for improvement proposals and implem
 - Deferred: item provenance and quality integration.
 
 ### IMP-100 — Phase 4 Android integration
-- Status: COMPLETE — Hybrid foundation.
+- Status: IN PROGRESS — Hybrid.
 - Implemented: typed social state models and authoritative capability discovery API client.
-- Deferred: full corporate management UI and mutation flows.
+- Deferred: full corporation management UI and mutation flows.
+
+### IMP-101 — Phase 4 social lifecycle hardening
+- Status: ACCEPTED — Hybrid, approved by user continuation of Phase 4 implementation.
+- Implemented: contract transition invariants, reputation mutation invariants, escrow/invitation state validation, persistence for escrow/history/invitations.
+- Deferred: full alliance workflow, escrow wallet settlement, asset transfer accounting, Android mutation UI.
 
 ### Phase 4 verification note
-- Status: IMPLEMENTED as one batch on `main` at the foundation level.
-- Migration: `015_phase4_social_sandbox.sql`.
-- Backend domain/API: `phase4_social.py`, `phase4_routes.py`.
-- Android: `Phase4State.kt`, social capability discovery in `MadWorldApi.kt`.
-- Tests: `backend/tests/test_phase4_social.py`.
-- Important honesty rule: Phase 4 foundation is implemented, but full transactional mutation wiring, economic settlement and UI are explicitly not marked complete. Humanity has somehow survived this long without a corporation UI, so we will not fake one.
+- Backend CI #288: SUCCESS for authoritative social command layer; migrations and tests passed.
+- Follow-up commits add migration `016_phase4_social_operations.sql`, lifecycle domain rules and lifecycle tests.
+- Phase 4 remains IN PROGRESS until economic settlement, alliance workflow, asset accounting and Android management UI are verified end-to-end.
