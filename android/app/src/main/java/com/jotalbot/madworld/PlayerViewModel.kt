@@ -3,6 +3,7 @@ package com.jotalbot.madworld
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.jotalbot.madworld.data.EconomyOverviewState
 import com.jotalbot.madworld.data.MadWorldApi
 import com.jotalbot.madworld.data.PlayerRepository
 import com.jotalbot.madworld.data.PlayerState
@@ -17,7 +18,7 @@ import kotlinx.coroutines.launch
 sealed interface PlayerUiState {
     data object Loading : PlayerUiState
     data object SignedOut : PlayerUiState
-    data class Ready(val state: PlayerState, val session: SessionState, val settlement: SettlementState? = null, val offline: Boolean = false, val settlementError: String? = null) : PlayerUiState
+    data class Ready(val state: PlayerState, val session: SessionState, val settlement: SettlementState? = null, val economy: EconomyOverviewState? = null, val offline: Boolean = false, val settlementError: String? = null, val economyError: String? = null) : PlayerUiState
     data class Error(val message: String, val cached: PlayerState? = null) : PlayerUiState
 }
 
@@ -36,7 +37,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             runCatching { repository.refresh(session) }
                 .onSuccess { state ->
                     val settlement = runCatching { repository.refreshSettlement(session) }.getOrNull() ?: cachedSettlement
-                    _uiState.value = PlayerUiState.Ready(state, session, settlement, offline = false, settlementError = if (settlement == null) "Settlement unavailable" else null)
+                    val economy = runCatching { repository.refreshEconomy(session) }.getOrNull()
+                    _uiState.value = PlayerUiState.Ready(state, session, settlement, economy, offline = false, settlementError = if (settlement == null) "Settlement unavailable" else null, economyError = if (economy == null) "Economy unavailable" else null)
                 }
                 .onFailure { error -> if (cached == null) _uiState.value = PlayerUiState.Error(error.message ?: "Unable to load player state") }
         }
@@ -52,6 +54,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun refreshEconomy() {
+        val state = _uiState.value
+        if (state !is PlayerUiState.Ready) return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { repository.refreshEconomy(state.session) }
+                .onSuccess { economy -> _uiState.value = state.copy(economy = economy, economyError = null, offline = false) }
+                .onFailure { error -> _uiState.value = state.copy(economyError = error.message ?: "Unable to load economy") }
+        }
+    }
+
     fun signIn(handle: String) {
         _uiState.value = PlayerUiState.Loading
         viewModelScope.launch(Dispatchers.IO) {
@@ -60,7 +72,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     runCatching { repository.refresh(session) }
                         .onSuccess { playerState ->
                             val settlement = runCatching { repository.refreshSettlement(session) }.getOrNull()
-                            _uiState.value = PlayerUiState.Ready(playerState, session, settlement, settlementError = if (settlement == null) "Settlement unavailable" else null)
+                            val economy = runCatching { repository.refreshEconomy(session) }.getOrNull()
+                            _uiState.value = PlayerUiState.Ready(playerState, session, settlement, economy, settlementError = if (settlement == null) "Settlement unavailable" else null, economyError = if (economy == null) "Economy unavailable" else null)
                         }
                         .onFailure { _uiState.value = PlayerUiState.Error(it.message ?: "Unable to load player state") }
                 }
@@ -76,7 +89,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             runCatching { repository.bootstrap(state.session, characterName) }
                 .onSuccess { playerState ->
                     val settlement = runCatching { repository.refreshSettlement(state.session) }.getOrNull() ?: state.settlement
-                    _uiState.value = PlayerUiState.Ready(playerState, state.session, settlement, settlementError = if (settlement == null) "Settlement unavailable" else null)
+                    val economy = runCatching { repository.refreshEconomy(state.session) }.getOrNull() ?: state.economy
+                    _uiState.value = PlayerUiState.Ready(playerState, state.session, settlement, economy, settlementError = if (settlement == null) "Settlement unavailable" else null, economyError = if (economy == null) "Economy unavailable" else null)
                 }
                 .onFailure { _uiState.value = PlayerUiState.Error(it.message ?: "Unable to bootstrap player") }
         }
