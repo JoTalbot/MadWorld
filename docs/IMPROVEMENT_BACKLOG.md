@@ -163,7 +163,7 @@ This file is the persistent source of truth for improvement proposals and implem
 ### IMP-117 — World Simulation Layer
 - Status: COMPLETE — Hybrid foundation.
 - Implemented: persistent season/tick state, deterministic tick seed, transactional simulation core and trusted service entry point.
-- Deferred: production scheduler/worker wiring.
+- Deferred: production catch-up policy and lag telemetry.
 
 ### IMP-118 — NPC factions
 - Status: COMPLETE — Hybrid foundation.
@@ -210,8 +210,8 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-127 — World simulation scheduler/ticks
 - Status: COMPLETE — Hybrid service boundary.
-- Implemented: lock-protected single-tick transition and scheduler-ready `run_world_tick()` entry point; public clients are forbidden from advancing ticks.
-- Deferred: wiring into the existing job worker.
+- Implemented: PostgreSQL advisory lock, transactional single-tick worker, retry-safe expected-tick handling, `run_world_tick()` service entry point and public API rejection.
+- Deferred: production service deployment/catch-up policy.
 
 ### IMP-128 — World event history/replayability
 - Status: COMPLETE — Hybrid foundation.
@@ -230,7 +230,7 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-131 — Telemetry, anti-abuse and simulation safeguards
 - Status: COMPLETE — Hybrid foundation.
-- Implemented: bounded DB state, row locking, stale-tick rejection, service-only tick mutation and persistent event log.
+- Implemented: bounded DB state, advisory/row locking, stale-tick rejection, service-only tick mutation and persistent event log.
 - Deferred: statistical abuse scoring and circuit breakers.
 
 ### IMP-132 — Android authoritative world-state client
@@ -239,7 +239,7 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-133 — Adversarial simulation/invariant tests
 - Status: COMPLETE — Hybrid foundation.
-- Implemented: deterministic seed/score invariants and service-boundary coverage.
+- Implemented: deterministic seed/score invariants and worker service-boundary lock tests.
 - Deferred: long-running replay/fuzz suite.
 
 ### IMP-134 — Intelligence services / market foundation
@@ -251,6 +251,7 @@ This file is the persistent source of truth for improvement proposals and implem
 - Migration: `backend/migrations/022_phase6_world_simulation.sql`.
 - Simulation: `backend/app/application/phase6_world.py`.
 - API: `backend/app/api/phase6_world_routes.py`.
-- Android: `WorldState.kt`, `WorldRepository.kt`, ViewModel and world panel.
-- Tests: `backend/tests/test_phase6_world.py`.
+- Worker: `backend/scripts/world_tick_worker.py`.
+- Worker documentation: `docs/PHASE6_WORLD_TICK_WORKER.md`.
+- Tests: `backend/tests/test_phase6_world.py`, `backend/tests/test_phase6_world_worker.py`.
 - Final Backend and Android CI verification is required before declaring the batch green.
