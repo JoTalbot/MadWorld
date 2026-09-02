@@ -31,6 +31,12 @@ class JobState(StrEnum):
     CANCELLED = "cancelled"
 
 
+class VehicleState(StrEnum):
+    ACTIVE = "active"
+    DESTROYED = "destroyed"
+    STORED = "stored"
+
+
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -89,13 +95,7 @@ class Job:
     version: int = 0
 
     @classmethod
-    def create(
-        cls,
-        owner_id: UUID,
-        job_type: str,
-        started_at: datetime,
-        completes_at: datetime,
-    ) -> "Job":
+    def create(cls, owner_id: UUID, job_type: str, started_at: datetime, completes_at: datetime) -> "Job":
         if completes_at <= started_at:
             raise InvalidTransition("job completion must be after start")
         return cls(uuid4(), owner_id, job_type, started_at, completes_at)
@@ -116,3 +116,50 @@ class Job:
         if self.state in (JobState.COMPLETED, JobState.CANCELLED):
             raise InvalidTransition("terminal job cannot be cancelled")
         self.state = JobState.CANCELLED
+
+
+@dataclass(slots=True)
+class Character:
+    id: UUID
+    player_id: UUID
+    name: str
+    level: int = 1
+    version: int = 0
+
+    @classmethod
+    def create(cls, player_id: UUID, name: str) -> "Character":
+        if not name.strip():
+            raise ValueError("character name must not be blank")
+        return cls(uuid4(), player_id, name.strip())
+
+
+@dataclass(slots=True)
+class Vehicle:
+    id: UUID
+    owner_id: UUID
+    code: str
+    chassis_code: str
+    durability: int = 100
+    fuel: int = 0
+    state: VehicleState = VehicleState.ACTIVE
+    version: int = 0
+
+    @classmethod
+    def create(cls, owner_id: UUID, code: str, chassis_code: str, fuel: int = 0) -> "Vehicle":
+        if not code.strip() or not chassis_code.strip():
+            raise ValueError("vehicle code and chassis code must not be blank")
+        if fuel < 0:
+            raise InvalidQuantity("vehicle fuel must not be negative")
+        return cls(uuid4(), owner_id, code.strip(), chassis_code.strip(), 100, fuel)
+
+    def repair(self, amount: int) -> None:
+        if amount <= 0:
+            raise InvalidQuantity("repair amount must be positive")
+        if self.state is VehicleState.DESTROYED:
+            raise InvalidTransition("destroyed vehicle must be recovered before repair")
+        self.durability = min(100, self.durability + amount)
+
+    def refuel(self, amount: int) -> None:
+        if amount <= 0:
+            raise InvalidQuantity("refuel amount must be positive")
+        self.fuel += amount
