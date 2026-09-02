@@ -68,10 +68,10 @@ def test_economy_recipe_codes_match_seed_items():
 def test_economy_recipe_facilities_and_kinds_are_coherent():
     recipes = [
         {"kind": "refining", "facility_code": "refinery", "duration_seconds": 30},
+        {"kind": "refining", "facility_code": "workshop", "duration_seconds": 20},
         {"kind": "refining", "facility_code": "refinery", "duration_seconds": 45},
-        {"kind": "refining", "facility_code": "refinery", "duration_seconds": 60},
-        {"kind": "production", "facility_code": "workshop", "duration_seconds": 120},
-        {"kind": "production", "facility_code": "workshop", "duration_seconds": 180},
+        {"kind": "production", "facility_code": "workshop", "duration_seconds": 60},
+        {"kind": "production", "facility_code": "workshop", "duration_seconds": 90},
     ]
     assert {recipe["facility_code"] for recipe in recipes} == {"refinery", "workshop"}
     assert sum(recipe["kind"] == "refining" for recipe in recipes) == 3
