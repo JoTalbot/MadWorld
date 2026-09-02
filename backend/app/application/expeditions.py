@@ -16,6 +16,7 @@ EXPEDITION_JOB_PREFIX = "expedition:"
 SCRAP_METAL_ID = UUID("30000000-0000-0000-0000-000000000001")
 SALVAGED_WIRE_ID = UUID("30000000-0000-0000-0000-000000000002")
 
+
 class ExpeditionService:
     def __init__(self, uow: UnitOfWork) -> None:
         self.uow = uow
@@ -24,18 +25,39 @@ class ExpeditionService:
         conn = getattr(self.uow, "conn", None)
         if conn is not None:
             from sqlalchemy import text
-            return conn.execute(text("SELECT 1 FROM inventories WHERE id=:id AND owner_id=:owner"), {"id": inventory_id, "owner": player_id}).first() is not None
+
+            return conn.execute(
+                text("SELECT 1 FROM inventories WHERE id=:id AND owner_id=:owner"),
+                {"id": inventory_id, "owner": player_id},
+            ).first() is not None
         return True
 
-    def start(self, player_id: UUID, vehicle_id: UUID, inventory_id: UUID, region: str, distance_km: int, risk: ExpeditionRisk, idempotency_key: str, now: datetime | None = None):
+    def start(
+        self,
+        player_id: UUID,
+        vehicle_id: UUID,
+        inventory_id: UUID,
+        region: str,
+        distance_km: int,
+        risk: ExpeditionRisk,
+        idempotency_key: str,
+        now: datetime | None = None,
+    ):
         plan = build_plan(region, distance_km, risk)
         existing = self.uow.jobs.get_by_idempotency_key(idempotency_key)
         if existing is not None:
-            expected = {"vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "region": plan.region, "distance_km": plan.distance_km, "risk": plan.risk.value}
+            expected = {
+                "vehicle_id": str(vehicle_id),
+                "inventory_id": str(inventory_id),
+                "region": plan.region,
+                "distance_km": plan.distance_km,
+                "risk": plan.risk.value,
+            }
             actual = {key: existing.metadata.get(key) for key in expected}
             if existing.job_type != f"{EXPEDITION_JOB_PREFIX}{plan.region}" or actual != expected:
                 raise IdempotencyConflict("idempotency key reused with conflicting expedition payload")
             return existing
+
         vehicle = self.uow.vehicles.get(vehicle_id)
         if vehicle is None:
             raise NotFound("vehicle not found")
@@ -47,6 +69,7 @@ class ExpeditionService:
             raise ValueError("destroyed vehicle cannot start expedition")
         if vehicle.fuel < plan.fuel_cost:
             raise ValueError("insufficient fuel")
+
         vehicle.fuel -= plan.fuel_cost
         self.uow.vehicles.save(vehicle)
         started = now or utc_now()
@@ -56,8 +79,28 @@ class ExpeditionService:
         loot_scrap = 5 + digest[1] % (6 + plan.distance_km // 20)
         loot_wire = digest[2] % (1 + plan.distance_km // 25)
         component = ("engine", "hull", "wheels", "fuel_system")[digest[3] % 4]
-        metadata = {"vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "region": plan.region, "distance_km": plan.distance_km, "risk": plan.risk.value, "fuel_cost": plan.fuel_cost, "loot_scrap": loot_scrap, "loot_wire": loot_wire, "damage": damage, "damage_component": component, "damage_type": DamageType.KINETIC.value, "resolved": False}
-        return JobService(self.uow).create(f"{EXPEDITION_JOB_PREFIX}{plan.region}", started + timedelta(seconds=plan.duration_seconds), metadata, idempotency_key=idempotency_key)
+        metadata = {
+            "vehicle_id": str(vehicle_id),
+            "inventory_id": str(inventory_id),
+            "region": plan.region,
+            "distance_km": plan.distance_km,
+            "risk": plan.risk.value,
+            "fuel_cost": plan.fuel_cost,
+            "loot_scrap": loot_scrap,
+            "loot_wire": loot_wire,
+            "damage": damage,
+            "damage_component": component,
+            "damage_type": DamageType.KINETIC.value,
+            "resolved": False,
+        }
+        return JobService(self.uow).create(
+            player_id,
+            f"{EXPEDITION_JOB_PREFIX}{plan.region}",
+            started,
+            started + timedelta(seconds=plan.duration_seconds),
+            idempotency_key,
+            metadata,
+        )
 
     def complete(self, player_id: UUID, job_id: UUID, now: datetime | None = None):
         job = self.uow.jobs.get(job_id)
@@ -82,18 +125,40 @@ class ExpeditionService:
             raise NotFound("expedition vehicle not found")
         damage = int(metadata["damage"])
         if damage > 0:
-            VehicleDamageService(self.uow).apply_damage(vehicle_id, metadata["damage_component"], damage, DamageType(metadata["damage_type"]))
+            VehicleDamageService(self.uow).apply_damage(
+                vehicle_id, metadata["damage_component"], damage, DamageType(metadata["damage_type"])
+            )
         if int(metadata["loot_scrap"]) > 0:
-            InventoryService(self.uow).add(inventory_id, SCRAP_METAL_ID, int(metadata["loot_scrap"]), 100)
+            InventoryService(self.uow).add(
+                inventory_id, SCRAP_METAL_ID, int(metadata["loot_scrap"]), 100
+            )
         if int(metadata["loot_wire"]) > 0:
-            InventoryService(self.uow).add(inventory_id, SALVAGED_WIRE_ID, int(metadata["loot_wire"]), 100)
+            InventoryService(self.uow).add(
+                inventory_id, SALVAGED_WIRE_ID, int(metadata["loot_wire"]), 100
+            )
         metadata["resolved"] = True
         self.uow.jobs.save(completed)
-        payload = {"player_id": str(player_id), "vehicle_id": str(vehicle_id), "inventory_id": str(inventory_id), "region": metadata["region"], "risk": metadata["risk"], "distance_km": metadata["distance_km"], "loot": {"scrap": metadata["loot_scrap"], "wire": metadata["loot_wire"]}, "loot_scrap": metadata["loot_scrap"], "loot_wire": metadata["loot_wire"], "damage": damage, "damage_component": metadata["damage_component"]}
+        payload = {
+            "player_id": str(player_id),
+            "vehicle_id": str(vehicle_id),
+            "inventory_id": str(inventory_id),
+            "region": metadata["region"],
+            "risk": metadata["risk"],
+            "distance_km": metadata["distance_km"],
+            "loot": {
+                "scrap": metadata["loot_scrap"],
+                "wire": metadata["loot_wire"],
+            },
+            "loot_scrap": metadata["loot_scrap"],
+            "loot_wire": metadata["loot_wire"],
+            "damage": damage,
+            "damage_component": metadata["damage_component"],
+        }
         event = DEFAULT_EVENT_REGISTRY.create("expedition.completed", "expedition", job.id, payload)
         self.uow.audit.append(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
         self.uow.outbox.enqueue(event.event_type, event.aggregate_type, event.aggregate_id, event.to_dict())
         if hasattr(self.uow, "contracts"):
             from app.application.contract_service import ContractService
+
             ContractService(self.uow).apply_event(player_id, event.event_type, payload, now or utc_now())
         return completed
