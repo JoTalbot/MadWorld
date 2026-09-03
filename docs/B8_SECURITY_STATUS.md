@@ -2,7 +2,7 @@
 
 ## Status
 
-**COMPLETE — security exit gate passed after Backend/Android CI verification.**
+**COMPLETE — security exit gate passed.**
 
 ## Implemented
 
@@ -36,6 +36,7 @@ These are operational-scale extensions and are explicitly owned by B9 rather tha
 
 ## Verification
 
-- Backend CI and Android CI must be green on the B8 completion boundary.
-- Security regression suite is included in the normal backend pytest run.
+- Backend CI runs 498 and 500 passed after the B8 implementation and documentation changes.
+- Backend CI run 501 is the final documentation-boundary verification and must pass before any later batch changes are accepted.
+- Android was unchanged by B8, so no Android build was required for this backend-only security batch.
 - Final repository audit confirms B8 changes do not move authoritative economy/combat/inventory state into the client or transport layer.
