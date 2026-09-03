@@ -51,3 +51,17 @@ def test_recovery_claim_locks_case_and_wallet_for_atomicity():
 def test_zero_cost_recovery_does_not_create_invalid_zero_ledger_entry():
     sql = TRAVEL_SERVICE.read_text()
     assert 'if cost:' in sql
+
+
+def test_encounter_loss_resolves_linked_travel_loss_authoritatively():
+    sql = TRAVEL_SERVICE.read_text()
+    assert "if outcome == 'LOST':" in sql
+    assert "resolve_travel(conn, session_id=row['travel_session_id'], outcome='LOST')" in sql
+    assert "SET state='destroyed', durability=0, version=version+1" in sql
+    assert "INSERT INTO salvage_recovery_cases" in sql
+
+
+def test_travel_and_encounter_resolution_are_retry_idempotent_for_same_outcome():
+    sql = TRAVEL_SERVICE.read_text()
+    assert 'if existing and existing["state"] == outcome:' in sql
+    assert sql.count('SELECT id,travel_session_id,state') >= 1
