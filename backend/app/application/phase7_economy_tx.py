@@ -2,7 +2,8 @@ from __future__ import annotations
 from datetime import timedelta
 from uuid import UUID
 from sqlalchemy import text
-from app.application.errors import NotFound
+from app.api.idempotency import request_hash
+from app.application.errors import IdempotencyConflict, NotFound
 from app.domain.primitives import utc_now
 
 
@@ -11,6 +12,14 @@ def _owned(conn, table: str, entity_id: UUID, owner_id: UUID):
     if row is None:
         raise NotFound(f"{table} not found")
     return row
+
+
+def _check_idempotency(existing, incoming: dict) -> None:
+    if existing is None:
+        return
+    stored = {key: existing[key] for key in incoming}
+    if request_hash(stored) != request_hash(incoming):
+        raise IdempotencyConflict("idempotency key belongs to a different request")
 
 
 def create_warehouse(conn, owner_id: UUID, region_id: UUID, name: str, capacity: int):
@@ -30,6 +39,7 @@ def start_production(conn, owner_id: UUID, facility_id: UUID, recipe_id: UUID, b
         raise ValueError("batch_units must be positive")
     old = conn.execute(text("SELECT * FROM production_jobs WHERE owner_id=:o AND idempotency_key=:k"), {"o":owner_id,"k":key}).mappings().first()
     if old:
+        _check_idempotency(old, {"facility_id": facility_id, "recipe_id": recipe_id, "batch_units": batch})
         return old
     facility = _owned(conn, "production_facilities", facility_id, owner_id)
     recipe = conn.execute(text("SELECT * FROM economy_recipes WHERE id=:id AND enabled=TRUE"), {"id":recipe_id}).mappings().first()
@@ -89,11 +99,13 @@ def create_logistics(conn, owner_id: UUID, source_id: UUID, destination_id: UUID
     if quantity <= 0 or reward < 0 or not 0 <= risk <= 10000:
         raise ValueError("invalid logistics contract values")
     old = conn.execute(text("SELECT * FROM logistics_contracts WHERE owner_id=:o AND idempotency_key=:k"), {"o":owner_id,"k":key}).mappings().first()
+    incoming = {"source_warehouse_id": source_id, "destination_warehouse_id": destination_id, "item_definition_id": item_id, "quantity": quantity, "reward": reward, "route_risk_bps": risk}
     if old:
+        _check_idempotency(old, incoming)
         return old
     if source_id == destination_id:
         raise ValueError("source and destination warehouses must differ")
-    source = _owned(conn, "warehouses", source_id, owner_id)
+    _owned(conn, "warehouses", source_id, owner_id)
     _owned(conn, "warehouses", destination_id, owner_id)
     item = conn.execute(text("SELECT mass_units FROM item_definitions WHERE id=:i"), {"i":item_id}).mappings().one()
     stock = conn.execute(text("SELECT quantity FROM warehouse_items WHERE warehouse_id=:w AND item_definition_id=:i FOR UPDATE"), {"w":source_id,"i":item_id}).scalar()
