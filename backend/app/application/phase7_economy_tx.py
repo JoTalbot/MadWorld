@@ -22,6 +22,14 @@ def _check_idempotency(existing, incoming: dict) -> None:
         raise IdempotencyConflict("idempotency key belongs to a different request")
 
 
+def _production_duration_seconds(conn, owner_id: UUID, facility, recipe) -> int:
+    skill = conn.execute(text("SELECT production_level FROM player_economic_skills WHERE player_id=:o"), {"o": owner_id}).scalar()
+    skill_level = int(skill or 0)
+    # Facility efficiency is reduced by maintenance and improved by production skill.
+    effective_bps = max(1000, int(facility["efficiency_bps"]) - int(facility["maintenance_bps"]) + skill_level * 25)
+    return max(1, (int(recipe["duration_seconds"]) * 10000 + effective_bps - 1) // effective_bps)
+
+
 def create_warehouse(conn, owner_id: UUID, region_id: UUID, name: str, capacity: int):
     if capacity <= 0:
         raise ValueError("warehouse capacity must be positive")
@@ -65,7 +73,7 @@ def start_production(conn, owner_id: UUID, facility_id: UUID, recipe_id: UUID, b
         conn.execute(text("DELETE FROM warehouse_items WHERE warehouse_id=:w AND item_definition_id=:i AND quantity=0"), {"w":warehouse["id"],"i":item["id"]})
         conn.execute(text("UPDATE warehouses SET used_units=used_units-:u,version=version+1 WHERE id=:w"), {"u":need*int(item["mass_units"]),"w":warehouse["id"]})
     started = utc_now()
-    completed = started + timedelta(seconds=int(recipe["duration_seconds"]))
+    completed = started + timedelta(seconds=_production_duration_seconds(conn, owner_id, facility, recipe))
     return conn.execute(text("INSERT INTO production_jobs(owner_id,facility_id,recipe_id,batch_units,started_at,completes_at,idempotency_key) VALUES(:o,:f,:r,:b,:s,:d,:k) RETURNING *"), {"o":owner_id,"f":facility_id,"r":recipe_id,"b":batch,"s":started,"d":completed,"k":key}).mappings().one()
 
 
@@ -78,7 +86,7 @@ def complete_production(conn, owner_id: UUID, job_id: UUID):
     if job["completes_at"] > utc_now():
         raise ValueError("production job completion time has not been reached")
     recipe = conn.execute(text("SELECT * FROM economy_recipes WHERE id=:id AND enabled=TRUE"), {"id":job["recipe_id"]}).mappings().one()
-    facility = conn.execute(text("SELECT * FROM production_facilities WHERE id=:id AND owner_id=:o"), {"id":job["facility_id"],"o":owner_id}).mappings().one()
+    facility = conn.execute(text("SELECT * FROM production_facilities WHERE id=:id AND owner_id=:o FOR UPDATE"), {"id":job["facility_id"],"o":owner_id}).mappings().one()
     warehouse = conn.execute(text("SELECT * FROM warehouses WHERE owner_id=:o AND region_id=:r ORDER BY created_at LIMIT 1 FOR UPDATE"), {"o":owner_id,"r":facility["region_id"]}).mappings().first()
     if warehouse is None:
         raise ValueError("destination warehouse is required")
@@ -124,7 +132,7 @@ def deliver_logistics(conn, owner_id: UUID, contract_id: UUID):
         raise NotFound("logistics contract not found")
     if contract["state"] == "delivered":
         return contract
-    if contract["state"] not in ("accepted","in_transit"):
+    if contract["state"] not in ("accepted", "in_transit"):
         raise ValueError("logistics contract cannot be delivered")
     destination = _owned(conn, "warehouses", contract["destination_warehouse_id"], owner_id)
     item = conn.execute(text("SELECT mass_units FROM item_definitions WHERE id=:i"), {"i":contract["item_definition_id"]}).mappings().one()
