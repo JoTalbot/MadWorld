@@ -1,0 +1,11 @@
+[Unit]
+Description=MadWorld daily PostgreSQL backup
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/madworld/.env
+Environment=BACKUP_DIR=/opt/madworld/backups
+Environment=RETENTION_DAYS=14
+Environment=MIN_FREE_MB=1024
+ExecStart=/opt/madworld/ops/backup_daily.sh

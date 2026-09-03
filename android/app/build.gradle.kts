@@ -14,7 +14,13 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        buildConfigField("String", "MADWORLD_API_URL", "\"http://10.0.2.2:8000\"")
+
+        // Dev/emulator fallback remains available, but production must inject a real HTTPS URL.
+        val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
+            .orElse(providers.environmentVariable("MADWORLD_API_URL"))
+            .orElse("http://10.0.2.2:8000")
+            .get()
+        buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     buildFeatures {
