@@ -19,7 +19,7 @@ class AnalyticsEvent:
 
 
 def make_analytics_event(event_name: str, properties: dict, player_id: str | None = None) -> AnalyticsEvent:
-    if not event_name or event_version_invalid := False:
+    if not event_name:
         raise ValueError("event_name is required")
     if not isinstance(properties, dict):
         raise ValueError("properties must be an object")
