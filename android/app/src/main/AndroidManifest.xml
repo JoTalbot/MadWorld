@@ -5,7 +5,8 @@
         android:theme="@style/Theme.MadWorld"
         android:label="MadWorld"
         android:allowBackup="false"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="${madworldAllowCleartext}">
         <activity android:name=".GameActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
