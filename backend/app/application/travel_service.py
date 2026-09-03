@@ -79,6 +79,13 @@ def resolve_travel(conn, *, session_id: UUID, outcome: str) -> dict:
         RETURNING id,state,arrival_at,vehicle_id,player_id
     """), {"id": session_id, "state": outcome}).mappings().first()
     if not row:
+        existing = conn.execute(text("""
+            SELECT id,state,arrival_at,vehicle_id,player_id
+            FROM player_travel_sessions
+            WHERE id=:id
+        """), {"id": session_id}).mappings().first()
+        if existing and existing["state"] == outcome:
+            return dict(existing)
         raise ValueError("travel session is not in a resolvable state")
     if outcome == 'LOST':
         conn.execute(text("""
@@ -120,7 +127,20 @@ def resolve_encounter(conn, *, encounter_id: UUID, outcome: str) -> dict:
         RETURNING id,travel_session_id,state
     """), {"id": encounter_id, "state": outcome}).mappings().first()
     if not row:
+        existing = conn.execute(text("""
+            SELECT id,travel_session_id,state
+            FROM travel_encounters
+            WHERE id=:id
+        """), {"id": encounter_id}).mappings().first()
+        if existing and existing["state"] == outcome:
+            return dict(existing)
         raise ValueError("encounter is not pending")
+
+    # LOST is the authoritative terminal combat outcome for travel: the encounter
+    # resolves the linked travel session through the same DB transaction, which
+    # destroys the vehicle and creates the idempotent recovery case.
+    if outcome == 'LOST':
+        resolve_travel(conn, session_id=row['travel_session_id'], outcome='LOST')
     return dict(row)
 
 
@@ -131,7 +151,11 @@ def claim_recovery(conn, *, player_id: UUID, case_id: UUID) -> dict:
         WHERE id=:id AND player_id=:p
         FOR UPDATE
     """), {"id": case_id, "p": player_id}).mappings().first()
-    if not case or case["state"] != "AVAILABLE":
+    if not case:
+        raise ValueError("recovery case unavailable")
+    if case["state"] == "RECOVERED":
+        return dict(case)
+    if case["state"] != "AVAILABLE":
         raise ValueError("recovery case unavailable")
 
     wallet = conn.execute(text("SELECT id FROM wallets WHERE owner_id=:p FOR UPDATE"), {"p": player_id}).mappings().first()
