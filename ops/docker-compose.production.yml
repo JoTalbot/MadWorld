@@ -1,0 +1,34 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.backend
+    environment:
+      MADWORLD_DATABASE_URL: ${MADWORLD_DATABASE_URL:?required}
+      MADWORLD_DB_POOL_SIZE: ${MADWORLD_DB_POOL_SIZE:-10}
+      MADWORLD_DB_MAX_OVERFLOW: ${MADWORLD_DB_MAX_OVERFLOW:-20}
+      MADWORLD_LOG_LEVEL: ${MADWORLD_LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+  world-tick-worker:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.backend
+    environment:
+      MADWORLD_DATABASE_URL: ${MADWORLD_DATABASE_URL:?required}
+      MADWORLD_WORLD_TICK_SECONDS: ${MADWORLD_WORLD_TICK_SECONDS:-60}
+      MADWORLD_LOG_LEVEL: ${MADWORLD_LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    command: ["python", "-m", "scripts.world_tick_worker"]
+  migrator:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.backend
+    environment:
+      MADWORLD_DATABASE_URL: ${MADWORLD_DATABASE_URL:?required}
+    command: ["python", "scripts/migrate.py"]
