@@ -18,17 +18,20 @@ B7 is the accepted Full Android Game batch. The existing authoritative backend r
 - Localization resource foundation in `strings.xml`.
 - No authoritative balances, inventory results or server outcomes are stored in the offline queue.
 - Existing typed authoritative state models remain the UI boundary.
+- Android unit-test coverage for stale-state edge cases.
+- Android CI now runs `:app:testDebugUnitTest` before assembling the debug APK.
 
 ## Verification
-- Backend CI remains green through B6 and subsequent B7-triggered backend runs.
-- Android CI #58 passed after the Compose context fix.
-- The latest B7 integration changes require a fresh Android and Backend CI verification before B7 can be marked COMPLETE.
+- Previous Android CI #58 passed after the Compose context fix.
+- Android CI #64 is the B7 completion verification run and includes unit tests plus APK assembly.
+- Backend CI #492 is the corresponding backend regression verification run.
+- B7 is marked COMPLETE only after both current runs finish green.
 
 ## Deferred within B7
-- Push notification delivery and device-token registration.
+- Push notification delivery and device-token registration, scheduled for B9.
 - Full localization resource extraction for all remaining UI copy.
 - Full accessibility audit and automated semantics coverage beyond the core controls.
 - Rich command screens for every gameplay mutation.
 - OS-level background queue worker. Queue draining is currently tied to authenticated reconnect/session refresh rather than a background worker.
 
-These are explicitly deferred rather than silently treated as complete.
+These are explicitly deferred rather than silently treated as complete; they do not block the accepted B7 exit gate.
