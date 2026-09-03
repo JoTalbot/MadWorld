@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MadWorld</string>
+    <string name="nav_base">Base</string>
+    <string name="nav_world">World</string>
+    <string name="nav_fleet">Fleet</string>
+    <string name="nav_market">Market</string>
+    <string name="nav_crew">Crew</string>
+    <string name="nav_territory">Territory</string>
+    <string name="offline">OFFLINE</string>
+    <string name="connection_problem">Connection problem</string>
+    <string name="retry">Retry</string>
+    <string name="connect">Connect</string>
+    <string name="create_pilot">Create your pilot</string>
+    <string name="enter_wasteland">Enter the wasteland</string>
+    <string name="refresh">Refresh</string>
+</resources>
