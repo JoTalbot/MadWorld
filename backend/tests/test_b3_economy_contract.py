@@ -7,9 +7,7 @@ def test_b3_migration_defines_economy_state_and_storage_boundaries():
     sql = (ROOT / "migrations/029_b3_advanced_economy.sql").read_text()
     for token in (
         "regional_economic_state",
-        "market_price_history",
         "production_facilities",
-        "production_recipes",
         "production_jobs",
         "warehouses",
         "warehouse_items",
@@ -19,7 +17,12 @@ def test_b3_migration_defines_economy_state_and_storage_boundaries():
     ):
         assert token in sql
     assert "CHECK (used_units <= capacity_units)" in sql
+    # B3 intentionally reuses the authoritative recipe and price-history
+    # boundaries created by the earlier economy migrations.
+    assert "economy_recipes" in sql
+    assert "market_price_history" in sql
     assert "CREATE TABLE IF NOT EXISTS market_price_history" not in sql
+    assert "CREATE TABLE IF NOT EXISTS production_recipes" not in sql
 
 
 def test_b3_uses_legacy_economy_recipe_contract_as_authoritative():
