@@ -21,16 +21,21 @@
 - Idempotent travel planning and authenticated vehicle ownership checks.
 - Route danger incorporates world/territory modifiers with hard bounds.
 - Travel encounter records cover faction, convoy, disaster, ambush and discovery outcomes.
-- Lost travel produces a durable salvage/recovery case with an idempotency fence.
-- Recovery claims are player-scoped and state guarded.
+- Encounter `LOST` is an authoritative terminal outcome that resolves the linked travel session in the same PostgreSQL transaction.
+- Lost travel destroys the vehicle, zeroes persisted component condition, and produces a durable salvage/recovery case with an idempotency fence.
+- Recovery claims are player-scoped, wallet-locked, state guarded, and exactly-once debited by idempotency key.
+- Recovery restores the destroyed vehicle to `stored` and persisted components to a valid recovered minimum.
+- Travel/encounter/recovery retries are idempotent for the same terminal state.
+- Vehicle cargo capacity is enforced during travel planning through the authoritative `vehicles.cargo_capacity` field.
 - B2 travel/encounter/recovery API is registered under `/api/v1/travel`.
 - World simulation remains separated from player-owned inventory, wallet and vehicle mutation.
 
 ## Verification
 
-- Migration invariant tests cover B1/B2 schema additions.
+- Migration invariant tests cover B1/B2 schema additions, travel state guards, encounter guards, and cargo capacity.
 - B2 API registration test covers the public route surface.
-- Travel validation test covers invalid command rejection.
+- Travel validation tests cover invalid command rejection and recovery behavior.
+- PostgreSQL integration tests exercise persisted encounter loss, travel loss, vehicle/component destruction, recovery creation, duplicate terminal requests, exactly-once recovery debit, retry behavior, and cargo-capacity boundary enforcement.
 - Final CI must be checked on the latest batch head before merging.
 
 ## Architectural guardrails
@@ -41,6 +46,7 @@
 4. Retries must be safe and idempotent.
 5. All bounded simulation values are constrained both in application logic and PostgreSQL.
 6. Replay hashes are audit signals, not client authority.
+7. Encounter loss and travel loss share one authoritative transactional state transition.
 
 ## Remaining work after B2
 
