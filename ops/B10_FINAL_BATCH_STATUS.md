@@ -1,11 +1,11 @@
 # B10 Final Batch Status
 
 Date: 2026-09-03
-Base: `650bd816a078b26dfe49b2ef23a8545e35a1f60a`
+Current HEAD: `c583be18a39d562e7364d53914367593af0a9f2b`
 
 ## Repository-side batch status
 
-The repository-side B1-B10 production program is complete. The latest exact-head verification on `main` passed:
+The repository-side B1-B10 production program is complete. The repository-side Release Gate previously passed on the preceding exact verified boundary (`650bd816a078b26dfe49b2ef23a8545e35a1f60a`), including:
 
 - Release Gate run `33773666109`: success
 - Backend CI run `33773666081`: success
@@ -13,7 +13,7 @@ The repository-side B1-B10 production program is complete. The latest exact-head
 - Release Gate Android job: Android unit tests, debug APK assembly and artifact checksum passed
 - Release Gate final gate job: passed
 
-The repository contains the production-oriented implementation, security hardening, operational procedures, backup/restore tooling, observability baseline, Android build/test coverage and B10 evidence templates.
+Since that verification boundary, Android physical-device/debug API configuration was hardened and the current exact-head audit was added. The previous green result therefore does **not** certify the current HEAD.
 
 ## Remaining mandatory external/owner gates
 
@@ -32,7 +32,7 @@ These cannot be truthfully certified from GitHub repository state alone and rema
 - rollback and DR rehearsal completed;
 - product-owner approval of the severity-5 disaster clamp behavior;
 - immutable evidence attached for every mandatory gate;
-- final Release Gate rerun on the exact release commit after those gates are closed;
+- final Release Gate rerun on the exact current release commit after those gates are closed;
 - final version/tag and production release publication.
 
 ## Release decision
@@ -43,8 +43,17 @@ The repository must not convert UNVERIFIED or UNKNOWN evidence into VERIFIED mer
 
 ## Product scope
 
-No new gameplay/economy balance change was introduced by this status update. Any change to disaster clamp coefficients or schema bounds must go through the persistent improvement backlog approval policy.
+No gameplay/economy balance change was introduced by the B10 release hardening work. Any change to disaster clamp coefficients or schema bounds must go through the persistent improvement backlog approval policy.
+
+## Android local-device hardening
+
+- Debug builds explicitly allow cleartext HTTP for local development only.
+- Physical devices must use a reachable LAN API URL through `MADWORLD_API_URL`.
+- Release builds keep cleartext HTTP disabled and require HTTPS.
+- The emulator-only `10.0.2.2` fallback must not be used on a physical phone.
 
 ## Safety boundary
 
 Production verification must remain scoped to MadWorld. Do not touch Octopus infrastructure, unrelated PostgreSQL, existing Docker networks/volumes, host port 8000, global Docker cleanup or UFW as part of MadWorld release work.
+
+See `ops/B10_CURRENT_RELEASE_AUDIT.md` for the exact-head gate matrix.
