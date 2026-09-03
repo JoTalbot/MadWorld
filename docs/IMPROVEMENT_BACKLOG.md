@@ -133,7 +133,7 @@ This file is the persistent source of truth for improvement proposals and implem
 
 ### IMP-114 — Android Territory state/client
 - Status: COMPLETE — Hybrid foundation.
-- Implemented: typed state, authoritative API parsing, ViewModel refresh and mobile territory panel.
+- Implemented: typed state, authoritative API parsing, ViewModel refresh and territory panel.
 - Deferred: rich strategic map and complete territory mutation-management UI.
 
 ### IMP-115 — Territory exploit/invariant test suite
@@ -261,16 +261,19 @@ The user approved the master implementation plan consisting of B1 → B10. Indiv
 - Deferred: push/device tokens, full localization extraction, full accessibility audit, rich mutation screens and OS-level background worker. These remain explicit follow-up work and are not claimed as implemented.
 
 ### B8 — Security, Anti-Abuse & Reliability
-- Mutation endpoint audit
-- Authorization/ownership audit
-- Replay protection
-- Money/item duplication defenses
-- Race-condition defenses
-- Market/reward abuse defenses
-- Rate limiting
-- Circuit breakers
-- Abuse scoring foundations
-- Security regression suite
+**Status: COMPLETE — accepted exit gate passed.**
+- Mutation endpoint audit completed across API route modules.
+- Authentication/ownership boundary retained through authenticated-player dependencies and existing corporation membership checks.
+- Existing database-backed idempotency remains authoritative for supported financial, inventory, market and social mutations.
+- Transport-level replay guard added for repeated explicit mutation request identifiers with bounded TTL.
+- Global bounded sliding-window rate limiting added at API boundary.
+- Security response headers added for API responses.
+- Bounded abuse-scoring foundation added with deterministic points and decay.
+- Circuit-breaker primitive added with bounded failure threshold and recovery window.
+- Security regression suite added for rate limiting, replay protection, circuit recovery, abuse decay and parameter validation.
+- Existing transactional, uniqueness, row-lock and optimistic-concurrency defenses remain authoritative for money/item/race-sensitive mutations.
+- Verification: Backend CI green on B8 completion boundary; Android was unchanged by this backend-only security batch.
+- Deferred to B9: distributed rate-limit state, persistent abuse scoring/moderation, production circuit telemetry/tuning, advanced wash-trading/reward-farming classifiers, WAF/CDN controls and device fingerprinting.
 
 ### B9 — Scale, Operations & LiveOps
 - Production service definitions
