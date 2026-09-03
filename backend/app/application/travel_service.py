@@ -134,12 +134,7 @@ def claim_recovery(conn, *, player_id: UUID, case_id: UUID) -> dict:
     if not case or case["state"] != "AVAILABLE":
         raise ValueError("recovery case unavailable")
 
-    wallet = conn.execute(text("""
-        SELECT id
-        FROM wallets
-        WHERE owner_id=:p
-        FOR UPDATE
-    """), {"p": player_id}).mappings().first()
+    wallet = conn.execute(text("SELECT id FROM wallets WHERE owner_id=:p FOR UPDATE"), {"p": player_id}).mappings().first()
     if not wallet:
         raise ValueError("player wallet not found")
 
