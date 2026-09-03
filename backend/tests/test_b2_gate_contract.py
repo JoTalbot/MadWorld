@@ -29,4 +29,6 @@ def test_b2_region_bridge_is_used_for_territory_risk():
     sql = MASTER_SERVICE.read_text()
     assert "world_region_bindings" in sql
     assert "b.gameplay_region_id" in sql
-    assert "region_id=b.gameplay_region_id" in sql
+    # territory_modifiers.region_id references world_regions(id), so risk must
+    # join through the authoritative world-region side of the binding.
+    assert "region_id=b.world_region_id" in sql
