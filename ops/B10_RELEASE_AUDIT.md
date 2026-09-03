@@ -88,7 +88,7 @@ Supporting ops changes in the same commit:
   counts applied migrations); Docker healthcheck wired to it via the deployment
   overlay.
 - `ops/docker-compose.deploy.yml` deployment overlay (isolated PostgreSQL
-  container, loopback-only ports, non-root, no-new-privileges, resource limits).
+  container, loopback-only port mapping, non-root/resource limits/no-new-privileges).
 - `.gitignore` added to keep `.env`, backups and build artifacts out of Git.
 - `test_b2_region_bridge_is_used_for_territory_risk` updated to lock the correct
   world-region keying and guard against the gameplay-UUID regression.
@@ -176,3 +176,35 @@ clamp matches intended balance (no coefficient changed).
 | Outbound HTTP / 3rd-party APIs | integrations | none present | n/a | n/a | none to verify |
 
 Legend: VERIFIED = demonstrated in this environment; PARTIALLY VERIFIED = demonstrated with documented limits; UNVERIFIED = not executable here; BLOCKED = requires external account/legal/owner and cannot pass without it.
+
+---
+
+# Final repository production batch — commit `bdf6657` (2026-09-03)
+
+The repository-side portion of the requested B10 production batch is now committed to `main`.
+
+### Implemented
+
+- `android/app/build.gradle.kts`: production API URL is injected through Gradle property/environment `MADWORLD_API_URL`; `10.0.2.2:8000` remains only as a development fallback.
+- `docs/ANDROID_API_CONFIGURATION.md`: build/release configuration rules.
+- `ops/backup_daily.sh`: daily custom-format PostgreSQL backup, integrity validation, SHA-256 metadata, retention and low-disk guard.
+- `ops/madworld-backup.service` and `ops/madworld-backup.timer`: intended systemd schedule, daily at 03:15 UTC with persistence/randomized delay.
+- `ops/B10_BACKUP_RPO.md`: installation, verification and RPO policy.
+- `ops/B10_RTO_DR_TEST.md`: fresh-environment recovery procedure and evidence requirements.
+- `ops/B10_INCIDENT_RESPONSE.md`: incident severity, first-response, recovery and closure runbook.
+- `ops/B10_HTTPS_GATE.md`: production TLS/reverse-proxy owner gate without inventing a domain.
+- `ops/ANDROID_DEVICE_MATRIX_B10.md`: API 26 / 29–32 / 33–35 evidence matrix.
+- `ops/B10_EXTERNAL_PROVIDERS.md`: push/crash/analytics provider gates.
+- `ops/B10_CAPACITY_VERIFICATION.md`: isolated capacity test procedure.
+- `ops/B10_OBSERVABILITY_BASELINE.md`: MadWorld-only operational signals, explicitly isolated from Octopus.
+- `ops/B10_GOOGLE_PLAY_READINESS.md`: store readiness checklist.
+- `ops/FINAL_RELEASE_DECISION.md`: current decision **GO AFTER OWNER ACTIONS**.
+- `ops/B10_FINAL_BATCH_STATUS.md`: batch scope and non-certified external gates.
+
+### Remaining gates
+
+The batch deliberately does not fabricate evidence for real production HTTPS, scheduled backup execution, fresh-host DR, production-scale capacity, Android device/emulator execution, external providers, legal approval, incident ownership, or product-owner confirmation. These remain explicit release-owner actions.
+
+### Safety boundary
+
+No Octopus infrastructure, secrets, host-wide cleanup, gameplay/economy coefficient or RC tag was changed by this repository batch.
