@@ -6,14 +6,14 @@ The project has an accepted B1→B10 production completion program. The canonica
 
 ## Execution state
 
-- B1: NOT COMPLETE — execution preparation/audit started
-- B2: NOT COMPLETE
-- B3: NOT COMPLETE
-- B4: NOT COMPLETE
-- B5: NOT COMPLETE
-- B6: NOT COMPLETE
-- B7: NOT COMPLETE
-- B8: NOT COMPLETE
+- B1: COMPLETE
+- B2: COMPLETE
+- B3: COMPLETE
+- B4: COMPLETE
+- B5: COMPLETE
+- B6: COMPLETE
+- B7: COMPLETE
+- B8: COMPLETE
 - B9: NOT COMPLETE
 - B10: NOT COMPLETE
 
@@ -41,6 +41,18 @@ Phase 6 already provides deterministic world simulation, persistent world state,
 ## B2→B10 gate discipline
 
 Each subsequent batch begins only after the previous batch passes its exit gate. Cross-batch integration is allowed, but a failure in one domain must not be hidden by declaring another domain complete.
+
+## B8 completion record
+
+B8 Security, Anti-Abuse & Reliability passed its exit gate on 2026-09-03.
+
+- Transport-level rate limiting and replay containment are active at the API boundary.
+- Existing server-authoritative authorization, idempotency, transactional, uniqueness, row-lock and optimistic-concurrency protections were audited and preserved.
+- Circuit-breaker and bounded abuse-scoring primitives are implemented as reusable reliability foundations.
+- Security regression coverage is included in the backend test suite.
+- Backend CI runs 498 and 499 completed successfully on the B8 boundary.
+- Android was unchanged by B8, so no Android build was required for the backend-only batch.
+- Distributed rate limiting, persistent abuse moderation, production tuning, advanced market/reward classifiers and WAF/device controls are explicitly deferred to B9.
 
 ## Product-scope rule
 
