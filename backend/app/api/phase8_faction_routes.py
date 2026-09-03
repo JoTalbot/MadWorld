@@ -13,11 +13,11 @@ def factions(player:UUID=Depends(get_authenticated_player),uow=Depends(get_uow))
  return {"authoritative":True,"factions":[dict(x) for x in rows]}
 
 @router.get("/{faction_id}/observe")
-def faction_observe(faction_id:UUID,region_id:str,player:UUID=Depends(get_authenticated_player),uow=Depends(get_uow)):
+def faction_observe(faction_id:str,region_id:str,player:UUID=Depends(get_authenticated_player),uow=Depends(get_uow)):
  return observe(uow.conn,faction_id,region_id)
 
 @router.post("/{faction_id}/plan")
-def faction_plan(faction_id:UUID,region_id:str,tick:int,player:UUID=Depends(get_authenticated_player),uow=Depends(get_uow)):
+def faction_plan(faction_id:str,region_id:str,tick:int,player:UUID=Depends(get_authenticated_player),uow=Depends(get_uow)):
  if tick<0: raise ValueError("tick must be non-negative")
  with uow.conn.begin_nested(): return choose_action(uow.conn,faction_id,region_id,tick)
 
@@ -27,7 +27,7 @@ def faction_execute(action_id:UUID,tick:int,player:UUID=Depends(get_authenticate
  return execute_action(uow.conn,action_id,tick)
 
 @router.get("/{faction_id}/diplomacy")
-def diplomacy(faction_id:UUID,player:UUID=Depends(get_authenticated_player),uow=Depends(get_uow)):
+def diplomacy(faction_id:str,player:UUID=Depends(get_authenticated_player),uow=Depends(get_uow)):
  rows=uow.conn.execute(text("SELECT other_faction_id,relation_bps,state,version,updated_at FROM faction_diplomacy WHERE faction_id=:f ORDER BY other_faction_id"),{"f":faction_id}).mappings().all()
  return [dict(x) for x in rows]
 
