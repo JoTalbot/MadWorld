@@ -153,7 +153,7 @@ def route_risk_bps(conn, region_id: str, base_risk_bps: int) -> int:
         LEFT JOIN LATERAL (
           SELECT travel_risk_bps
           FROM territory_modifiers
-          WHERE region_id=b.gameplay_region_id
+          WHERE region_id=b.world_region_id
           ORDER BY version DESC
           LIMIT 1
         ) t ON TRUE
