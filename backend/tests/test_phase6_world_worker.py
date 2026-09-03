@@ -48,24 +48,24 @@ class _Engine:
 def test_worker_skips_when_advisory_lock_is_owned(monkeypatch):
     called = False
 
-    def fake_simulate(conn):
+    def fake_pipeline(conn):
         nonlocal called
         called = True
         return {"tick": 1}
 
-    monkeypatch.setattr(worker, "simulate_tick", fake_simulate)
+    monkeypatch.setattr(worker, "run_world_tick", fake_pipeline)
     assert worker.tick_once(_Engine(_Connection(False))) is None
     assert called is False
 
 
-def test_worker_advances_only_after_advisory_lock(monkeypatch):
+def test_worker_runs_integrated_pipeline_after_advisory_lock(monkeypatch):
     seen = {}
 
-    def fake_simulate(conn):
+    def fake_pipeline(conn):
         seen["conn"] = conn
-        return {"tick": 7, "generated_events": 1, "generated_missions": 0}
+        return {"tick": 7, "generated_events": 1, "generated_missions": 0, "tick_duration_ms": 3, "lag_ms": 0}
 
-    monkeypatch.setattr(worker, "simulate_tick", fake_simulate)
+    monkeypatch.setattr(worker, "run_world_tick", fake_pipeline)
     result = worker.tick_once(_Engine(_Connection(True)))
     assert result["tick"] == 7
     assert seen["conn"] is not None

@@ -1,8 +1,4 @@
-"""Trusted service worker for the authoritative Phase 6 world clock.
-
-Run as a single long-lived process. PostgreSQL advisory locking makes a second
-instance harmless, so deployments may temporarily overlap during restarts.
-"""
+"""Trusted service worker for the authoritative Phase 6 world clock."""
 from __future__ import annotations
 
 import logging
@@ -11,7 +7,7 @@ import time
 
 from sqlalchemy import text
 
-from app.application.phase6_world import simulate_tick
+from app.application.world_tick_pipeline_v2 import run_world_tick
 from app.infrastructure.db import create_engine_from_env
 
 LOG = logging.getLogger("madworld.world_tick")
@@ -20,13 +16,10 @@ LOCK_KEY = 6_2026_01
 
 def tick_once(engine) -> dict | None:
     with engine.begin() as conn:
-        locked = conn.execute(
-            text("SELECT pg_try_advisory_xact_lock(:key)"),
-            {"key": LOCK_KEY},
-        ).scalar()
+        locked = conn.execute(text("SELECT pg_try_advisory_xact_lock(:key)"), {"key": LOCK_KEY}).scalar()
         if not locked:
             return None
-        return simulate_tick(conn)
+        return run_world_tick(conn)
 
 
 def main() -> None:
@@ -42,10 +35,9 @@ def main() -> None:
                 if result is None:
                     LOG.info("world tick skipped: another worker owns the lock")
                 else:
-                    LOG.info(
-                        "world tick=%s events=%s missions=%s",
-                        result["tick"], result["generated_events"], result["generated_missions"],
-                    )
+                    LOG.info("world tick=%s events=%s missions=%s duration_ms=%s lag_ms=%s",
+                             result["tick"], result.get("generated_events", 0), result.get("generated_missions", 0),
+                             result.get("tick_duration_ms", 0), result.get("lag_ms", 0))
             except Exception:
                 LOG.exception("world tick failed; state transaction was rolled back")
             time.sleep(max(0, interval - (time.monotonic() - started)))
