@@ -36,17 +36,35 @@ from app.api.settlement_routes import router as settlement_router
 from app.api.travel_routes import router as travel_router
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict, NotFound
 from app.domain.primitives import DomainError
+from app.security import AbuseScorer, ReplayGuard, SlidingWindowRateLimiter
 logger=logging.getLogger("madworld.api")
 app=FastAPI(title="MadWorld API",version="0.1.0")
 for router in (api_v1_router,session_router,market_router,market_cancel_router,gathering_router,crafting_router,repair_router,damage_router,contract_router,expedition_router,settlement_router,economy_router,economy_loop_router,phase3_router,phase4_router,phase4_alliance_router,phase4_alliance_extra_router,phase4_wallet_router,phase4_asset_router,phase4_asset_provenance_router,phase4_completion_router,phase5_territory_router,phase6_world_router,phase7_economy_router,phase8_faction_router,phase9_warfare_router,phase9_warfare_extra_router,phase10_finance_router):
     app.include_router(router)
 app.include_router(travel_router)
+_rate_limiter=SlidingWindowRateLimiter(limit=120,window_seconds=60)
+_replay_guard=ReplayGuard(ttl_seconds=300,max_entries=10000)
+_abuse_scorer=AbuseScorer(decay_seconds=300,threshold=100)
 @app.middleware("http")
 async def request_id_middleware(request:Request,call_next):
     request_id=request.headers.get("X-Request-ID") or str(uuid4()); request.state.request_id=request_id
+    client=(request.client.host if request.client else "unknown")
+    decision=_rate_limiter.check(client)
+    if not decision.allowed:
+        _abuse_scorer.add(client,5)
+        response=_error_response(request,429,"RATE_LIMITED","request rate limit exceeded",{"retry_after":decision.retry_after})
+        response.headers["Retry-After"]=str(decision.retry_after); response.headers["X-RateLimit-Remaining"]="0"; response.headers["X-Request-ID"]=request_id; return response
+    if request.method in {"POST","PUT","PATCH","DELETE"} and request.url.path.startswith("/api/v1/"):
+        replay_id=request.headers.get("X-Request-ID")
+        if replay_id and not _replay_guard.check_and_remember(f"{request.method}:{request.url.path}:{client}:{replay_id}"):
+            _abuse_scorer.add(client,20)
+            response=_error_response(request,409,"REPLAY_DETECTED","duplicate request identifier for mutation")
+            response.headers["X-Request-ID"]=request_id; return response
     if request.method=="POST" and request.url.path.startswith("/api/v1/vehicles/") and request.url.path.endswith("/repair"):
         response=JSONResponse(status_code=410,content={"code":"LEGACY_API_GONE","message":"The direct vehicle repair endpoint has been retired. Use POST /api/v1/vehicles/{vehicle_id}/repair-job with inventory_id and amount.","request_id":request_id,"details":{"replacement":"/api/v1/vehicles/{vehicle_id}/repair-job","migration":"vehicle-repair-v2"}},headers={"Deprecation":"true","Sunset":"Wed, 30 Sep 2026 00:00:00 GMT","X-MadWorld-Migration":"vehicle-repair-v2"}); response.headers["X-Request-ID"]=request_id; return response
-    response=await call_next(request); response.headers["X-Request-ID"]=request_id; return response
+    response=await call_next(request); response.headers["X-Request-ID"]=request_id; response.headers["X-Content-Type-Options"]="nosniff"; response.headers["X-Frame-Options"]="DENY"; response.headers["Referrer-Policy"]="no-referrer"; response.headers["X-RateLimit-Remaining"]=str(decision.remaining)
+    if response.status_code in {401,403,409,429}: _abuse_scorer.add(client,1 if response.status_code in {401,403} else 2)
+    return response
 def _error_response(request:Request,status_code:int,code:str,message:str,details:dict|None=None)->JSONResponse:
     return JSONResponse(status_code=status_code,content={"code":code,"message":message,"request_id":request.state.request_id,"details":details})
 @app.exception_handler(NotFound)
