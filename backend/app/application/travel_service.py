@@ -146,16 +146,17 @@ def claim_recovery(conn, *, player_id: UUID, case_id: UUID) -> dict:
     if balance < cost:
         raise ValueError("insufficient wallet balance for recovery")
 
-    conn.execute(text("""
-        INSERT INTO ledger_entries(idempotency_key,wallet_id,amount,reason,actor_id)
-        VALUES (:key,:w,:amount,:reason,:actor)
-    """), {
-        "key": f"recovery:{case_id}",
-        "w": wallet["id"],
-        "amount": -cost,
-        "reason": "vehicle_recovery",
-        "actor": player_id,
-    })
+    if cost:
+        conn.execute(text("""
+            INSERT INTO ledger_entries(idempotency_key,wallet_id,amount,reason,actor_id)
+            VALUES (:key,:w,:amount,:reason,:actor)
+        """), {
+            "key": f"recovery:{case_id}",
+            "w": wallet["id"],
+            "amount": -cost,
+            "reason": "vehicle_recovery",
+            "actor": player_id,
+        })
     row = conn.execute(text("""
         UPDATE salvage_recovery_cases
         SET state='CLAIMED',version=version+1
