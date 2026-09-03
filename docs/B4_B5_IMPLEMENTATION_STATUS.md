@@ -31,7 +31,9 @@ NPC simulation and territory warfare never write player wallet/inventory state d
 ## Verification
 
 - Contract tests cover B4/B5 migration, engine and API registration boundaries.
-- Backend CI must pass on the final batch head before B4/B5 are declared release-gated complete.
+- Backend CI run #465 (`33738715012`) passed on the final B5 correction head `82fca7f50fbd5a4d6db5929f8782b87413979740`.
+- Database migrations, application module resolution and the full backend test step all completed successfully.
+- B4/B5 are release-gated complete for the current backend scope.
 
 ## Deferred / not silently expanded
 
