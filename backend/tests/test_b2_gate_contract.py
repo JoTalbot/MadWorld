@@ -16,7 +16,13 @@ def test_b2_travel_service_has_authoritative_transition_boundaries():
 def test_b2_recovery_is_explicitly_idempotent():
     sql = TRAVEL_SERVICE.read_text()
     assert "loss:{row['id']}" in sql
+    assert "recovery:{case_id}" in sql
     assert "ON CONFLICT (idempotency_key) DO NOTHING" in sql
+    assert "FOR UPDATE" in sql
+    assert "state='destroyed'" in sql
+    assert "state='stored'" in sql
+    assert "state='RECOVERED'" in sql
+    assert "amount": -cost
 
 
 def test_b2_region_bridge_is_used_for_territory_risk():
