@@ -12,7 +12,7 @@ def test_release_gate_workflow_has_backend_android_and_final_gate():
     assert "gate:" in text
     assert "needs: [backend, android]" in text
     assert "pytest backend/tests -q" in text
-    assert "./gradlew test" in text
+    assert ":app:testDebugUnitTest" in text
     assert "assembleDebug" in text
 
 
