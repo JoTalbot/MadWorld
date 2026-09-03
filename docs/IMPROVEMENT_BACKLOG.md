@@ -217,3 +217,19 @@ Status: **ACCEPTED — execute as the project's production completion sequence.*
 ## Product-scope rule
 
 New product-changing ideas discovered during implementation remain subject to the existing Minimal/Systemic/Advanced/Hybrid approval policy unless already covered by the accepted B1→B10 contract. Bugs, security fixes and non-product refactors may be fixed directly.
+
+## B10 final repository batch — 2026-09-03
+
+- Status: **IMPLEMENTED — repository-side production batch complete; B10 remains ACTIVE pending environment/owner gates.**
+- Android production API configuration: implemented via Gradle property/environment `MADWORLD_API_URL`; emulator fallback retained for development only.
+- Backup automation: implemented with daily systemd timer, 14-day default retention, SHA-256 manifest, dump integrity validation and low-disk fail-closed guard under `/opt/madworld/backups`.
+- RPO: documented as an operational target of <=24h once the timer is actually installed and evidenced.
+- RTO/DR: fresh-environment rehearsal procedure added; no false production pass claimed.
+- HTTPS: owner setup and verification gate documented; no real domain invented.
+- Android matrix: evidence template added; unavailable devices remain UNVERIFIED.
+- Push/crash/analytics: external-provider gates documented; no provider success fabricated.
+- Capacity: isolated verification procedure added; no live stress test claimed.
+- Incident response and MadWorld-only observability baseline added; Octopus infrastructure is explicitly out of scope.
+- Google Play readiness checklist added.
+- Final decision record added: **GO AFTER OWNER ACTIONS**.
+- No gameplay/economy coefficient changed.
