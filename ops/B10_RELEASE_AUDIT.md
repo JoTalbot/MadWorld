@@ -62,3 +62,66 @@ This distinction is intentional: a green CI run is evidence that the code passed
 7. Complete privacy/legal review.
 8. Select release version/tag and complete the release checklist.
 9. Only then change B10 from ACTIVE to COMPLETE.
+
+---
+
+## Deployment gate update — commit `26b9d22` (2026-09-03)
+
+The environment-dependent portion of B10 was executed on a real production-like
+server (Ubuntu 24.04 LTS, aarch64). Two runtime defects in the release candidate
+were found during real deployment, fixed and committed as `26b9d22`:
+
+1. `apply_territory_signal` keyed `territory_modifiers` off
+   `world_region_bindings.gameplay_region_id` (a gameplay UUID), but
+   `territory_modifiers.region_id` references `world_regions(id)`. This raised a
+   foreign-key violation and rolled the entire world tick back. Fixed to key/join
+   through the authoritative world-region side (`b.world_region_id`).
+2. Disaster territory modifiers (raw `severity*1200` up to 6000 bps) exceeded the
+   schema CHECK bounds of `[-5000,5000]`, raising a check violation and aborting
+   the tick. The modifiers are now clamped to the schema-authoritative bounds
+   (the docstring already promised a "bounded" modifier). No gameplay/economy
+   coefficient was changed.
+
+Supporting ops changes in the same commit:
+
+- Real readiness probe `GET /health/ready` (verifies PostgreSQL connectivity and
+  counts applied migrations); Docker healthcheck wired to it via the deployment
+  overlay.
+- `ops/docker-compose.deploy.yml` deployment overlay (isolated PostgreSQL
+  container, loopback-only ports, non-root, no-new-privileges, resource limits).
+- `.gitignore` added to keep `.env`, backups and build artifacts out of Git.
+- `test_b2_region_bridge_is_used_for_territory_risk` updated to lock the correct
+  world-region keying and guard against the gameplay-UUID regression.
+
+### Automated Release Gate on `26b9d22`
+
+- Release Gate run **`33755504203`** — `success`
+  - `backend` job: migrations, production Compose validation, full backend
+    release-gate test suite — `success`.
+  - `android` job: Android unit tests, `assembleDebug`, artifact checksum,
+    artifact upload (`madworld-android-release-gate`, artifact id `9893304894`) — `success`.
+  - `gate` job: `success`.
+- Backend CI run **`33755504032`** — `success` (migrations, module resolution,
+  production Compose validation, full pytest).
+
+### Server-side verification on `26b9d22`
+
+- Backend: `166 passed` on PostgreSQL 16 (integration tests included); migrations
+  41 / 113 tables, idempotent.
+- Production Docker: API healthy (`/health/ready` → database ok, migrations_applied=41),
+  world-tick worker ticking with 0 failures (observed past tick 44, lag_ms=0,
+  restart count 0), migrator one-shot `Exited (0)`.
+- Backup/restore: real `pg_dump` + isolated restore verified (41 migrations,
+  113 tables), temporary restore DB dropped.
+- Security: `.env` chmod 600 and git-ignored; containers non-root and not
+  privileged; PostgreSQL/API loopback-only; rate-limit (120/min → 429) and
+  replay guard (duplicate mutation → 409 `REPLAY_DETECTED`) verified.
+- Android unit tests and debug APK built and checksummed (see artifact manifest).
+
+### Remaining owner/external gates (unchanged)
+
+Physical Android device / emulator matrix, external crash/analytics/push
+providers, privacy/legal review, final capacity approval, incident-ownership,
+and RPO/RTO sign-off remain release-owner gates that cannot be certified from
+this server. Product owner should also confirm the bounded disaster-modifier
+clamp matches intended balance (no coefficient changed).
