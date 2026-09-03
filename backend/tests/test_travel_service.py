@@ -65,3 +65,10 @@ def test_travel_and_encounter_resolution_are_retry_idempotent_for_same_outcome()
     sql = TRAVEL_SERVICE.read_text()
     assert 'if existing and existing["state"] == outcome:' in sql
     assert sql.count('SELECT id,travel_session_id,state') >= 1
+
+
+def test_plan_travel_enforces_authoritative_vehicle_capacity():
+    sql = TRAVEL_SERVICE.read_text()
+    assert 'SELECT id,cargo_capacity,state' in sql
+    assert 'cargo_weight > vehicle["cargo_capacity"]' in sql
+    assert 'cargo weight exceeds vehicle capacity' in sql
