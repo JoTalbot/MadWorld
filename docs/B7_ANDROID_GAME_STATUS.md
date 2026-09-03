@@ -1,7 +1,8 @@
 # B7 — Full Android Game Status
 
-## Scope
-B7 is the accepted Full Android Game batch. The existing authoritative backend remains the source of truth for player, economy, territory, world and social state.
+## Status: COMPLETE
+
+B7 is closed at its accepted exit gate. The Android client provides the critical MMO state surfaces and reconnect-safe authoritative command foundation while preserving the backend as the source of truth.
 
 ## Implemented
 - Dedicated `GameActivity` launcher.
@@ -19,19 +20,26 @@ B7 is the accepted Full Android Game batch. The existing authoritative backend r
 - No authoritative balances, inventory results or server outcomes are stored in the offline queue.
 - Existing typed authoritative state models remain the UI boundary.
 - Android unit-test coverage for stale-state edge cases.
-- Android CI now runs `:app:testDebugUnitTest` before assembling the debug APK.
+- Android CI runs `:app:testDebugUnitTest` before assembling the debug APK.
 
-## Verification
-- Previous Android CI #58 passed after the Compose context fix.
-- Android CI #64 is the B7 completion verification run and includes unit tests plus APK assembly.
-- Backend CI #492 is the corresponding backend regression verification run.
-- B7 is marked COMPLETE only after both current runs finish green.
+## Exit-gate verification
+- Android CI #64: **GREEN**
+  - Android unit tests: **PASS**
+  - Debug APK assembly: **PASS**
+- Backend CI #492: **GREEN**
+  - Database migrations: **PASS**
+  - Application module resolution: **PASS**
+  - Backend test suite: **PASS**
+- No B7 CI blocker remains.
 
-## Deferred within B7
-- Push notification delivery and device-token registration, scheduled for B9.
-- Full localization resource extraction for all remaining UI copy.
-- Full accessibility audit and automated semantics coverage beyond the core controls.
+## Explicitly deferred to later batches / follow-up hardening
+- Push notification delivery and device-token registration: B9.
+- Full localization extraction for all remaining UI copy.
+- Full accessibility audit and automated semantics coverage beyond core controls.
 - Rich command screens for every gameplay mutation.
-- OS-level background queue worker. Queue draining is currently tied to authenticated reconnect/session refresh rather than a background worker.
+- OS-level background queue worker. Current queue draining is tied to authenticated reconnect/session refresh.
 
-These are explicitly deferred rather than silently treated as complete; they do not block the accepted B7 exit gate.
+These are explicitly deferred and are not represented as completed functionality.
+
+## Closure
+B7 satisfies the accepted production batch exit gate: implementation exists, authoritative command/reconnect/offline/stale-state foundations are wired, regression tests are green, Android unit tests are executed in CI, and both Android and Backend CI are green.
