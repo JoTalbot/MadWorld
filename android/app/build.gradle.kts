@@ -21,6 +21,20 @@ android {
             .orElse("http://10.0.2.2:8000")
             .get()
         buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+
+        // Android 9+ blocks cleartext HTTP by default. Keep it enabled only for
+        // explicitly configured debug builds so a physical phone can reach a
+        // development server on the local network without weakening production.
+        manifestPlaceholders["madworldAllowCleartext"] = false
+    }
+
+    buildTypes {
+        debug {
+            manifestPlaceholders["madworldAllowCleartext"] = true
+        }
+        release {
+            manifestPlaceholders["madworldAllowCleartext"] = false
+        }
     }
 
     buildFeatures {
