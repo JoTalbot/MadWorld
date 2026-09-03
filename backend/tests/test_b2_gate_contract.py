@@ -22,7 +22,7 @@ def test_b2_recovery_is_explicitly_idempotent():
     assert "state='destroyed'" in sql
     assert "state='stored'" in sql
     assert "state='RECOVERED'" in sql
-    assert "amount": -cost
+    assert '"amount": -cost' in sql
 
 
 def test_b2_region_bridge_is_used_for_territory_risk():
