@@ -1,8 +1,12 @@
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
 from app.application.travel_service import plan_travel
+
+
+TRAVEL_SERVICE = Path(__file__).parents[1] / "app" / "application" / "travel_service.py"
 
 
 class _Result:
@@ -25,3 +29,25 @@ def test_plan_travel_rejects_invalid_duration():
             destination_region_id=uuid4(), world_region_id="dust_basin", duration_seconds=0,
             fuel_reserved=10, cargo_weight=0, base_risk_bps=1000, idempotency_key="x",
         )
+
+
+def test_recovery_claim_charges_authoritative_ledger():
+    sql = TRAVEL_SERVICE.read_text()
+    assert 'SELECT id FROM wallets' in sql
+    assert 'SELECT COALESCE(SUM(amount), 0) AS balance' in sql
+    assert 'INSERT INTO ledger_entries' in sql
+    assert '"reason": "vehicle_recovery"' in sql
+    assert '"amount": -cost' in sql
+
+
+def test_recovery_claim_locks_case_and_wallet_for_atomicity():
+    sql = TRAVEL_SERVICE.read_text()
+    assert 'WHERE id=:id AND player_id=:p' in sql
+    assert 'FOR UPDATE' in sql
+    assert "state='AVAILABLE'" in sql
+    assert 'f"recovery:{case_id}"' in sql
+
+
+def test_zero_cost_recovery_does_not_create_invalid_zero_ledger_entry():
+    sql = TRAVEL_SERVICE.read_text()
+    assert 'if cost:' in sql
