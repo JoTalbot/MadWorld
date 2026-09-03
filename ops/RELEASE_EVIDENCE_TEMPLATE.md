@@ -184,3 +184,54 @@ B10 cannot be marked complete while any mandatory automated gate is `FAIL` or an
 - Approver: human release owner (pending)
 - Approval timestamp (UTC): `UNKNOWN`
 - Notes: GitHub `main` and production server now run the same verified commit `26b9d22`. The two runtime bugs that aborted world ticks are fixed in GitHub (not only on the server). All 166 backend tests, the GitHub Release Gate, Android unit tests/APK, migrations, backup/restore, rate-limit and replay checks are green.
+
+
+---
+
+# External / Owner Release Gate Status — 2026-09-03, commit `f127f87`
+
+> Every gate below is assigned `VERIFIED`, `PARTIALLY VERIFIED`, `UNVERIFIED` or
+> `BLOCKED` **with evidence**. Unknown is not treated as pass. Server-side
+> technical gates are `VERIFIED`; anything requiring an external account, a
+> physical Android device, or a legal/owner decision is marked accordingly. No
+> secrets are recorded.
+
+## Gate status table
+
+| # | Gate | Status | Evidence |
+|---|---|---|---|
+| 1 | Backend tests (169) | **VERIFIED** | CI Release Gate `33757777783` success; server `169 passed` on PG16 |
+| 2 | Migrations (clean DB) | **VERIFIED** | 41 migrations / 113 tables, idempotent; CI + server |
+| 3 | Production Compose validation | **VERIFIED** | CI backend job `docker compose config` success |
+| 4 | Android unit tests | **VERIFIED** | CI android job + server `:app:testDebugUnitTest` pass (4 tests) |
+| 5 | Android debug APK build + checksum | **VERIFIED** | CI artifact `9893304894`; server APK SHA-256 `11e6993f128bcd3df8fabb5e65ae54c12ed1e3a1c3eca092ba5f76ac3d715410` |
+| 6 | API health / real readiness | **VERIFIED** | `/health/ready` → database ok, migrations_applied=41; container healthy |
+| 7 | World-tick worker | **VERIFIED** | ticks advancing past 77, lag_ms=0, 0 failures, restart 0, survives restart |
+| 8 | Backup / restore | **VERIFIED (isolated)** | `pg_dump`→isolated DB restore; 41 migrations/113 tables; `backup_restore_verified=true` |
+| 9 | Security posture (server) | **VERIFIED** | non-root, not privileged, no-new-privileges, loopback-only ports, `.env` 600/git-ignored, rate-limit + replay verified |
+| 10 | Capacity (bounded) | **PARTIALLY VERIFIED** | safe read-only probe only: p50 5.7 ms, p95 8.3 ms, p99 123 ms, 0% error within limit, ~2 DB conns/100 max, 429 containment; production-scale capacity approval pending |
+| 11 | RTO | **PARTIALLY VERIFIED** | API healthy ~4 s; restore ~1.9 s; worker reconnects ~27 s (first tick within 60 s); full DR cut-over to a fresh host not rehearsed |
+| 12 | RPO / scheduled backups | **PARTIALLY VERIFIED / GAP** | on-demand backup works and is fast; **no scheduled backup job exists** → until one is configured, potential data loss window = time since last manual backup. Owner must set retention/schedule |
+| 13 | Android emulator matrix (API 26 / 29–32 / 33–35) | **UNVERIFIED** | no emulator package, no `/dev/kvm` (nested virtualization unavailable), adb daemon cannot run on this host |
+| 14 | Physical Android device | **UNVERIFIED — physical device unavailable** | no device attached; on-device install/launch/login/offline/reconnect/notifications/rotation/network-loss cannot be executed. Not simulated |
+| 15 | Push notifications (FCM/APNs) | **BLOCKED — EXTERNAL PROVIDER UNVERIFIED** | `device_push_tokens` table exists; no push-delivery backend code, no Firebase/FCM SDK, no `google-services.json`, no credentials. Local in-app `NotificationCenter` only. Offline-device delivery, retry, token registration are not implemented end-to-end |
+| 16 | Crash reporting | **BLOCKED — EXTERNAL PROVIDER UNVERIFIED** | no Crashlytics/Sentry/etc. SDK or config; `analytics_events`/`audit_events` tables exist but no external provider. No debug telemetry observed |
+| 17 | Analytics | **BLOCKED — EXTERNAL PROVIDER UNVERIFIED** | `analytics_events` schema exists; **no route writes to it**, no outbound HTTP, no provider credentials. Not claimed working |
+| 18 | External provider inventory | **VERIFIED (inventory)** | no outbound external calls in backend (no httpx/requests use); only external dependency is the cloud host + container image registry; Android bundles no third-party tracking/push SDK |
+| 19 | Privacy / legal | **BLOCKED — LEGAL REVIEW REQUIRED** | no Privacy Policy, Terms, data-safety/deletion disclosure in repo; owner/legal must produce. See `ops/LEGAL_REVIEW_REQUIRED.md` |
+| 20 | Disaster-clamp product decision | **PARTIALLY VERIFIED — OWNER CONFIRMATION** | technical clamp applied & tested (see `ops/B10-PROD-DISASTER-CLAMP.md`); product balance interpretation pending owner sign-off |
+| 21 | Incident response / on-call | **UNVERIFIED** | no on-call/escalation defined; not certifiable from server |
+| 22 | Release tag | **VERIFIED (RC)** | annotated tag `v0.1.0-rc1` on the verified commit (after gates green); public production release tag deliberately NOT created |
+
+## External providers (item 18 detail)
+
+| Provider | Purpose | Configured | Reachable | Authenticated | Production verified |
+|---|---|---|---|---|---|
+| PostgreSQL | authoritative store | n/a — self-hosted `postgres:16` container | VERIFIED (in-cluster) | VERIFIED (isolated `madworld` role) | VERIFIED |
+| Cloud host (OCI VM) | runtime | VERIFIED (existing) | VERIFIED | n/a | VERIFIED |
+| FCM / Firebase Cloud Messaging | push | **NO** | n/a | NO | **EXTERNAL PROVIDER UNVERIFIED** |
+| Crash reporting (Sentry/Crashlytics…) | crashes | **NO** | n/a | NO | **EXTERNAL PROVIDER UNVERIFIED** |
+| Analytics (Mixpanel/Amplitude/GA…) | analytics | **NO** | n/a | NO | **EXTERNAL PROVIDER UNVERIFIED** |
+| Outbound HTTP / 3rd-party APIs | integrations | none present | n/a | n/a | none to verify |
+
+Legend: VERIFIED = demonstrated in this environment; PARTIALLY VERIFIED = demonstrated with documented limits; UNVERIFIED = not executable here; BLOCKED = requires external account/legal/owner and cannot pass without it.
