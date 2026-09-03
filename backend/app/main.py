@@ -13,6 +13,7 @@ from app.api.economy_routes import router as economy_router
 from app.api.expedition_routes import router as expedition_router
 from app.api.gathering_routes import router as gathering_router
 from app.api.market_routes import router as market_router
+from app.api.market_cancel_routes import router as market_cancel_router
 from app.api.phase3_routes import router as phase3_router
 from app.api.phase4_alliance_extra_routes import router as phase4_alliance_extra_router
 from app.api.phase4_alliance_routes import router as phase4_alliance_router
@@ -33,7 +34,7 @@ from app.application.errors import ConcurrencyConflict, IdempotencyConflict, Not
 from app.domain.primitives import DomainError
 logger=logging.getLogger("madworld.api")
 app=FastAPI(title="MadWorld API",version="0.1.0")
-for router in (api_v1_router,session_router,market_router,gathering_router,crafting_router,repair_router,damage_router,contract_router,expedition_router,settlement_router,economy_router,economy_loop_router,phase3_router,phase4_router,phase4_alliance_router,phase4_alliance_extra_router,phase4_wallet_router,phase4_asset_router,phase4_asset_provenance_router,phase4_completion_router,phase5_territory_router,phase6_world_router,phase7_economy_router):
+for router in (api_v1_router,session_router,market_router,market_cancel_router,gathering_router,crafting_router,repair_router,damage_router,contract_router,expedition_router,settlement_router,economy_router,economy_loop_router,phase3_router,phase4_router,phase4_alliance_router,phase4_alliance_extra_router,phase4_wallet_router,phase4_asset_router,phase4_asset_provenance_router,phase4_completion_router,phase5_territory_router,phase6_world_router,phase7_economy_router):
     app.include_router(router)
 app.include_router(travel_router)
 @app.middleware("http")
