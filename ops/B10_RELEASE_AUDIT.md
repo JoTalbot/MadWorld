@@ -16,10 +16,14 @@ Record the final repository-side B10 audit without treating environment-dependen
   - `ops/RELEASE_CHECKLIST.md`
   - `ops/RELEASE_NOTES_B10.md`
   - `backend/tests/test_b10_release_gate.py`
-- Backend CI run `33744996782` completed successfully.
-- Backend CI job `100615320672` completed every required step successfully, including migrations, module resolution, production Compose validation and the test suite.
-- Production Compose validation is part of the backend CI gate.
+- Release Gate run `33748075997` completed successfully on candidate commit `83e639af9317a4f17f8d4eb3e59ea6c8727c6c4b`.
+- Release Gate backend job `100625077855` passed migrations, production Compose validation and the complete backend release-gate test suite.
+- Release Gate Android job `100625077651` passed unit tests, debug APK assembly, checksum generation and artifact upload.
+- Release Gate final job `100625565742` passed.
+- Android release-gate artifact `madworld-android-release-gate` was produced successfully; SHA-256 digest: `99676b9b274a45104954919815abf2f9b7a7fb9f9ff023d03ec6f4c84f8950f3`.
+- Production Compose validation is part of the automated gate.
 - B10 release-gate contract tests are part of the backend test suite.
+- PostgreSQL URL normalization to the installed psycopg 3 driver is now protected by `backend/tests/test_database_url_contract.py`.
 
 ## Not honestly verifiable from repository-only access
 
@@ -43,7 +47,7 @@ These checks remain RELEASE-OWNER / ENVIRONMENT gates:
 
 **B10 remains ACTIVE / Release Candidate.**
 
-The repository-side implementation and automated backend gate are green, but the project must not be labeled production-ready until the mandatory environment and owner checks above are explicitly verified.
+The repository-side implementation and automated Release Gate are green, but the project must not be labeled production-ready until the mandatory environment and owner checks above are explicitly verified.
 
 This distinction is intentional: a green CI run is evidence that the code passed its automated contract, not evidence that a real production environment, device fleet, external providers or legal approvals exist. Humanity has suffered enough from checkboxes pretending to be reality.
 
