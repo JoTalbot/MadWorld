@@ -21,8 +21,17 @@ def database_url() -> str:
 
 
 def create_engine_from_env() -> Engine:
+    url = database_url()
+    # SQLAlchemy's bare PostgreSQL URL selects the psycopg2 dialect. MadWorld
+    # intentionally depends on psycopg 3, so normalize conventional URLs to
+    # the installed driver while preserving explicitly selected dialects.
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://") :]
+    elif url.startswith("postgres://"):
+        url = "postgresql+psycopg://" + url[len("postgres://") :]
+
     return create_engine(
-        database_url(),
+        url,
         future=True,
         pool_pre_ping=True,
         pool_size=int(os.getenv("MADWORLD_DB_POOL_SIZE", "5")),
