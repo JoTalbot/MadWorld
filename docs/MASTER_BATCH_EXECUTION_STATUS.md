@@ -14,8 +14,8 @@ The project has an accepted B1→B10 production completion program. The canonica
 - B6: COMPLETE
 - B7: COMPLETE
 - B8: COMPLETE
-- B9: NOT COMPLETE
-- B10: NOT COMPLETE
+- B9: COMPLETE
+- B10: RELEASE GATE ACTIVE
 
 ## Non-negotiable rule
 
@@ -23,36 +23,38 @@ No batch may be marked COMPLETE because its design exists. Completion requires i
 
 ## Current technical baseline
 
-Phase 6 already provides deterministic world simulation, persistent world state, faction/region state, regional resource pressure, world events, convoy/discovery/disaster/mission records, simulation history, a trusted world tick worker and authoritative world-state client surfaces. The next implementation work must integrate those foundations rather than duplicate them.
+Phase 6 plus B1→B9 provide deterministic world simulation, persistent world state, faction/region state, regional resource pressure, world events, convoy/discovery/disaster/mission records, economy/territory/social/finance integration, Android authoritative state, security controls and production operations foundations.
 
-## B1 execution order
+## B9 completion record
 
-1. World→Economy event/outbox bridge
-2. World→Territory effects
-3. Convoy lifecycle state machine
-4. Resource discovery lifecycle
-5. Faction regional tick dynamics
-6. Dynamic mission grammar and invalidation
-7. Deterministic replay/state hashes
-8. World lag/worker telemetry
-9. Integration, concurrency, retry and invariant tests
-10. Backend CI, repair, rerun and final audit
+B9 Scale, Operations & LiveOps passed its automated backend exit gate on 2026-09-03.
 
-## B2→B10 gate discipline
+- Production API, world-tick worker and migrator Compose services are defined.
+- Backend production image runs as non-root.
+- Health checks, bounded catch-up/recovery policy and operational deployment documentation are present.
+- Backup/restore automation and restore schema verification are present.
+- Analytics, Android push-token and LiveOps persistent foundations are migrated.
+- Load/rate-limit contract coverage is present.
+- Android device matrix and load-test plans are documented.
+- Backend CI #515 completed successfully after migrations, module resolution, production Compose validation and the full test suite.
+- Environment-dependent production controls remain subject to the final B10 release-owner gate.
 
-Each subsequent batch begins only after the previous batch passes its exit gate. Cross-batch integration is allowed, but a failure in one domain must not be hidden by declaring another domain complete.
+## B10 execution state
 
-## B8 completion record
+B10 implementation and repository release-gate artifacts are present. The remaining B10 checks are validation gates, not missing product systems.
 
-B8 Security, Anti-Abuse & Reliability passed its exit gate on 2026-09-03.
+- Product regression: covered by the existing B1→B9 authoritative test foundations; final end-to-end run remains required.
+- Backend/Android/integration CI: required on the final B10 boundary.
+- Security/exploit regression: required on the final B10 boundary.
+- Replay verification: required on the final B10 boundary.
+- Load verification: B9 contract exists; production-like load execution requires an isolated environment.
+- Backup/restore: automation exists; real database restore must be exercised against the target environment.
+- Release artifact/configuration: repository checklist is present; release owner must verify target configuration.
+- Physical Android, privacy/legal, crash reporting, external analytics providers and final capacity approval require environment/owner access and cannot be inferred from GitHub source.
 
-- Transport-level rate limiting and replay containment are active at the API boundary.
-- Existing server-authoritative authorization, idempotency, transactional, uniqueness, row-lock and optimistic-concurrency protections were audited and preserved.
-- Circuit-breaker and bounded abuse-scoring primitives are implemented as reusable reliability foundations.
-- Security regression coverage is included in the backend test suite.
-- Backend CI runs 498 and 499 completed successfully on the B8 boundary.
-- Android was unchanged by B8, so no Android build was required for the backend-only batch.
-- Distributed rate limiting, persistent abuse moderation, production tuning, advanced market/reward classifiers and WAF/device controls are explicitly deferred to B9.
+## B10 completion rule
+
+B10 may be marked COMPLETE only after the final automated CI boundary is green and all mandatory environment-dependent checks are explicitly VERIFIED by the release owner. Unknown production checks are never treated as passed.
 
 ## Product-scope rule
 
