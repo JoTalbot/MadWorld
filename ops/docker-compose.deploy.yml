@@ -1,0 +1,107 @@
+# MadWorld deployment overlay — isolated PostgreSQL + port bindings.
+# Extends ops/docker-compose.production.yml. Does NOT touch any Octopus/liza
+# containers, networks, volumes, databases or host PostgreSQL.
+#
+# Usage:
+#   docker compose -f ops/docker-compose.production.yml -f ops/docker-compose.deploy.yml ...
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-madworld_db}
+      POSTGRES_USER: ${POSTGRES_USER:-madworld}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    # Published ONLY to the host loopback — PostgreSQL is never exposed to the
+    # internet and no UFW change is required. Containers reach it over the
+    # internal compose network; host-side tooling (migrations/tests/backup)
+    # reaches it via 127.0.0.1:${DB_HOST_PORT}.
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - madworld_pgdata:/var/lib/postgresql/data
+    networks:
+      - madworld_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-madworld} -d ${POSTGRES_DB:-madworld_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    # Resource limits keep headroom for co-tenant services on this shared host.
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    # MadWorld-specific; container is NOT privileged and uses the upstream image
+    # default non-root postgres user.
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    ports:
+      # API container listens on 8000 internally; host maps it to a free port
+      # on loopback only (host 127.0.0.1:8000 is occupied by another project).
+      - "127.0.0.1:${API_HOST_PORT:-8090}:8000"
+    environment:
+      # The Dockerfile sets WORKDIR /app/backend but PYTHONPATH is not set in
+      # the upstream production compose; CI relies on PYTHONPATH=backend. Set it
+      # explicitly so uvicorn / migrator / worker resolve the `app` package.
+      PYTHONPATH: /app/backend
+    # Real readiness probe: /health/ready checks PostgreSQL connectivity and
+    # applied migrations (not just HTTP liveness).
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; r=urllib.request.urlopen('http://127.0.0.1:8000/health/ready',timeout=5); sys.exit(0 if r.status==200 else 1)"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 20s
+    networks:
+      - madworld_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+  world-tick-worker:
+    environment:
+      PYTHONPATH: /app/backend
+    networks:
+      - madworld_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  migrator:
+    environment:
+      PYTHONPATH: /app/backend
+    networks:
+      - madworld_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+networks:
+  madworld_net:
+    name: madworld_net
+    driver: bridge
+
+volumes:
+  madworld_pgdata:
+    name: madworld_pgdata

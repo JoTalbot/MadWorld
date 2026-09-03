@@ -63,16 +63,22 @@ def apply_territory_signal(conn, event_id: UUID, region_id: str, event_type: str
     def apply(data: dict) -> None:
         severity = _bps(int(data.get("severity", 1)), 1, 5)
         disaster = event_type == "disaster"
-        risk = severity * 1200 if disaster else 0
-        extraction = -(severity * 1000) if disaster else 0
-        travel = severity * 800 if disaster else 0
+        # All effect columns are bounded by schema CHECK constraints to
+        # [-5000, 5000] bps (see world_region_effects / territory_modifiers).
+        # Clamp the computed modifiers to those authoritative limits so a
+        # maximum-severity disaster (severity 5 -> raw risk 6000) never violates
+        # the database invariant and aborts the whole world tick.
+        risk = _bps(severity * 1200 if disaster else 0, -5000, 5000)
+        extraction = _bps(-(severity * 1000) if disaster else 0, -5000, 5000)
+        travel = _bps(severity * 800 if disaster else 0, -5000, 5000)
         conn.execute(
             text("""
                 INSERT INTO territory_modifiers
                     (region_id,source_type,source_id,travel_time_bps,travel_risk_bps,extraction_bps,version)
-                SELECT b.gameplay_region_id,'world_event',CAST(:id AS TEXT),:travel,:risk,:extract,0
+                SELECT b.world_region_id,'world_event',CAST(:id AS TEXT),:travel,:risk,:extract,0
                 FROM world_region_bindings b
                 WHERE b.world_region_id=:r
+                  AND EXISTS (SELECT 1 FROM world_regions wr WHERE wr.id=b.world_region_id)
                 ON CONFLICT (region_id,source_type,source_id) DO NOTHING
             """),
             {"r": region_id, "id": event_id, "travel": travel, "risk": risk, "extract": extraction},

@@ -1,0 +1,18 @@
+# MadWorld deployment artifacts and secrets (never commit)
+.env
+*.env
+!.env.example
+backups/
+.venv/
+__pycache__/
+*.pyc
+
+# Deployment evidence / local artifacts (generated on the server, not source)
+deployment-audit.txt
+artifacts/
+FINAL_DEPLOYMENT_REPORT.md
+
+# Android local build outputs (environment-specific)
+android/local.properties
+android/.gradle/
+android/app/build/

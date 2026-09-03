@@ -28,7 +28,11 @@ def test_b2_recovery_is_explicitly_idempotent():
 def test_b2_region_bridge_is_used_for_territory_risk():
     sql = MASTER_SERVICE.read_text()
     assert "world_region_bindings" in sql
-    assert "b.gameplay_region_id" in sql
     # territory_modifiers.region_id references world_regions(id), so risk must
-    # join through the authoritative world-region side of the binding.
+    # be keyed and joined through the authoritative world-region side of the
+    # binding -- never through the gameplay UUID (that was a runtime FK bug).
+    assert "b.world_region_id" in sql
     assert "region_id=b.world_region_id" in sql
+    # The buggy INSERT that keyed territory_modifiers off the gameplay UUID must
+    # not be present (it violated territory_modifiers_region_id_fkey at runtime).
+    assert "SELECT b.gameplay_region_id,world_event" not in sql

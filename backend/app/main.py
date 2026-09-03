@@ -83,6 +83,23 @@ async def value_error_handler(request:Request,exc:ValueError)->JSONResponse:retu
 async def validation_error_handler(request:Request,exc:RequestValidationError)->JSONResponse:return _error_response(request,422,"VALIDATION_ERROR","request validation failed",{"errors":exc.errors()})
 @app.get("/health")
 def health()->dict[str,str]:return {"status":"ok","service":"madworld-api"}
+
+@app.get("/health/ready")
+def ready():
+    """Real readiness probe: verifies PostgreSQL connectivity and that the
+    authoritative schema has been migrated (schema_migrations present)."""
+    from sqlalchemy import text
+    from app.infrastructure.db import create_engine_from_env
+    engine = create_engine_from_env()
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            migrations = conn.execute(text("SELECT COUNT(*) FROM schema_migrations")).scalar()
+        return {"status":"ok","service":"madworld-api","database":"ok","migrations_applied":int(migrations)}
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse(status_code=503,content={"status":"degraded","service":"madworld-api","database":"error","error":str(exc)[:200]})
+    finally:
+        engine.dispose()
 @app.get("/api/v1/world")
 def world()->dict:
     return {"season":1,"tick":0,"regions":[{"id":"dust_basin","name":"Dust Basin","security":"lawless"},{"id":"iron_ruins","name":"Iron Ruins","security":"contested"},{"id":"salt_coast","name":"Salt Coast","security":"frontier"}]}
