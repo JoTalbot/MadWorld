@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
-from typing import Callable
 from uuid import UUID
 
 from sqlalchemy import text
@@ -71,8 +70,9 @@ def apply_territory_signal(conn, event_id: UUID, region_id: str, event_type: str
             text("""
                 INSERT INTO territory_modifiers
                     (region_id,source_type,source_id,travel_time_bps,travel_risk_bps,extraction_bps,version)
-                SELECT :r,'world_event',CAST(:id AS TEXT),:travel,:risk,:extract,0
-                WHERE EXISTS (SELECT 1 FROM world_regions WHERE id=:r)
+                SELECT b.gameplay_region_id,'world_event',CAST(:id AS TEXT),:travel,:risk,:extract,0
+                FROM world_region_bindings b
+                WHERE b.world_region_id=:r
                 ON CONFLICT (region_id,source_type,source_id) DO NOTHING
             """),
             {"r": region_id, "id": event_id, "travel": travel, "risk": risk, "extract": extraction},
@@ -97,7 +97,7 @@ def apply_territory_signal(conn, event_id: UUID, region_id: str, event_type: str
 
 def progress_convoys(conn, current_tick: int) -> int:
     """Advance deterministic convoy lifecycle without touching player assets."""
-    travelling = conn.execute(text("""
+    rows = conn.execute(text("""
         UPDATE world_convoy_events
         SET state=CASE
             WHEN :tick >= travel_ends_tick AND danger_bps >= 8000 THEN 'LOST'
@@ -109,7 +109,7 @@ def progress_convoys(conn, current_tick: int) -> int:
         WHERE state IN ('SPAWNED','TRAVELLING') AND travel_ends_tick IS NOT NULL AND travel_ends_tick <= :tick
         RETURNING id
     """), {"tick": current_tick}).all()
-    return len(travelling)
+    return len(rows)
 
 
 def expire_world_records(conn, current_tick: int) -> dict[str, int]:
@@ -144,14 +144,18 @@ def state_hash(conn, tick: int) -> str:
 
 
 def route_risk_bps(conn, region_id: str, base_risk_bps: int) -> int:
-    """Return bounded route risk after territory/world modifiers."""
+    """Return bounded route risk after world and gameplay-territory modifiers."""
     row = conn.execute(text("""
-        SELECT COALESCE(travel_risk_modifier_bps,0) AS world_risk,
-               COALESCE(travel_risk_bps,0) AS territory_risk
+        SELECT COALESCE(w.travel_risk_modifier_bps,0) AS world_risk,
+               COALESCE(t.travel_risk_bps,0) AS territory_risk
         FROM world_region_effects w
+        LEFT JOIN world_region_bindings b ON b.world_region_id=w.world_region_id
         LEFT JOIN LATERAL (
-          SELECT travel_risk_bps FROM territory_modifiers
-          WHERE region_id=:r ORDER BY version DESC LIMIT 1
+          SELECT travel_risk_bps
+          FROM territory_modifiers
+          WHERE region_id=b.gameplay_region_id
+          ORDER BY version DESC
+          LIMIT 1
         ) t ON TRUE
         WHERE w.world_region_id=:r
     """), {"r": region_id}).mappings().first()
