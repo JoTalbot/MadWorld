@@ -29,9 +29,6 @@ def plan_travel(conn, *, player_id: UUID, vehicle_id: UUID, origin_region_id: UU
 
 
 def depart_travel(conn, *, session_id: UUID) -> dict:
-    # Consume the vehicle's fuel in the same transaction as the state transition.
-    # The active-session unique index prevents two planned/travelling sessions from
-    # racing against the same vehicle, while the fuel predicate prevents overspend.
     fuel_row = conn.execute(text("""
         UPDATE vehicles v
         SET fuel = v.fuel - s.fuel_reserved
@@ -66,7 +63,6 @@ def depart_travel(conn, *, session_id: UUID) -> dict:
         RETURNING id,state,departure_at,arrival_at,route_risk_bps,version,fuel_reserved
     """), {"id": session_id}).mappings().first()
     if not row:
-        # Defensive rollback is handled by the caller's transaction boundary.
         raise ValueError("travel session is no longer planned")
     result = dict(row)
     result["fuel_remaining"] = fuel_row["fuel_remaining"]
@@ -121,11 +117,49 @@ def resolve_encounter(conn, *, encounter_id: UUID, outcome: str) -> dict:
 
 
 def claim_recovery(conn, *, player_id: UUID, case_id: UUID) -> dict:
-    row = conn.execute(text("""
-        UPDATE salvage_recovery_cases SET state='CLAIMED',version=version+1
-        WHERE id=:id AND player_id=:p AND state='AVAILABLE'
-        RETURNING id,vehicle_id,recovery_cost,state,version
+    # Claim and payment share the caller transaction. Locking the wallet row makes
+    # the balance check and debit atomic with concurrent recovery claims.
+    case = conn.execute(text("""
+        SELECT id,vehicle_id,recovery_cost,state
+        FROM salvage_recovery_cases
+        WHERE id=:id AND player_id=:p
+        FOR UPDATE
     """), {"id": case_id, "p": player_id}).mappings().first()
-    if not row:
+    if not case or case["state"] != "AVAILABLE":
         raise ValueError("recovery case unavailable")
+
+    wallet = conn.execute(text("""
+        SELECT id
+        FROM wallets
+        WHERE owner_id=:p
+        FOR UPDATE
+    """), {"p": player_id}).mappings().first()
+    if not wallet:
+        raise ValueError("player wallet not found")
+
+    balance = conn.execute(text("""
+        SELECT COALESCE(SUM(amount), 0) AS balance
+        FROM ledger_entries
+        WHERE wallet_id=:w
+    """), {"w": wallet["id"]}).scalar_one()
+    cost = int(case["recovery_cost"])
+    if balance < cost:
+        raise ValueError("insufficient wallet balance for recovery")
+
+    conn.execute(text("""
+        INSERT INTO ledger_entries(idempotency_key,wallet_id,amount,reason,actor_id)
+        VALUES (:key,:w,:amount,:reason,:actor)
+    """), {
+        "key": f"recovery:{case_id}",
+        "w": wallet["id"],
+        "amount": -cost,
+        "reason": "vehicle_recovery",
+        "actor": player_id,
+    })
+    row = conn.execute(text("""
+        UPDATE salvage_recovery_cases
+        SET state='CLAIMED',version=version+1
+        WHERE id=:id AND state='AVAILABLE'
+        RETURNING id,vehicle_id,recovery_cost,state,version
+    """), {"id": case_id}).mappings().one()
     return dict(row)
