@@ -233,3 +233,11 @@ New product-changing ideas discovered during implementation remain subject to th
 - Google Play readiness checklist added.
 - Final decision record added: **GO AFTER OWNER ACTIONS**.
 - No gameplay/economy coefficient changed.
+
+## Device testing follow-up — 2026-09-03
+
+- Status: **IMPLEMENTED — technical bug fix / developer-experience hardening.**
+- Observed: physical Android device received `Cleartext HTTP traffic to 10.0.2.2 not permitted` because the emulator-only fallback was used on a phone and Android 9+ blocks cleartext HTTP by default.
+- Fix: debug builds now explicitly allow cleartext HTTP for local development; release builds keep cleartext disabled.
+- Physical-device configuration documented: build debug with `-PMADWORLD_API_URL=http://<LAN-IP>:8000`, where `<LAN-IP>` is the reachable address of the development server.
+- Production remains HTTPS-only.
