@@ -7,12 +7,12 @@ ACTIONS = ("ATTACK","DEFEND","EXPAND","RETREAT","TRADE","RAID","ESCORT","SCOUT",
 
 def _clamp(v: int, lo: int, hi: int) -> int: return max(lo, min(hi, v))
 
-def observe(conn, faction_id: UUID, region_id: str) -> dict:
+def observe(conn, faction_id: str, region_id: str) -> dict:
     f=conn.execute(text("SELECT id,name,doctrine,aggression_bps,logistics_bps FROM world_factions WHERE id=:id"),{"id":faction_id}).mappings().one()
     p=conn.execute(text("SELECT resource_type,pressure_bps,trend_bps FROM regional_resource_pressure WHERE region_id=:r ORDER BY pressure_bps DESC"),{"r":region_id}).mappings().all()
     return {"faction":dict(f),"region_id":region_id,"pressure":[dict(x) for x in p]}
 
-def choose_action(conn, faction_id: UUID, region_id: str, tick: int) -> dict:
+def choose_action(conn, faction_id: str, region_id: str, tick: int) -> dict:
     o=observe(conn,faction_id,region_id); f=o["faction"]; pressure=o["pressure"]
     aggression=int(f["aggression_bps"]); logistics=int(f["logistics_bps"]); maxp=max((int(x["pressure_bps"]) for x in pressure),default=0)
     if maxp >= 7000 and logistics < 4000: action="EXPLOIT"
