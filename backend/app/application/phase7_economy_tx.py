@@ -32,10 +32,10 @@ def start_production(conn, owner_id: UUID, facility_id: UUID, recipe_id: UUID, b
     if old:
         return old
     facility = _owned(conn, "production_facilities", facility_id, owner_id)
-    recipe = conn.execute(text("SELECT * FROM production_recipes WHERE id=:id AND enabled=TRUE"), {"id":recipe_id}).mappings().first()
+    recipe = conn.execute(text("SELECT * FROM economy_recipes WHERE id=:id AND enabled=TRUE"), {"id":recipe_id}).mappings().first()
     if recipe is None:
-        raise NotFound("production recipe not found")
-    if facility["facility_type"] != recipe["facility_type"]:
+        raise NotFound("economy recipe not found")
+    if facility["facility_type"] != recipe["facility_code"]:
         raise ValueError("facility type cannot run this recipe")
     if batch > int(facility["capacity_units"]):
         raise ValueError("production batch exceeds facility capacity")
@@ -67,7 +67,7 @@ def complete_production(conn, owner_id: UUID, job_id: UUID):
         return job
     if job["completes_at"] > utc_now():
         raise ValueError("production job completion time has not been reached")
-    recipe = conn.execute(text("SELECT * FROM production_recipes WHERE id=:id AND enabled=TRUE"), {"id":job["recipe_id"]}).mappings().one()
+    recipe = conn.execute(text("SELECT * FROM economy_recipes WHERE id=:id AND enabled=TRUE"), {"id":job["recipe_id"]}).mappings().one()
     facility = conn.execute(text("SELECT * FROM production_facilities WHERE id=:id AND owner_id=:o"), {"id":job["facility_id"],"o":owner_id}).mappings().one()
     warehouse = conn.execute(text("SELECT * FROM warehouses WHERE owner_id=:o AND region_id=:r ORDER BY created_at LIMIT 1 FOR UPDATE"), {"o":owner_id,"r":facility["region_id"]}).mappings().first()
     if warehouse is None:
