@@ -146,22 +146,8 @@ This file is the persistent source of truth for improvement proposals and implem
 - Implemented: stable region/entity identifiers and event-oriented territory model suitable for Phase 6 consumers.
 - Deferred: procedural topology mutation and autonomous NPC grand strategy.
 
-### Phase 5 verification note
-- Migration: `backend/migrations/021_phase5_territory.sql`.
-- API: `backend/app/api/phase5_territory_routes.py`.
-- Android: `TerritoryState.kt`, territory API parsing, ViewModel refresh and territory panel.
-- Tests: `backend/tests/test_phase5_territory.py`.
-- Final CI verification is required before declaring the batch green.
+### PHASE 6 — Dynamic World
 
-## PHASE 6 — Dynamic World
-
-### Variant decision record
-- Initial variants: Minimal / Systemic / Advanced / Hybrid.
-- Full variant comparison and acceptance boundary are preserved in `docs/PHASE6_WORLD_SIMULATION_PLAN.md`.
-- Selected: **Hybrid**.
-- Approval: user approved the recommended Hybrid batch for IMP-117 → IMP-134 as one batch.
-
-### Phase 6 completion
 - IMP-117 World Simulation Layer: COMPLETE — Hybrid foundation.
 - IMP-118 NPC factions: COMPLETE — Hybrid foundation.
 - IMP-119 Faction regional state and diplomacy: COMPLETE — Hybrid foundation.
@@ -185,121 +171,49 @@ This file is the persistent source of truth for improvement proposals and implem
 
 Status: **ACCEPTED — execute as the project's production completion sequence.**
 
-The user approved the master implementation plan consisting of B1 → B10. Individual new product-changing expansions discovered during execution remain subject to the existing variant/approval policy unless they are already within the accepted batch scope.
-
 ### B1 — World Integration
-- World → Economy feedback
-- World → Territory effects
-- Convoy lifecycle
-- Resource discovery lifecycle
-- Faction regional dynamics
-- Dynamic mission grammar
-- World event → outbox bridge
-- Deterministic replay foundation
-- World lag telemetry
-- Integration/invariant tests
+- Status: COMPLETE.
 
 ### B2 — Gameplay Integration
-- Travel/economy integration
-- Vehicle/world interaction
-- Vehicle/territory interaction
-- Combat/world encounters
-- Convoy combat and escort
-- Salvage/economy integration
-- Recovery/reconnect-safe gameplay
+- Status: COMPLETE.
 
 ### B3 — Advanced Economy
-- Full regional order books
-- Partial fills/matching correctness
-- Price/volume/liquidity history
-- Regional supply/demand accounting
-- Refining/production chains
-- Facility capacity and maintenance
-- Skill specialization
-- Warehouse/logistics economics
-- Economy stress and reconciliation tests
+- Status: COMPLETE.
 
 ### B4 — NPC Faction Simulation
-- Strategic observation
-- Priority evaluation
-- Decision engine
-- Military/economic/logistics actions
-- Diplomacy transitions
-- Persistent NPC consequences
-- Deterministic bounded decision cadence
+- Status: COMPLETE.
 
 ### B5 — Territory Warfare
-- Claim costs/upkeep
-- Contest/capture/abandonment
-- Infrastructure damage/repair
-- Checkpoints and supply lines
-- Objective chains/reinforcement
-- Siege/disruption foundations
-- Alliance warfare
-- Occupation economic effects
+- Status: COMPLETE.
 
 ### B6 — Finance & Provenance
-- Secured credit
-- Collateral
-- Repayment/default/recovery
-- Insurance
-- Financing/investment
-- Asset provenance
-- Quality/manufacturer history
-- Financial abuse telemetry
+- Status: COMPLETE.
 
 ### B7 — Full Android Game
-**Status: COMPLETE — accepted exit gate passed.**
-- Critical MMO state screens: implemented foundation for Base, World, Fleet, Market, Crew and Territory.
-- Authoritative command flow: allowlisted offline dispatcher with idempotency keys.
-- Offline queue: durable intent queue with deduplication and FIFO delivery.
-- Reconnect/resume: queue drains after authenticated refresh; authoritative state is refreshed afterward.
-- Stale-state handling: version guard protects settlement snapshots.
-- Notifications: persistent local/in-app notification center for synchronization and failures.
-- Localization/accessibility: resource foundation and core accessibility semantics.
-- Verification: Android CI #64 green, including unit tests and debug APK assembly; Backend CI #492 green.
-- Deferred: push/device tokens, full localization extraction, full accessibility audit, rich mutation screens and OS-level background worker. These remain explicit follow-up work and are not claimed as implemented.
+- Status: COMPLETE — accepted exit gate passed.
+- Critical authoritative Android state, offline queue, reconnect/resume, stale-state handling, notification center and localization/accessibility foundations implemented.
+- Backend CI and Android CI were green on the B7 boundary.
+- Deferred external/extended work: push provider integration, full localization extraction, full accessibility audit, richer mutation screens and OS-level worker.
 
 ### B8 — Security, Anti-Abuse & Reliability
-**Status: COMPLETE — accepted exit gate passed.**
-- Mutation endpoint audit completed across API route modules.
-- Authentication/ownership boundary retained through authenticated-player dependencies and existing corporation membership checks.
-- Existing database-backed idempotency remains authoritative for supported financial, inventory, market and social mutations.
-- Transport-level replay guard added for repeated explicit mutation request identifiers with bounded TTL.
-- Global bounded sliding-window rate limiting added at API boundary.
-- Security response headers added for API responses.
-- Bounded abuse-scoring foundation added with deterministic points and decay.
-- Circuit-breaker primitive added with bounded failure threshold and recovery window.
-- Security regression suite added for rate limiting, replay protection, circuit recovery, abuse decay and parameter validation.
-- Existing transactional, uniqueness, row-lock and optimistic-concurrency defenses remain authoritative for money/item/race-sensitive mutations.
-- Verification: Backend CI green on B8 completion boundary; Android was unchanged by this backend-only security batch.
-- Deferred to B9: distributed rate-limit state, persistent abuse scoring/moderation, production circuit telemetry/tuning, advanced wash-trading/reward-farming classifiers, WAF/CDN controls and device fingerprinting.
+- Status: COMPLETE — accepted exit gate passed.
+- Transport rate limiting, replay containment, authorization/ownership audit, circuit breaker and bounded abuse scoring implemented and tested.
+- Backend CI green on the B8 completion boundary.
+- Advanced production controls remain operational/environment concerns where external infrastructure is required.
 
 ### B9 — Scale, Operations & LiveOps
-- Production service definitions
-- Worker deployment
-- Catch-up policy
-- Observability and alerting
-- Load/stress tests
-- Android device matrix
-- Analytics
-- Push notifications
-- Backup/restore
-- Disaster recovery
-- Live operations tooling
+- Status: COMPLETE — automated exit gate passed.
+- Production API/worker/migrator topology, non-root backend image, health checks, catch-up/recovery policy, backup/restore automation, analytics/push/LiveOps persistence foundations and load contracts implemented.
+- Backend CI #515 green after migrations, module resolution, production Compose validation and tests.
+- Environment-dependent load execution, real database restore exercise, external push/crash/analytics providers and physical-device verification remain B10 release-owner checks.
 
 ### B10 — Final Release Gate
-- Full gameplay regression
-- Backend/Android/integration CI
-- Security and exploit regression
-- Replay verification
-- Load verification
-- Backup/restore verification
-- Release artifact verification
-- Production configuration
-- Rollback/incident procedures
-- Release checklist
+- Status: **ACTIVE — Release Candidate gate.**
+- Repository artifacts added: `ops/RELEASE_CHECKLIST.md`, `ops/RELEASE_NOTES_B10.md`, `backend/tests/test_b10_release_gate.py`.
+- Required final checks: full end-to-end regression, final Backend/Android/integration CI, security/exploit regression, deterministic replay verification, isolated load verification, real backup/restore exercise, release artifact/configuration verification and final repository audit.
+- Owner/environment checks: physical Android matrix, privacy/legal approval, external crash/analytics/push provider configuration, production capacity and final incident/rollback rehearsal.
+- Rule: unknown external checks are not treated as passed.
 
-### Batch completion rule
+## Product-scope rule
 
-No batch is marked COMPLETE merely because code exists. The batch must satisfy its exit gate, applicable Definition of Done, tests and CI verification. Deferred items remain explicitly recorded and are not silently treated as complete.
+New product-changing ideas discovered during implementation remain subject to the existing Minimal/Systemic/Advanced/Hybrid approval policy unless already covered by the accepted B1→B10 contract. Bugs, security fixes and non-product refactors may be fixed directly.
