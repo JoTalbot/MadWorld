@@ -46,6 +46,16 @@ def test_b3_idempotency_rejects_payload_reuse():
     assert "_check_idempotency(old, incoming)" in source
 
 
+def test_b3_production_applies_maintenance_and_skill_modifier():
+    source = (ROOT / "app/application/phase7_economy_tx.py").read_text()
+    assert "production_level FROM player_economic_skills" in source
+    assert "efficiency_bps" in source
+    assert "maintenance_bps" in source
+    assert "skill_level * 25" in source
+    assert "effective_bps = max(1000" in source
+    assert "_production_duration_seconds(conn, owner_id, facility, recipe)" in source
+
+
 def test_b3_logistics_preserves_mass_and_exactly_once_reward():
     source = (ROOT / "app/application/phase7_economy_tx.py").read_text()
     assert "quantity * int(item[\"mass_units\"])" in source
