@@ -14,6 +14,15 @@ def plan_travel(conn, *, player_id: UUID, vehicle_id: UUID, origin_region_id: UU
                 idempotency_key: str) -> dict:
     if duration_seconds <= 0 or fuel_reserved < 0 or cargo_weight < 0:
         raise ValueError("invalid travel plan")
+    vehicle = conn.execute(text("""
+        SELECT id,cargo_capacity,state
+        FROM vehicles
+        WHERE id=:v AND owner_id=:p
+    """), {"v": vehicle_id, "p": player_id}).mappings().first()
+    if not vehicle:
+        raise ValueError("vehicle not found or not owned by player")
+    if cargo_weight > vehicle["cargo_capacity"]:
+        raise ValueError("cargo weight exceeds vehicle capacity")
     risk = route_risk_bps(conn, world_region_id, base_risk_bps)
     row = conn.execute(text("""
         INSERT INTO player_travel_sessions
@@ -146,7 +155,7 @@ def resolve_encounter(conn, *, encounter_id: UUID, outcome: str) -> dict:
 
 def claim_recovery(conn, *, player_id: UUID, case_id: UUID) -> dict:
     case = conn.execute(text("""
-        SELECT id,vehicle_id,recovery_cost,state
+        SELECT id,vehicle_id,recovery_cost,state,version
         FROM salvage_recovery_cases
         WHERE id=:id AND player_id=:p
         FOR UPDATE
