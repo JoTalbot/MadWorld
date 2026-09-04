@@ -82,11 +82,12 @@ jobs:
             "$GITHUB_WORKSPACE/" \
             "${TARGET}:${REMOTE_WORKDIR}/"
 
+          ssh "${SSH_OPTS[@]}" "$TARGET" "printf '%s\\n' '${GITHUB_SHA}' > $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha && chmod 644 $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha"
+
       - name: Verify deployed revision and files
         shell: bash
         run: |
           set -euo pipefail
-          # Keep SSH credentials until all remote verification steps have completed.
           SSH_OPTS=(
             -i "$RUNNER_TEMP/deploy_key"
             -p "${SSH_PORT:-22}"
@@ -96,8 +97,9 @@ jobs:
             -o ConnectTimeout=20
           )
           TARGET="${SSH_USER}@${SSH_HOST}"
+          EXPECTED_SHA="${GITHUB_SHA}"
 
-          ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"${GITHUB_SHA}\" && test -f AGENTS.md && test -f .github/remote-operator/COMMANDS.txt && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf '%s\\n' 'remote-operator-queue-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\""
+          ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && actual=\$(cat .github-deployed-sha 2>/dev/null || true) && test \"\$actual\" = \"$EXPECTED_SHA\" && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"\$actual\" && test -f AGENTS.md && test -f .github/remote-operator/COMMANDS.txt && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf '%s\\n' 'remote-operator-queue-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\""
 
       - name: Cleanup SSH credentials
         if: always()
@@ -118,6 +120,7 @@ jobs:
             echo "- **Target:** \`${REMOTE_WORKDIR}\`"
             echo '- **Mode:** repository → server file sync'
             echo '- **Deletes:** disabled; server-only files are preserved'
+            echo '- **Deployment marker:** exact GitHub SHA written and verified'
             echo '- **Remote-operator queue:** explicitly verified'
             echo '- **Remote-operator result/state-only pushes:** ignored'
           } >> "$GITHUB_STEP_SUMMARY"
