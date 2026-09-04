@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-192532-timeout",
+  "attempt_id": "cmd-20260904-192532-timeout-attempt-20260904T192615Z-180850",
+  "status": "TIMEOUT",
+  "exit_code": 124,
+  "started_at": "2026-09-04T19:26:15Z",
+  "finished_at": "2026-09-04T19:27:30Z",
+  "duration_seconds": 75,
+  "executor": "arm-server-01",
+  "command": "printf 'TIMEOUT_TEST_STARTED\\n'\nsleep 90\n"
+}

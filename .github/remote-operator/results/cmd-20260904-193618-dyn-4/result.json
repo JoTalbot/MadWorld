@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-193618-dyn-4",
+  "attempt_id": "cmd-20260904-193618-dyn-4-attempt-20260904T193619Z-205226",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:36:19Z",
+  "finished_at": "2026-09-04T19:36:31Z",
+  "duration_seconds": 12,
+  "executor": "arm-server-01",
+  "command": "printf 'DYN4_START=%s\\n' \"$(date +%s)\"\nsleep 12\nprintf 'DYN4_END=%s\\n' \"$(date +%s)\"\n"
+}

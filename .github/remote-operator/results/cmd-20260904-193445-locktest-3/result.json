@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-193445-locktest-3",
+  "attempt_id": "cmd-20260904-193445-locktest-3-attempt-20260904T193445Z-197080",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:34:45Z",
+  "finished_at": "2026-09-04T19:34:54Z",
+  "duration_seconds": 9,
+  "executor": "arm-server-01",
+  "command": "printf 'LOCKTEST3_START=%s\\n' \"$(date +%s)\"\nsleep 8\nprintf 'LOCKTEST3_END=%s\\n' \"$(date +%s)\"\n"
+}

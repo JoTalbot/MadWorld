@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-193105-reg-cancel",
+  "attempt_id": "cmd-20260904-193105-reg-cancel-attempt-20260904T193113Z-188138",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:31:14Z",
+  "finished_at": "2026-09-04T19:31:34Z",
+  "duration_seconds": 20,
+  "executor": "arm-server-01",
+  "command": "printf 'CANCEL_STARTED\\n'\nsleep 20\nprintf 'CANCEL_FINISHED\\n'\n"
+}

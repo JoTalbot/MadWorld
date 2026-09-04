@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-192015-e2e-final",
+  "attempt_id": "cmd-20260904-192015-e2e-final-attempt-20260904T192016Z-171582",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:20:16Z",
+  "finished_at": "2026-09-04T19:20:17Z",
+  "duration_seconds": 1,
+  "executor": "arm-server-01",
+  "command": "printf 'MADWORLD_REMOTE_OPERATOR_OK\\n'\nprintf 'USER=%s\\n' \"$(id -un)\"\nprintf 'HOST=%s\\n' \"$(hostname -s)\"\n"
+}

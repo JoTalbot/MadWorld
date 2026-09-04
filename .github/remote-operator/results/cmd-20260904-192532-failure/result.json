@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-192532-failure",
+  "attempt_id": "cmd-20260904-192532-failure-attempt-20260904T192610Z-180705",
+  "status": "FAILED",
+  "exit_code": 7,
+  "started_at": "2026-09-04T19:26:10Z",
+  "finished_at": "2026-09-04T19:26:11Z",
+  "duration_seconds": 1,
+  "executor": "arm-server-01",
+  "command": "printf 'FAILURE_TEST\\n'\nexit 7\n"
+}

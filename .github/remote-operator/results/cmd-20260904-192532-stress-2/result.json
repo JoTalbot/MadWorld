@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-192532-stress-2",
+  "attempt_id": "cmd-20260904-192532-stress-2-attempt-20260904T192534Z-178913",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:25:34Z",
+  "finished_at": "2026-09-04T19:25:42Z",
+  "duration_seconds": 8,
+  "executor": "arm-server-01",
+  "command": "printf 'STRESS_2_START=%s\\n' \"$(date +%s)\"\nsleep 8\nprintf 'STRESS_2_END=%s\\n' \"$(date +%s)\"\n"
+}

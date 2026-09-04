@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-193331-live-2",
+  "attempt_id": "cmd-20260904-193331-live-2-attempt-20260904T193331Z-190981",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:33:31Z",
+  "finished_at": "2026-09-04T19:33:39Z",
+  "duration_seconds": 8,
+  "executor": "arm-server-01",
+  "command": "printf 'LIVE2_START=%s\\n' \"$(date +%s)\"\nsleep 8\nprintf 'LIVE2_END=%s\\n' \"$(date +%s)\"\n"
+}

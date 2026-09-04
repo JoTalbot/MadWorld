@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-194301-production-parallel-3",
+  "attempt_id": "cmd-20260904-194301-production-parallel-3-attempt-20260904T194302Z-230950",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:43:02Z",
+  "finished_at": "2026-09-04T19:43:11Z",
+  "duration_seconds": 9,
+  "executor": "arm-server-01",
+  "command": "printf 'PROD_PAR_3_START=%s\\n' \"$(date +%s)\"\nsleep 8\nprintf 'PROD_PAR_3_END=%s\\n' \"$(date +%s)\"\n"
+}
