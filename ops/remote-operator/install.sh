@@ -20,8 +20,12 @@ if command -v apt-get >/dev/null 2>&1; then
 fi
 
 install -m 0644 "$ROOT/madworld-remote-operator.service" /etc/systemd/system/madworld-remote-operator.service
+install -m 0644 "$ROOT/madworld-remote-operator-sync.service" /etc/systemd/system/madworld-remote-operator-sync.service
+install -m 0644 "$ROOT/madworld-remote-operator-sync.timer" /etc/systemd/system/madworld-remote-operator-sync.timer
 systemctl daemon-reload
 systemctl enable --now madworld-remote-operator.service
+systemctl enable --now madworld-remote-operator-sync.timer
 systemctl --no-pager --full status madworld-remote-operator.service || true
+systemctl --no-pager --full status madworld-remote-operator-sync.timer || true
 
 echo 'REMOTE_OPERATOR_INSTALLED'
