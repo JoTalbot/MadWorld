@@ -1,0 +1,143 @@
+name: Remote Operator Reusable
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: Arbitrary shell command or multiline bash script
+        required: true
+        type: string
+      timeout_minutes:
+        description: Maximum execution time
+        required: false
+        default: 30
+        type: number
+      workdir:
+        description: Remote working directory
+        required: false
+        default: ''
+        type: string
+      cleanup:
+        description: Cleanup temporary remote files
+        required: false
+        default: true
+        type: boolean
+    secrets: {}
+
+permissions:
+  contents: read
+
+jobs:
+  execute:
+    name: Execute remote command as root
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      SSH_HOST: ${{ secrets.REMOTE_SSH_HOST }}
+      SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
+      SSH_USER: ${{ secrets.REMOTE_SSH_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.REMOTE_SSH_PRIVATE_KEY }}
+      SSH_HOST_KEY: ${{ secrets.REMOTE_SSH_HOST_KEY }}
+      REMOTE_WORKDIR: ${{ secrets.REMOTE_WORKDIR }}
+      INPUT_COMMAND: ${{ inputs.command }}
+      INPUT_TIMEOUT: ${{ inputs.timeout_minutes }}
+      INPUT_WORKDIR: ${{ inputs.workdir }}
+      INPUT_CLEANUP: ${{ inputs.cleanup }}
+
+    steps:
+      - name: Validate configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${SSH_HOST:-}" ]] || { echo 'REMOTE_SSH_HOST is not configured' >&2; exit 2; }
+          [[ -n "${SSH_USER:-}" ]] || { echo 'REMOTE_SSH_USER is not configured' >&2; exit 2; }
+          [[ -n "${SSH_PRIVATE_KEY:-}" ]] || { echo 'REMOTE_SSH_PRIVATE_KEY is not configured' >&2; exit 2; }
+          [[ -n "${SSH_HOST_KEY:-}" ]] || { echo 'REMOTE_SSH_HOST_KEY is not configured' >&2; exit 2; }
+          [[ -n "${INPUT_COMMAND:-}" ]] || { echo 'command is required' >&2; exit 2; }
+          [[ "${INPUT_TIMEOUT}" =~ ^[0-9]+$ && "${INPUT_TIMEOUT}" -gt 0 ]] || { echo 'timeout_minutes must be positive' >&2; exit 2; }
+
+      - name: Execute and collect result
+        shell: bash
+        run: |
+          set -uo pipefail
+          start_epoch=$(date +%s)
+          started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          local_tmp="$RUNNER_TEMP/remote-operator"
+          mkdir -p "$local_tmp"
+          key_file="$local_tmp/key"
+          known_hosts="$local_tmp/known_hosts"
+          trap 'rm -f "$key_file" "$known_hosts"' EXIT
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$key_file"
+          printf '%s\n' "$SSH_HOST_KEY" > "$known_hosts"
+          chmod 600 "$key_file" "$known_hosts"
+
+          ssh_opts=(-i "$key_file" -p "${SSH_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=3)
+          target="${SSH_USER}@${SSH_HOST}"
+          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR:-$HOME}}"
+          printf -v qworkdir '%q' "$workdir"
+          printf -v qcommand '%q' "$INPUT_COMMAND"
+
+          set +e
+          timeout --signal=TERM --kill-after=30s "${INPUT_TIMEOUT}m" ssh "${ssh_opts[@]}" "$target" "cd $qworkdir && if [[ \$(id -u) -eq 0 ]]; then bash -lc $qcommand; else sudo -n bash -lc $qcommand; fi" >"$local_tmp/stdout.log" 2>"$local_tmp/stderr.log"
+          rc=$?
+          set -e
+
+          status=SUCCESS
+          [[ $rc -eq 0 ]] || status=FAILED
+          if [[ $rc -eq 124 || $rc -eq 137 ]]; then
+            status=TIMEOUT
+            printf '%s\n' 'Remote command exceeded timeout.' >> "$local_tmp/stderr.log"
+          fi
+
+          finished_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          duration=$(( $(date +%s) - start_epoch ))
+          python3 - "$local_tmp/result.json" "$status" "$rc" "$started_at" "$finished_at" "$duration" "$SSH_HOST" "$workdir" <<'PY'
+import json, sys
+path, status, rc, started, finished, duration, server, workdir = sys.argv[1:]
+d = {
+  'status': status,
+  'operation': 'command',
+  'mode': 'sync',
+  'server': server,
+  'workdir': workdir,
+  'run_as': 'root',
+  'started_at': started,
+  'finished_at': finished,
+  'duration_seconds': int(duration),
+  'exit_code': int(rc),
+}
+json.dump(d, open(path, 'w', encoding='utf-8'), indent=2)
+print(json.dumps(d, indent=2))
+PY
+
+          cp "$local_tmp/result.json" result.json
+          cp "$local_tmp/stdout.log" stdout.log
+          cp "$local_tmp/stderr.log" stderr.log
+          {
+            echo '## Remote Operator Result'
+            echo
+            cat result.json
+            echo
+            echo '### stdout (tail)'
+            echo '```text'
+            tail -n 80 stdout.log || true
+            echo '```'
+            echo '### stderr (tail)'
+            echo '```text'
+            tail -n 80 stderr.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remote-operator-result
+          path: |
+            result.json
+            stdout.log
+            stderr.log
+          if-no-files-found: error
+          retention-days: 14
