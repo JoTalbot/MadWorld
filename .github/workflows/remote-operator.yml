@@ -143,24 +143,19 @@ done'
             command_text="$INPUT_COMMAND"
           fi
 
-          # The configured SSH account is only the transport identity. Every
-          # actual command is executed with EUID 0. If SSH already lands as
-          # root, run bash directly; otherwise require non-interactive sudo.
-          # This intentionally fails closed instead of silently running as a
-          # non-root user.
-          root_exec='if [[ "$(id -u)" -eq 0 ]]; then exec bash -lc "$1"; else exec sudo -n bash -lc "$1"; fi'
+          # SSH_USER is only the transport identity. The payload itself MUST
+          # execute with EUID 0. If SSH already lands as root, use bash; for a
+          # non-root SSH account require passwordless sudo and fail closed.
+          run_root_sync() {
+            local qworkdir qcommand
+            printf -v qworkdir '%q' "$workdir"
+            printf -v qcommand '%q' "$command_text"
+            ssh "${ssh_opts[@]}" "$target" "cd $qworkdir && if [[ \$(id -u) -eq 0 ]]; then bash -lc $qcommand; else sudo -n bash -lc $qcommand; fi"
+          }
 
           if [[ "$INPUT_MODE" == sync ]]; then
             set +e
-            printf '%s' "$command_text" | ssh "${ssh_opts[@]}" "$target" "cd $(printf '%q' "$workdir") && bash -s -- $(printf '%q' "$command_text") <<'REMOTE_ROOT_WRAPPER'
-set -euo pipefail
-command_text="$1"
-if [[ "$(id -u)" -eq 0 ]]; then
-  exec bash -lc "$command_text"
-else
-  exec sudo -n bash -lc "$command_text"
-fi
-REMOTE_ROOT_WRAPPER" >"$local_tmp/stdout.log" 2>"$local_tmp/stderr.log"
+            run_root_sync >"$local_tmp/stdout.log" 2>"$local_tmp/stderr.log"
             rc=$?
             set -e
             finished_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
