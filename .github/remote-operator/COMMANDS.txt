@@ -157,3 +157,33 @@ MODE: sync
 COMMAND:
 set -e; echo DISK_SPACE_START; echo ROOT=$(df -h / | awk 'NR==2{print $4 " free (" $5 " used)"}'); echo MADWORLD=$(df -h /opt/madworld | awk 'NR==2{print $4 " free (" $5 " used)"}'); echo HOME=$(df -h /home/ubuntu | awk 'NR==2{print $4 " free (" $5 " used)"}'); echo DISK_SPACE_OK
 ---
+COMMAND_ID: cmd-20260905-140000-server-status-tree
+STATUS: PENDING
+AGENT: chatgpt-server-status-tree
+TIMEOUT_MINUTES: 3
+MODE: sync
+COMMAND:
+set -euo pipefail
+printf '%s\n' 'SERVER_STATUS_TREE_START'
+printf 'HOST=%s\n' "$(hostname)"
+printf 'USER=%s\n' "$(id -un)"
+printf 'ARCH=%s\n' "$(uname -m)"
+printf 'KERNEL=%s\n' "$(uname -sr)"
+printf 'UPTIME=%s\n' "$(uptime -p)"
+printf 'LOAD=%s\n' "$(cut -d' ' -f1-3 /proc/loadavg)"
+printf 'MEMORY=%s\n' "$(free -h | awk '/Mem:/{print $3 "/" $2 " used, " $7 " available"}')"
+printf 'DISK_ROOT=%s\n' "$(df -h / | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")"}')"
+printf 'DISK_MADWORLD=%s\n' "$(df -h /opt/madworld | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")"}')"
+printf 'OPERATOR=%s\n' "$(systemctl is-active madworld-remote-operator.service)"
+printf 'OPERATOR_ENABLED=%s\n' "$(systemctl is-enabled madworld-remote-operator.service)"
+printf 'SYNC_TIMER=%s\n' "$(systemctl is-active madworld-remote-operator-sync.timer)"
+printf 'SYNC_TIMER_ENABLED=%s\n' "$(systemctl is-enabled madworld-remote-operator-sync.timer)"
+printf 'FAILED_UNITS=%s\n' "$(systemctl --failed --no-legend | wc -l)"
+printf '%s\n' '===FILESYSTEM_TOP=== '
+find / -mindepth 1 -maxdepth 1 -xdev -printf '%p\n' 2>/dev/null | sort
+printf '%s\n' '===MADWORLD_TREE=== '
+if command -v tree >/dev/null 2>&1; then tree -a -L 3 -I '.git|state|results' /opt/madworld 2>/dev/null; else find /opt/madworld -maxdepth 3 -print | sort; fi
+printf '%s\n' '===HOME_TREE=== '
+if command -v tree >/dev/null 2>&1; then tree -a -L 2 -I '.cache|.local/share/Trash|.gradle|.android|.hermes/hermes-venv' /home/ubuntu 2>/dev/null; else find /home/ubuntu -maxdepth 2 -print | sort; fi
+printf '%s\n' 'SERVER_STATUS_TREE_OK'
+---
