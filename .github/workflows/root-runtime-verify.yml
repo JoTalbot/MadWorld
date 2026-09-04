@@ -1,29 +1,32 @@
 name: Root Runtime Verification
 
 on:
-  workflow_run:
-    workflows:
-      - Deploy on Push
-    types:
-      - completed
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/remote-operator/state/**'
+      - '.github/remote-operator/results/**'
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
   verify:
-    name: Verify server root runtime
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    name: Verify server root runtime after deployment
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      EXPECTED_SHA: ${{ github.sha }}
       SSH_HOST: ${{ secrets.REMOTE_SSH_HOST }}
       SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
       SSH_USER: ${{ secrets.REMOTE_SSH_USER }}
       SSH_PRIVATE_KEY: ${{ secrets.REMOTE_SSH_PRIVATE_KEY }}
       SSH_HOST_KEY: ${{ secrets.REMOTE_SSH_HOST_KEY }}
       REMOTE_WORKDIR: ${{ secrets.REMOTE_WORKDIR }}
-      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
 
     steps:
       - name: Validate configuration
@@ -36,7 +39,26 @@ jobs:
           [[ -n "${SSH_HOST_KEY:-}" ]] || { echo 'REMOTE_SSH_HOST_KEY is not configured' >&2; exit 2; }
           [[ -n "${REMOTE_WORKDIR:-}" ]] || { echo 'REMOTE_WORKDIR is not configured' >&2; exit 2; }
           [[ "${REMOTE_WORKDIR}" == /* ]] || { echo 'REMOTE_WORKDIR must be an absolute path' >&2; exit 2; }
-          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo 'workflow_run head_sha is invalid' >&2; exit 2; }
+          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo 'github.sha is invalid' >&2; exit 2; }
+
+      - name: Wait for matching successful deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          deadline=$(( $(date +%s) + 600 ))
+          while (( $(date +%s) < deadline )); do
+            run_json=$(gh run list --repo "$REPOSITORY" --workflow deploy-on-push.yml --event push --limit 30 --json databaseId,headSha,status,conclusion --jq '.[] | select(.headSha == "'"$EXPECTED_SHA"'" and .status == "completed")' | head -n1 || true)
+            if [[ -n "$run_json" ]]; then
+              conclusion=$(printf '%s' "$run_json" | jq -r '.conclusion // empty')
+              echo "DEPLOY_RUN_ID=$(printf '%s' "$run_json" | jq -r '.databaseId')"
+              echo "DEPLOY_CONCLUSION=$conclusion"
+              [[ "$conclusion" == success ]] || { echo 'Matching deployment did not succeed.' >&2; exit 1; }
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Timed out waiting for matching deployment.' >&2
+          exit 1
 
       - name: Execute root verification
         shell: bash
@@ -68,7 +90,8 @@ jobs:
           python3 - "$tmp/result.json" "$status" "$rc" "$start" "$SSH_HOST" "$REMOTE_WORKDIR" "$EXPECTED_SHA" "$run_as" <<'PY'
 import json,sys,time
 path,status,rc,start,server,workdir,expected_sha,run_as=sys.argv[1:]
-d={'status':status,'operation':'root-runtime-verification','mode':'sync','server':server,'workdir':workdir,'expected_deployed_sha':expected_sha,'run_as':run_as,'started_epoch':int(start),'finished_epoch':int(time.time()),'duration_seconds':int(time.time())-int(start),'exit_code':int(rc)}
+now=int(time.time())
+d={'status':status,'operation':'root-runtime-verification','mode':'sync','server':server,'workdir':workdir,'expected_deployed_sha':expected_sha,'run_as':run_as,'started_epoch':int(start),'finished_epoch':now,'duration_seconds':now-int(start),'exit_code':int(rc)}
 json.dump(d,open(path,'w',encoding='utf-8'),indent=2)
 print(json.dumps(d,indent=2))
 PY
