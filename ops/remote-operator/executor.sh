@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT=${REMOTE_OPERATOR_ROOT:-$(cd "$(dirname "$0")" && pwd)}
 PROJECT_ROOT=${REMOTE_OPERATOR_PROJECT_ROOT:-$(cd "$ROOT/../.." && pwd)}
 QUEUE="$PROJECT_ROOT/.github/remote-operator/COMMANDS.txt"
+REQUEST_DIR="$PROJECT_ROOT/.github/remote-operator/REQUESTS"
 STATE_ROOT="$PROJECT_ROOT/.github/remote-operator/state"
 RESULT_ROOT="$PROJECT_ROOT/.github/remote-operator/results"
 MAX_CONCURRENCY=${REMOTE_OPERATOR_MAX_CONCURRENCY:-4}
@@ -86,31 +87,34 @@ PY
 }
 
 parse_queue() {
-  python3 - "$QUEUE" "$STATE_ROOT" <<'PY'
-import base64,json,os,re,sys
-queue,state_root=sys.argv[1],sys.argv[2]
-s=open(queue,encoding='utf-8').read()
+  python3 - "$QUEUE" "$REQUEST_DIR" "$STATE_ROOT" <<'PY'
+import base64,json,glob,os,re,sys
+queue,request_dir,state_root=sys.argv[1:]
+paths=[queue]+sorted(glob.glob(os.path.join(request_dir,'*.txt')))
 terminal={'DONE','FAILED','TIMEOUT','CANCELLED','INTERRUPTED','INVALID'}
 busy={'CLAIMED','RUNNING'}
-for block in re.split(r'(?m)^---\s*$',s):
-    m=re.search(r'(?m)^COMMAND_ID:\s*(\S+)',block)
-    st=re.search(r'(?m)^STATUS:\s*(\S+)',block)
-    if not m or not st or st.group(1)!='PENDING': continue
-    cid=m.group(1)
-    if not re.fullmatch(r'cmd-[0-9]{8}-[0-9]{6}-[A-Za-z0-9._-]+',cid): continue
-    state_path=os.path.join(state_root,cid+'.json')
-    if os.path.isfile(state_path):
-        try:
-            with open(state_path,encoding='utf-8') as f: current=json.load(f).get('status')
-        except Exception: continue
-        if current in terminal or current in busy: continue
-    tm=re.search(r'(?m)^TIMEOUT_MINUTES:\s*(\d+)',block)
-    md=re.search(r'(?m)^MODE:\s*(\S+)',block)
-    cm=re.search(r'(?ms)^COMMAND:\s*\n(.*?)(?:\n---\s*$|\Z)',block)
-    if not cm: continue
-    command=cm.group(1).strip('\n')
-    if not command: continue
-    print(cid,tm.group(1) if tm else '30',md.group(1) if md else 'sync',base64.b64encode(command.encode()).decode(),sep='\t')
+for path in paths:
+    if not os.path.isfile(path): continue
+    s=open(path,encoding='utf-8').read()
+    for block in re.split(r'(?m)^---\s*$',s):
+        m=re.search(r'(?m)^COMMAND_ID:\s*(\S+)',block)
+        st=re.search(r'(?m)^STATUS:\s*(\S+)',block)
+        if not m or not st or st.group(1)!='PENDING': continue
+        cid=m.group(1)
+        if not re.fullmatch(r'cmd-[0-9]{8}-[0-9]{6}-[A-Za-z0-9._-]+',cid): continue
+        state_path=os.path.join(state_root,cid+'.json')
+        if os.path.isfile(state_path):
+            try:
+                with open(state_path,encoding='utf-8') as f: current=json.load(f).get('status')
+            except Exception: continue
+            if current in terminal or current in busy: continue
+        tm=re.search(r'(?m)^TIMEOUT_MINUTES:\s*(\d+)',block)
+        md=re.search(r'(?m)^MODE:\s*(\S+)',block)
+        cm=re.search(r'(?ms)^COMMAND:\s*\n(.*?)(?:\n---\s*$|\Z)',block)
+        if not cm: continue
+        command=cm.group(1).strip('\n')
+        if not command: continue
+        print(cid,tm.group(1) if tm else '30',md.group(1) if md else 'sync',base64.b64encode(command.encode()).decode(),sep='\t')
 PY
 }
 
