@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-214800-ssh-smoke",
+  "attempt_id": "cmd-20260904-214800-ssh-smoke-attempt-20260904T214951Z-756027",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T21:49:51Z",
+  "finished_at": "2026-09-04T21:49:51Z",
+  "duration_seconds": 0,
+  "executor": "arm-server-01",
+  "command": "set -e; echo SSH_REMOTE_OPERATOR_START; echo HOST=$(hostname); echo USER=$(id -un); echo UID=$(id -u); echo PWD=$(pwd); echo SSH_REMOTE_OPERATOR_OK\n"
+}

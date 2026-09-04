@@ -1,0 +1,14 @@
+{
+  "command_id": "cmd-20260904-214800-ssh-smoke",
+  "attempt_id": "cmd-20260904-214800-ssh-smoke-attempt-20260904T214951Z-756027",
+  "status": "DONE",
+  "executor": "arm-server-01",
+  "claimed_at": "2026-09-04T21:49:51Z",
+  "started_at": "2026-09-04T21:49:51Z",
+  "timeout_minutes": 2,
+  "pid": 756052,
+  "finished_at": "2026-09-04T21:49:51Z",
+  "duration_seconds": 0,
+  "exit_code": 0,
+  "result_path": ".github/remote-operator/results/cmd-20260904-214800-ssh-smoke/result.md"
+}
