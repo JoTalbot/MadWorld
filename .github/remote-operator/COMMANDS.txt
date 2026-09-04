@@ -72,9 +72,9 @@ AGENT: production-final
 TIMEOUT_MINUTES: 1
 MODE: sync
 COMMAND:
-printf 'PROD_PAR_1_START=%s\n' "$(date +%s)"
+printf 'PROD_PAR_1_START=%s\\n' "$(date +%s)"
 sleep 8
-printf 'PROD_PAR_1_END=%s\n' "$(date +%s)"
+printf 'PROD_PAR_1_END=%s\\n' "$(date +%s)"
 ---
 COMMAND_ID: cmd-20260904-194301-production-parallel-2
 STATUS: PENDING
@@ -82,9 +82,9 @@ AGENT: production-final
 TIMEOUT_MINUTES: 1
 MODE: sync
 COMMAND:
-printf 'PROD_PAR_2_START=%s\n' "$(date +%s)"
+printf 'PROD_PAR_2_START=%s\\n' "$(date +%s)"
 sleep 8
-printf 'PROD_PAR_2_END=%s\n' "$(date +%s)"
+printf 'PROD_PAR_2_END=%s\\n' "$(date +%s)"
 ---
 COMMAND_ID: cmd-20260904-194301-production-parallel-3
 STATUS: PENDING
@@ -92,9 +92,9 @@ AGENT: production-final
 TIMEOUT_MINUTES: 1
 MODE: sync
 COMMAND:
-printf 'PROD_PAR_3_START=%s\n' "$(date +%s)"
+printf 'PROD_PAR_3_START=%s\\n' "$(date +%s)"
 sleep 8
-printf 'PROD_PAR_3_END=%s\n' "$(date +%s)"
+printf 'PROD_PAR_3_END=%s\\n' "$(date +%s)"
 ---
 COMMAND_ID: cmd-20260904-194301-production-parallel-4
 STATUS: PENDING
@@ -102,9 +102,9 @@ AGENT: production-final
 TIMEOUT_MINUTES: 1
 MODE: sync
 COMMAND:
-printf 'PROD_PAR_4_START=%s\n' "$(date +%s)"
+printf 'PROD_PAR_4_START=%s\\n' "$(date +%s)"
 sleep 8
-printf 'PROD_PAR_4_END=%s\n' "$(date +%s)"
+printf 'PROD_PAR_4_END=%s\\n' "$(date +%s)"
 ---
 COMMAND_ID: cmd-20260904-194301-production-late
 STATUS: PENDING
@@ -112,9 +112,9 @@ AGENT: production-final
 TIMEOUT_MINUTES: 1
 MODE: sync
 COMMAND:
-printf 'PROD_LATE_START=%s\n' "$(date +%s)"
+printf 'PROD_LATE_START=%s\\n' "$(date +%s)"
 sleep 2
-printf 'PROD_LATE_END=%s\n' "$(date +%s)"
+printf 'PROD_LATE_END=%s\\n' "$(date +%s)"
 ---
 COMMAND_ID: cmd-20260905-135000-server-health
 STATUS: PENDING
@@ -123,4 +123,12 @@ TIMEOUT_MINUTES: 2
 MODE: sync
 COMMAND:
 set -e; echo SERVER_HEALTH_START; echo HOST=$(hostname); echo USER=$(id -un); echo UID=$(id -u); echo PWD=$(pwd); echo KERNEL=$(uname -sr); echo ARCH=$(uname -m); echo UPTIME=$(uptime -p); echo DISK=$(df -h /opt/madworld | awk 'NR==2{print $5 "," $4 " free"}'); echo MEMORY=$(free -h | awk '/Mem:/{print $7 " available"}'); echo OPERATOR=$(systemctl is-active madworld-remote-operator.service); echo OPERATOR_ENABLED=$(systemctl is-enabled madworld-remote-operator.service); echo SYNC_TIMER=$(systemctl is-active madworld-remote-operator-sync.timer); echo SYNC_ENABLED=$(systemctl is-enabled madworld-remote-operator-sync.timer); echo FAILED_UNITS=$(systemctl --failed --no-legend | wc -l); echo SERVER_HEALTH_OK
+---
+COMMAND_ID: cmd-20260905-005600-server-status
+STATUS: PENDING
+AGENT: chatgpt-server-status
+TIMEOUT_MINUTES: 2
+MODE: sync
+COMMAND:
+set -e; echo SERVER_STATUS_START; echo HOST=$(hostname); echo USER=$(id -un); echo UID=$(id -u); echo PWD=$(pwd); echo KERNEL=$(uname -sr); echo ARCH=$(uname -m); echo UPTIME=$(uptime -p); echo LOAD=$(cut -d' ' -f1-3 /proc/loadavg); echo DISK=$(df -h /opt/madworld | awk 'NR==2{print $5 "," $4 " free"}'); echo MEMORY=$(free -h | awk '/Mem:/{print $3 "/" $2 "," $7 " available"}'); echo OPERATOR=$(systemctl is-active madworld-remote-operator.service); echo SYNC_TIMER=$(systemctl is-active madworld-remote-operator-sync.timer); echo FAILED_UNITS=$(systemctl --failed --no-legend | wc -l); echo GIT_HEAD=$(git rev-parse HEAD); echo GIT_MAIN=$(git rev-parse origin/main 2>/dev/null || echo unknown); echo SERVER_STATUS_OK
 ---
