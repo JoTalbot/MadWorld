@@ -57,6 +57,18 @@ Inputs:
 - `workdir`: optional remote working directory
 - `cleanup`: cleanup for completed async jobs
 
+### Root execution guarantee
+
+Remote Operator command payloads are executed with effective UID 0.
+
+- If the SSH account already connects as root, the payload runs directly under `bash`.
+- If the SSH account is non-root, execution requires non-interactive `sudo` (`sudo -n`) and fails closed when passwordless sudo is unavailable.
+- Both `sync` and `async` execution paths use the same root requirement.
+- The transport SSH identity is not treated as proof of execution privilege. Verification must inspect the returned `USER`/`EUID` and the command result.
+- `REMOTE_WORKDIR` remains the default working directory; root execution must not silently change it to `/root`.
+
+A workflow being queued or started is not evidence that a server command actually ran as root. The terminal result, exit code, stdout/stderr and, where applicable, `result.json` must be checked.
+
 ## Server-side queue executor
 
 The production server also runs the Remote Operator queue executor as a systemd service.
