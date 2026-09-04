@@ -172,8 +172,8 @@ printf 'KERNEL=%s\n' "$(uname -sr)"
 printf 'UPTIME=%s\n' "$(uptime -p)"
 printf 'LOAD=%s\n' "$(cut -d' ' -f1-3 /proc/loadavg)"
 printf 'MEMORY=%s\n' "$(free -h | awk '/Mem:/{print $3 "/" $2 " used, " $7 " available}')"
-printf 'DISK_ROOT=%s\n' "$(df -h / | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")}')"
-printf 'DISK_MADWORLD=%s\n' "$(df -h /opt/madworld | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")}')"
+printf 'DISK_ROOT=%s\n' "$(df -h / | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")"}')"
+printf 'DISK_MADWORLD=%s\n' "$(df -h /opt/madworld | awk 'NR==2{print $3 "/" $2 "," $4 " free (" $5 ")"}')"
 printf 'OPERATOR=%s\n' "$(systemctl is-active madworld-remote-operator.service)"
 printf 'OPERATOR_ENABLED=%s\n' "$(systemctl is-enabled madworld-remote-operator.service)"
 printf 'SYNC_TIMER=%s\n' "$(systemctl is-active madworld-remote-operator-sync.timer)"
@@ -248,4 +248,28 @@ docker compose -f /opt/madworld/docker-compose.yml ps 2>&1 || docker ps --format
 printf '%s\n' 'API_PORTS='
 ss -lntp 2>/dev/null | grep -E ':(80|443|8000|8090|5432|5433)\\b' || true
 printf '%s\n' 'PRODUCTION_PROXY_CHECK_END'
+---
+COMMAND_ID: cmd-20260905-143000-nginx-cert-permission-diagnose
+STATUS: PENDING
+AGENT: chatgpt-nginx-fix
+CREATED_AT: 2026-09-05T23:00:00Z
+TIMEOUT_MINUTES: 3
+MODE: sync
+COMMAND:
+set -u
+printf '%s\n' 'NGINX_CERT_PERMISSION_DIAGNOSE_START'
+printf 'HOST=%s\n' "$(hostname)"
+printf '%s\n' 'CERT_FILES='
+find /etc/nginx/ssl -maxdepth 1 -type f -printf '%M %u:%g %p\\n' 2>/dev/null | sort || true
+printf '%s\n' 'NGINX_USER_CONFIG='
+awk '/^[[:space:]]*user[[:space:]]/{print}' /etc/nginx/nginx.conf 2>/dev/null || true
+printf '%s\n' 'CERT_PATHS='
+grep -RInE 'ssl_certificate(_key)?[[:space:]]+' /etc/nginx 2>/dev/null | head -80 || true
+printf '%s\n' 'SERVICE_USER='
+ps -eo user,group,pid,comm,args | grep '[n]ginx' | head -20 || true
+printf '%s\n' 'PARENT_DIR_PERMS='
+namei -l /etc/nginx/ssl/api.autosklo.org.ua.origin.key 2>&1 || true
+printf '%s\n' 'NGINX_TEST='
+nginx -t 2>&1 || true
+printf '%s\n' 'NGINX_CERT_PERMISSION_DIAGNOSE_END'
 ---
