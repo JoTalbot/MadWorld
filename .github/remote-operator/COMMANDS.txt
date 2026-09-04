@@ -171,9 +171,9 @@ printf 'ARCH=%s\n' "$(uname -m)"
 printf 'KERNEL=%s\n' "$(uname -sr)"
 printf 'UPTIME=%s\n' "$(uptime -p)"
 printf 'LOAD=%s\n' "$(cut -d' ' -f1-3 /proc/loadavg)"
-printf 'MEMORY=%s\n' "$(free -h | awk '/Mem:/{print $3 "/" $2 " used, " $7 " available"}')"
-printf 'DISK_ROOT=%s\n' "$(df -h / | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")"}')"
-printf 'DISK_MADWORLD=%s\n' "$(df -h /opt/madworld | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")"}')"
+printf 'MEMORY=%s\n' "$(free -h | awk '/Mem:/{print $3 "/" $2 " used, " $7 " available}')"
+printf 'DISK_ROOT=%s\n' "$(df -h / | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")}')"
+printf 'DISK_MADWORLD=%s\n' "$(df -h /opt/madworld | awk 'NR==2{print $3 "/" $2 " used, " $4 " free (" $5 ")}')"
 printf 'OPERATOR=%s\n' "$(systemctl is-active madworld-remote-operator.service)"
 printf 'OPERATOR_ENABLED=%s\n' "$(systemctl is-enabled madworld-remote-operator.service)"
 printf 'SYNC_TIMER=%s\n' "$(systemctl is-active madworld-remote-operator-sync.timer)"
@@ -186,4 +186,27 @@ if command -v tree >/dev/null 2>&1; then tree -a -L 3 -I '.git|state|results' /o
 printf '%s\n' '===HOME_TREE=== '
 if command -v tree >/dev/null 2>&1; then tree -a -L 2 -I '.cache|.local/share/Trash|.gradle|.android|.hermes/hermes-venv' /home/ubuntu 2>/dev/null; else find /home/ubuntu -maxdepth 2 -print | sort; fi
 printf '%s\n' 'SERVER_STATUS_TREE_OK'
+---
+COMMAND_ID: cmd-20260905-140500-server-runtime-final
+STATUS: PENDING
+AGENT: chatgpt-final-runtime
+CREATED_AT: 2026-09-05T14:05:00Z
+TIMEOUT_MINUTES: 5
+MODE: sync
+COMMAND:
+set -euo pipefail
+printf '%s\n' 'RUNTIME_FINAL_START'
+printf 'HOST=%s\n' "$(hostname)"
+printf 'NOW=%s\n' "$(date -u +%FT%TZ)"
+printf 'GIT_HEAD=%s\n' "$(git -C /opt/madworld rev-parse HEAD 2>/dev/null || echo unknown)"
+printf 'GIT_MAIN=%s\n' "$(git -C /opt/madworld rev-parse origin/main 2>/dev/null || echo unknown)"
+printf 'GIT_STATUS=%s\n' "$(git -C /opt/madworld status --short --branch 2>/dev/null || echo unknown)"
+printf 'HEALTH='; curl -fsS --max-time 10 http://127.0.0.1/health 2>&1 || true; printf '\n'
+printf 'READINESS='; curl -fsS --max-time 10 http://127.0.0.1/health/ready 2>&1 || true; printf '\n'
+printf '%s\n' 'CONTAINERS='
+docker compose -f /opt/madworld/docker-compose.yml ps 2>&1 || docker ps --format '{{.Names}} {{.Status}}'
+printf '%s\n' 'FAILED_UNITS='; systemctl --failed --no-legend 2>&1 || true
+printf '%s\n' 'OPERATOR='; systemctl is-active madworld-remote-operator.service 2>&1 || true
+printf '%s\n' 'SYNC_TIMER='; systemctl is-active madworld-remote-operator-sync.timer 2>&1 || true
+printf '%s\n' 'RUNTIME_FINAL_END'
 ---
