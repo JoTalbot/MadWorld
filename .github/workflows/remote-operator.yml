@@ -94,7 +94,7 @@ jobs:
           echo "KEY_FILE=$key_file" >> "$GITHUB_ENV"
           echo "KNOWN_HOSTS=$known_hosts" >> "$GITHUB_ENV"
 
-      - name: Execute remote command
+      - name: Execute remote command as root
         id: execute
         shell: bash
         env:
@@ -104,7 +104,7 @@ jobs:
           start_epoch=$(date +%s)
           started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           ssh_port="${SSH_PORT_EFFECTIVE:-22}"
-          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR:-$HOME}}"
+          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR:-/root}}"
           job_id="gha-${GH_RUN_ID}-${GH_RUN_ATTEMPT}"
           local_tmp="$RUNNER_TEMP/remote-operator-$job_id"
           mkdir -p "$local_tmp"
@@ -128,7 +128,7 @@ printf "=== REMOTE_OPERATOR_DIAGNOSTICS ===\\n"
 printf "OS: "; ( . /etc/os-release 2>/dev/null && printf "%s %s\\n" "${NAME:-unknown}" "${VERSION_ID:-unknown}" ) || true
 printf "HOSTNAME: "; hostname || true
 printf "USER: "; id || true
-printf "KERNEL: "; uname -a || true
+printf "EUID: "; id -u || true
 printf "PWD: "; pwd || true
 printf "CPU: "; (nproc 2>/dev/null || true)
 printf "RAM: "; (free -h 2>/dev/null || true)
@@ -143,9 +143,24 @@ done'
             command_text="$INPUT_COMMAND"
           fi
 
+          # The configured SSH account is only the transport identity. Every
+          # actual command is executed with EUID 0. If SSH already lands as
+          # root, run bash directly; otherwise require non-interactive sudo.
+          # This intentionally fails closed instead of silently running as a
+          # non-root user.
+          root_exec='if [[ "$(id -u)" -eq 0 ]]; then exec bash -lc "$1"; else exec sudo -n bash -lc "$1"; fi'
+
           if [[ "$INPUT_MODE" == sync ]]; then
             set +e
-            printf '%s' "$command_text" | ssh "${ssh_opts[@]}" "$target" "cd $(printf '%q' "$workdir") && bash -lc $(printf '%q' "$command_text")" >"$local_tmp/stdout.log" 2>"$local_tmp/stderr.log"
+            printf '%s' "$command_text" | ssh "${ssh_opts[@]}" "$target" "cd $(printf '%q' "$workdir") && bash -s -- $(printf '%q' "$command_text") <<'REMOTE_ROOT_WRAPPER'
+set -euo pipefail
+command_text="$1"
+if [[ "$(id -u)" -eq 0 ]]; then
+  exec bash -lc "$command_text"
+else
+  exec sudo -n bash -lc "$command_text"
+fi
+REMOTE_ROOT_WRAPPER" >"$local_tmp/stdout.log" 2>"$local_tmp/stderr.log"
             rc=$?
             set -e
             finished_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -162,6 +177,7 @@ done'
             "job_id":"$job_id",
             "server":"$SSH_HOST",
             "workdir":$(printf '%s' "$workdir" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),
+            "run_as":"root",
             "started_at":"$started_at",
             "finished_at":"$finished_at",
             "duration_seconds":$duration,
@@ -171,8 +187,8 @@ done'
           EOF
           else
             payload_b64=$(printf '%s' "$command_text" | base64 -w0)
-            remote_dir="${REMOTE_WORKDIR:-$HOME}/.gha-remote-operator/$job_id"
-            ssh "${ssh_opts[@]}" "$target" "mkdir -p $(printf '%q' "$remote_dir") && printf '%s' $(printf '%q' "$payload_b64") | base64 -d > $(printf '%q' "$remote_dir/command.sh") && chmod 700 $(printf '%q' "$remote_dir/command.sh") && (cd $(printf '%q' "$workdir") && bash $(printf '%q' "$remote_dir/command.sh") >$(printf '%q' "$remote_dir/stdout.log") 2>$(printf '%q' "$remote_dir/stderr.log"); printf '%s\\n' \$? >$(printf '%q' "$remote_dir/exit_code")) </dev/null >/dev/null 2>&1 & echo \$! >$(printf '%q' "$remote_dir/pid")"
+            remote_dir="${REMOTE_WORKDIR:-/root}/.gha-remote-operator/$job_id"
+            ssh "${ssh_opts[@]}" "$target" "mkdir -p $(printf '%q' "$remote_dir") && printf '%s' $(printf '%q' "$payload_b64") | base64 -d > $(printf '%q' "$remote_dir/command.sh") && chmod 700 $(printf '%q' "$remote_dir/command.sh") && (cd $(printf '%q' "$workdir") && if [[ \$(id -u) -eq 0 ]]; then bash $(printf '%q' "$remote_dir/command.sh") >$(printf '%q' "$remote_dir/stdout.log") 2>$(printf '%q' "$remote_dir/stderr.log"); else sudo -n bash $(printf '%q' "$remote_dir/command.sh") >$(printf '%q' "$remote_dir/stdout.log") 2>$(printf '%q' "$remote_dir/stderr.log"); fi; printf '%s\\n' \$? >$(printf '%q' "$remote_dir/exit_code")) </dev/null >/dev/null 2>&1 & echo \$! >$(printf '%q' "$remote_dir/pid")"
             deadline=$(( $(date +%s) + INPUT_TIMEOUT*60 ))
             rc=125
             status=TIMEOUT
@@ -203,6 +219,7 @@ done'
             "job_id":"$job_id",
             "server":"$SSH_HOST",
             "workdir":$(printf '%s' "$workdir" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),
+            "run_as":"root",
             "started_at":"$started_at",
             "finished_at":"$finished_at",
             "duration_seconds":$duration,
@@ -224,6 +241,7 @@ done'
             echo "- **Mode:** $INPUT_MODE"
             echo "- **Server:** $SSH_HOST"
             echo "- **Workdir:** $workdir"
+            echo "- **Run as:** root (EUID 0 required)"
             echo "- **Exit code:** $rc"
             echo "- **Job ID:** $job_id"
             echo
