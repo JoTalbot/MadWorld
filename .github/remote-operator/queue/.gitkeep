@@ -1,0 +1,3 @@
+Queue directory for Remote Operator command files.
+
+Each command must have a unique ID and follow QUEUE.md.
