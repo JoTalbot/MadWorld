@@ -1,0 +1,11 @@
+[Unit]
+Description=MadWorld Remote Operator Result Sync Timer
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+Persistent=true
+Unit=madworld-remote-operator-sync.service
+
+[Install]
+WantedBy=timers.target
