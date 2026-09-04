@@ -65,3 +65,53 @@ Different COMMAND_ID values may run concurrently. A worker must claim only one u
 ## IMPORTANT
 
 This file is the single human/agent-facing command queue. Do not use `.github/remote-operator/COMMAND.txt` for new requests. New requests belong at the END of `COMMANDS.txt`.
+---
+COMMAND_ID: cmd-20260904-194301-production-parallel-1
+STATUS: PENDING
+AGENT: production-final
+TIMEOUT_MINUTES: 1
+MODE: sync
+COMMAND:
+printf 'PROD_PAR_1_START=%s\n' "$(date +%s)"
+sleep 8
+printf 'PROD_PAR_1_END=%s\n' "$(date +%s)"
+---
+COMMAND_ID: cmd-20260904-194301-production-parallel-2
+STATUS: PENDING
+AGENT: production-final
+TIMEOUT_MINUTES: 1
+MODE: sync
+COMMAND:
+printf 'PROD_PAR_2_START=%s\n' "$(date +%s)"
+sleep 8
+printf 'PROD_PAR_2_END=%s\n' "$(date +%s)"
+---
+COMMAND_ID: cmd-20260904-194301-production-parallel-3
+STATUS: PENDING
+AGENT: production-final
+TIMEOUT_MINUTES: 1
+MODE: sync
+COMMAND:
+printf 'PROD_PAR_3_START=%s\n' "$(date +%s)"
+sleep 8
+printf 'PROD_PAR_3_END=%s\n' "$(date +%s)"
+---
+COMMAND_ID: cmd-20260904-194301-production-parallel-4
+STATUS: PENDING
+AGENT: production-final
+TIMEOUT_MINUTES: 1
+MODE: sync
+COMMAND:
+printf 'PROD_PAR_4_START=%s\n' "$(date +%s)"
+sleep 8
+printf 'PROD_PAR_4_END=%s\n' "$(date +%s)"
+---
+COMMAND_ID: cmd-20260904-194301-production-late
+STATUS: PENDING
+AGENT: production-final
+TIMEOUT_MINUTES: 1
+MODE: sync
+COMMAND:
+printf 'PROD_LATE_START=%s\n' "$(date +%s)"
+sleep 2
+printf 'PROD_LATE_END=%s\n' "$(date +%s)"
