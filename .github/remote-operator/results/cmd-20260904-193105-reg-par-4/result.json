@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-193105-reg-par-4",
+  "attempt_id": "cmd-20260904-193105-reg-par-4-attempt-20260904T193105Z-187813",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:31:06Z",
+  "finished_at": "2026-09-04T19:31:09Z",
+  "duration_seconds": 3,
+  "executor": "arm-server-01",
+  "command": "printf 'PAR_4_START=%s\\n' \"$(date +%s)\"\nsleep 3\nprintf 'PAR_4_END=%s\\n' \"$(date +%s)\"\n"
+}

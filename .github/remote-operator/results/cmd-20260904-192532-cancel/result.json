@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-192532-cancel",
+  "attempt_id": "cmd-20260904-192532-cancel-attempt-20260904T192547Z-179288",
+  "status": "CANCELLED",
+  "exit_code": 130,
+  "started_at": "2026-09-04T19:25:47Z",
+  "finished_at": "2026-09-04T19:26:03Z",
+  "duration_seconds": 16,
+  "executor": "arm-server-01",
+  "command": "printf 'CANCEL_TEST_STARTED\\n'\nsleep 60\nprintf 'CANCEL_TEST_FINISHED\\n'\n"
+}

@@ -1,0 +1,14 @@
+{
+  "command_id": "cmd-20260904-194301-production-late",
+  "attempt_id": "cmd-20260904-194301-production-late-attempt-20260904T194332Z-233072",
+  "status": "DONE",
+  "executor": "arm-server-01",
+  "claimed_at": "2026-09-04T19:43:32Z",
+  "started_at": "2026-09-04T19:43:32Z",
+  "timeout_minutes": 1,
+  "pid": 233123,
+  "finished_at": "2026-09-04T19:43:34Z",
+  "duration_seconds": 2,
+  "exit_code": 0,
+  "result_path": ".github/remote-operator/results/cmd-20260904-194301-production-late/result.md"
+}

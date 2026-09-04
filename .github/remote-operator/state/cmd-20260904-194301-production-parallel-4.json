@@ -1,0 +1,14 @@
+{
+  "command_id": "cmd-20260904-194301-production-parallel-4",
+  "attempt_id": "cmd-20260904-194301-production-parallel-4-attempt-20260904T194302Z-230958",
+  "status": "DONE",
+  "executor": "arm-server-01",
+  "claimed_at": "2026-09-04T19:43:02Z",
+  "started_at": "2026-09-04T19:43:02Z",
+  "timeout_minutes": 1,
+  "pid": 231093,
+  "finished_at": "2026-09-04T19:43:10Z",
+  "duration_seconds": 8,
+  "exit_code": 0,
+  "result_path": ".github/remote-operator/results/cmd-20260904-194301-production-parallel-4/result.md"
+}

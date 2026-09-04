@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-193618-dyn-late",
+  "attempt_id": "cmd-20260904-193618-dyn-late-attempt-20260904T194004Z-224157",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T19:40:04Z",
+  "finished_at": "2026-09-04T19:40:04Z",
+  "duration_seconds": 0,
+  "executor": "arm-server-01",
+  "command": "printf 'LATE_OK=%s\\n' \"$(date +%s)\"\n"
+}
