@@ -42,9 +42,6 @@ PY
   state="$STATE_ROOT/$id.json"
   attempt="${id}-attempt-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 
-  # Do NOT acquire state.lock here. state-manager.sh opens the same lock and
-  # performs the atomic PENDING -> CLAIMED operation. Holding it here causes a
-  # self-deadlock when state-manager tries to claim the command.
   if ! "$ROOT/state-manager.sh" claim "$state" "$id" "$attempt" "$EXECUTOR_ID" >/dev/null 2>&1; then
     continue
   fi
@@ -61,10 +58,14 @@ PY
   setsid bash "$work/command.sh" >"$work/stdout.log" 2>"$work/stderr.log" &
   pid=$!
   deadline=$((start_epoch + timeout*60))
-  rc=124
-  status=TIMEOUT
+  rc=0
+  status=RUNNING
+  timed_out=0
   while kill -0 "$pid" 2>/dev/null; do
     if (( $(date +%s) >= deadline )); then
+      timed_out=1
+      rc=124
+      status=TIMEOUT
       printf '%s\n' "TIMEOUT after ${timeout} minutes" >> "$work/stderr.log"
       kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
       sleep "$GRACE_SECONDS"
@@ -73,16 +74,22 @@ PY
     fi
     sleep 1
   done
-  wait "$pid" 2>/dev/null; observed=$?
+  wait "$pid" 2>/dev/null
+  observed=$?
   set -e
+
   finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   duration=$(( $(date +%s)-start_epoch ))
-  if [[ "$status" != TIMEOUT ]]; then
+  if (( timed_out == 0 )); then
     rc=$observed
-    status=DONE
-    [[ $rc -eq 0 ]] || status=FAILED
+    if [[ "$rc" -eq 0 ]]; then
+      status=DONE
+    else
+      status=FAILED
+    fi
   fi
+
   "$ROOT/result-manager.sh" "$RESULT_ROOT" "$id" "$attempt" "$status" "$rc" "$started" "$finished" "$duration" "$work/command.sh" "$work/stdout.log" "$work/stderr.log" "$EXECUTOR_ID"
-  "$ROOT/state-manager.sh" transition "$state" RUNNING "$status" "{\"finished_at\":\"$finished\",\"duration_seconds\":$duration,\"exit_code\":$rc,\"result_path\":\".github/remote-operator/results/$id/$attempt/result.md\"}" >/dev/null
+  "$ROOT/state-manager.sh" transition "$state" RUNNING "$status" "{\"finished_at\":\"$finished\",\"duration_seconds\":$duration,\"exit_code\":$rc,\"result_path\":\".github/remote-operator/results/$id/result.md\"}" >/dev/null
   rm -rf "$work"
 done
