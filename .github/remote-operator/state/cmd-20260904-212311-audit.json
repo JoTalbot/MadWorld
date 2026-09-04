@@ -1,0 +1,14 @@
+{
+  "command_id": "cmd-20260904-212311-audit",
+  "attempt_id": "cmd-20260904-212311-audit-attempt-20260904T212312Z-675382",
+  "status": "FAILED",
+  "executor": "arm-server-01",
+  "claimed_at": "2026-09-04T21:23:12Z",
+  "started_at": "2026-09-04T21:23:12Z",
+  "timeout_minutes": 10,
+  "pid": 675415,
+  "finished_at": "2026-09-04T21:23:13Z",
+  "duration_seconds": 1,
+  "exit_code": 1,
+  "result_path": ".github/remote-operator/results/cmd-20260904-212311-audit/result.md"
+}

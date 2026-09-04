@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-212311-audit",
+  "attempt_id": "cmd-20260904-212311-audit-attempt-20260904T212312Z-675382",
+  "status": "FAILED",
+  "exit_code": 1,
+  "started_at": "2026-09-04T21:23:12Z",
+  "finished_at": "2026-09-04T21:23:13Z",
+  "duration_seconds": 1,
+  "executor": "arm-server-01",
+  "command": "  cd /opt/madworld\n  set -e\n  echo \"=== MADWORLD PRODUCTION AUDIT ===\"\n  date -u\n  echo \"=== GIT ===\"\n  git fetch origin main\n  echo \"HEAD=$(git rev-parse HEAD)\"\n  echo \"ORIGIN=$(git rev-parse origin/main)\"\n  test \"$(git rev-parse HEAD)\" = \"$(git rev-parse origin/main)\"\n  echo \"GIT_SYNC=PASS\"\n  echo \"=== SERVICE ===\"\n  systemctl is-active madworld-remote-operator.service\n  echo \"=== TIMER ===\"\n  systemctl is-active madworld-remote-operator-sync.timer\n  echo \"=== EXECUTOR ===\"\n  pgrep -af '/opt/madworld/ops/remote-operator/executor.sh' || echo \"EXECUTOR_IDLE\"\n  echo \"=== LOCK ===\"\n  flock -n .github/remote-operator/state/executor.lock -c 'echo LOCK=FREE'\n  echo \"=== QUEUE ===\"\n  echo \"COMMANDS=$(grep -c \"^COMMAND_ID:\" .github/remote-operator/COMMANDS.txt || true)\"\n  echo \"PENDING=$(grep -c \"^STATUS: PENDING$\" .github/remote-operator/COMMANDS.txt || true)\"\n  echo \"=== SYNTAX ===\"\n  for f in ops/remote-operator/*.sh; do bash -n \"$f\"; done\n  echo \"SHELL_SYNTAX=PASS\"\n  echo \"=== DISK ===\"\n  df -h /opt/madworld\n  echo \"=== MEMORY ===\"\n  free -h\n  echo \"=== FAILED ===\"\n  systemctl --failed --no-legend || true\n  echo \"=== AUDIT COMPLETE ===\"\n"
+}
