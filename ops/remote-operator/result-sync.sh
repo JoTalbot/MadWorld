@@ -5,6 +5,7 @@ PROJECT_ROOT=${REMOTE_OPERATOR_PROJECT_ROOT:-/opt/madworld}
 STATE_ROOT="$PROJECT_ROOT/.github/remote-operator/state"
 RESULT_ROOT="$PROJECT_ROOT/.github/remote-operator/results"
 LOCK_FILE="$STATE_ROOT/result-sync.lock"
+RESULT_BRANCH=${REMOTE_OPERATOR_RESULT_BRANCH:-remote-operator-results}
 MAX_ATTEMPTS=${REMOTE_OPERATOR_SYNC_MAX_ATTEMPTS:-3}
 
 mkdir -p "$STATE_ROOT" "$RESULT_ROOT"
@@ -24,17 +25,21 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$PROJECT_ROOT"
-
 git fetch origin main
+git fetch origin "$RESULT_BRANCH" >/dev/null 2>&1 || true
 
 for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
     cd "$PROJECT_ROOT"
-
     git worktree prune >/dev/null 2>&1 || true
     rm -rf -- "$WORKTREE"
 
-    if ! git worktree add --detach "$WORKTREE" origin/main >/dev/null 2>&1; then
-        git worktree prune >/dev/null 2>&1 || true
+    if ! git show-ref --verify --quiet "refs/remotes/origin/$RESULT_BRANCH"; then
+        git fetch origin "$RESULT_BRANCH" >/dev/null 2>&1 || true
+    fi
+
+    if git show-ref --verify --quiet "refs/remotes/origin/$RESULT_BRANCH"; then
+        git worktree add --detach "$WORKTREE" "origin/$RESULT_BRANCH" >/dev/null
+    else
         git worktree add --detach "$WORKTREE" origin/main >/dev/null
     fi
 
@@ -57,7 +62,6 @@ for name in ("state", "results"):
     for path in src.rglob("*"):
         if not path.is_file() or path.name.endswith(".lock"):
             continue
-
         rel = path.relative_to(src)
         target = dst / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -65,7 +69,6 @@ for name in ("state", "results"):
 PY
 
     cd "$WORKTREE"
-
     git add .github/remote-operator/state .github/remote-operator/results
 
     if git diff --cached --quiet; then
@@ -76,13 +79,13 @@ PY
         -c user.email="remote-operator@localhost" \
         commit -m "chore(remote-operator): record command execution result" >/dev/null
 
-    if git push origin HEAD:main; then
+    if git push origin HEAD:"$RESULT_BRANCH"; then
         exit 0
     fi
 
     cd "$PROJECT_ROOT"
     git worktree prune >/dev/null 2>&1 || true
-    git fetch origin main
+    git fetch origin "$RESULT_BRANCH" >/dev/null 2>&1 || true
     sleep "$attempt"
 done
 
