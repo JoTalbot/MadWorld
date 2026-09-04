@@ -5,8 +5,8 @@ set -euo pipefail
 #   state-manager.sh claim <state-file> <command-id> <attempt-id> <executor>
 #   state-manager.sh transition <state-file> <expected> <new-state> <metadata-json>
 
-STATE_FILE=${2:-}
 ACTION=${1:-}
+STATE_FILE=${2:-}
 
 [[ -n "$STATE_FILE" ]] || { echo 'state file is required' >&2; exit 2; }
 
@@ -20,7 +20,11 @@ with_lock() {
 }
 
 claim() {
-  local command_id=$2 attempt_id=$3 executor=$4 now
+  local command_id=$3 attempt_id=$4 executor=$5 now
+  [[ -n "$command_id" && -n "$attempt_id" && -n "$executor" ]] || {
+    echo 'claim requires state-file command-id attempt-id executor' >&2
+    return 2
+  }
   now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   if [[ -f "$STATE_FILE" ]]; then
     local state
@@ -44,7 +48,11 @@ PY
 }
 
 transition() {
-  local expected=$2 new_state=$3 metadata=$4
+  local expected=$3 new_state=$4 metadata=$5
+  [[ -n "$expected" && -n "$new_state" ]] || {
+    echo 'transition requires state-file expected new-state metadata-json' >&2
+    return 2
+  }
   python3 - "$STATE_FILE" "$expected" "$new_state" "$metadata" <<'PY'
 import json,sys,os,tempfile
 p,expected,new_state,metadata=sys.argv[1:]
