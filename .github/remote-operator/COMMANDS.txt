@@ -132,3 +132,12 @@ MODE: sync
 COMMAND:
 set -e; echo SERVER_STATUS_START; echo HOST=$(hostname); echo USER=$(id -un); echo UID=$(id -u); echo PWD=$(pwd); echo KERNEL=$(uname -sr); echo ARCH=$(uname -m); echo UPTIME=$(uptime -p); echo LOAD=$(cut -d' ' -f1-3 /proc/loadavg); echo DISK=$(df -h /opt/madworld | awk 'NR==2{print $5 "," $4 " free"}'); echo MEMORY=$(free -h | awk '/Mem:/{print $3 "/" $2 "," $7 " available"}'); echo OPERATOR=$(systemctl is-active madworld-remote-operator.service); echo SYNC_TIMER=$(systemctl is-active madworld-remote-operator-sync.timer); echo FAILED_UNITS=$(systemctl --failed --no-legend | wc -l); echo GIT_HEAD=$(git rev-parse HEAD); echo GIT_MAIN=$(git rev-parse origin/main 2>/dev/null || echo unknown); echo SERVER_STATUS_OK
 ---
+---
+COMMAND_ID: cmd-20260904-220600-home-tree
+STATUS: PENDING
+AGENT: chatgpt-home-tree
+TIMEOUT_MINUTES: 2
+MODE: sync
+COMMAND:
+set -e; cd /home/ubuntu; echo HOME=/home/ubuntu; echo ===TREE===; if command -v tree >/dev/null 2>&1; then tree -a -L 3 -I '.cache|.local/share/Trash'; else find . -maxdepth 3 -print | sort; fi
+---
