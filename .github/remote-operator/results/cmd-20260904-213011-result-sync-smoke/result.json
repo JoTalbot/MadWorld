@@ -1,0 +1,11 @@
+{
+  "command_id": "cmd-20260904-213011-result-sync-smoke",
+  "attempt_id": "cmd-20260904-213011-result-sync-smoke-attempt-20260904T213012Z-697571",
+  "status": "DONE",
+  "exit_code": 0,
+  "started_at": "2026-09-04T21:30:12Z",
+  "finished_at": "2026-09-04T21:30:12Z",
+  "duration_seconds": 0,
+  "executor": "arm-server-01",
+  "command": "echo RESULT_SYNC_SMOKE_START\ndate -u\necho RESULT_SYNC_SMOKE_OK\n"
+}
