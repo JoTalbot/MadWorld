@@ -22,7 +22,19 @@ on:
         required: false
         default: true
         type: boolean
-    secrets: {}
+    secrets:
+      REMOTE_SSH_HOST:
+        required: true
+      REMOTE_SSH_PORT:
+        required: true
+      REMOTE_SSH_USER:
+        required: true
+      REMOTE_SSH_PRIVATE_KEY:
+        required: true
+      REMOTE_SSH_HOST_KEY:
+        required: true
+      REMOTE_WORKDIR:
+        required: true
 
 permissions:
   contents: read
@@ -53,6 +65,8 @@ jobs:
           [[ -n "${SSH_USER:-}" ]] || { echo 'REMOTE_SSH_USER is not configured' >&2; exit 2; }
           [[ -n "${SSH_PRIVATE_KEY:-}" ]] || { echo 'REMOTE_SSH_PRIVATE_KEY is not configured' >&2; exit 2; }
           [[ -n "${SSH_HOST_KEY:-}" ]] || { echo 'REMOTE_SSH_HOST_KEY is not configured' >&2; exit 2; }
+          [[ -n "${REMOTE_WORKDIR:-}" ]] || { echo 'REMOTE_WORKDIR is not configured' >&2; exit 2; }
+          [[ "${REMOTE_WORKDIR}" == /* ]] || { echo 'REMOTE_WORKDIR must be an absolute path' >&2; exit 2; }
           [[ -n "${INPUT_COMMAND:-}" ]] || { echo 'command is required' >&2; exit 2; }
           [[ "${INPUT_TIMEOUT}" =~ ^[0-9]+$ && "${INPUT_TIMEOUT}" -gt 0 ]] || { echo 'timeout_minutes must be positive' >&2; exit 2; }
 
@@ -74,7 +88,7 @@ jobs:
 
           ssh_opts=(-i "$key_file" -p "${SSH_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=3)
           target="${SSH_USER}@${SSH_HOST}"
-          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR:-$HOME}}"
+          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR}}"
           printf -v qworkdir '%q' "$workdir"
           printf -v qcommand '%q' "$INPUT_COMMAND"
 
