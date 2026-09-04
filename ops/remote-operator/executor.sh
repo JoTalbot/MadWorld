@@ -14,31 +14,40 @@ EXECUTOR_ID=${REMOTE_OPERATOR_EXECUTOR_ID:-$(hostname -s)}
 mkdir -p "$STATE_ROOT" "$RESULT_ROOT"
 [[ -f "$QUEUE" ]] || exit 0
 
-running=$(find "$STATE_ROOT" -name '*.json' -type f -print0 | xargs -0 -r python3 -c 'import json,sys; print(sum(json.load(open(p,encoding="utf-8")).get("status")=="RUNNING" for p in sys.argv[1:]))')
-(( running < MAX_CONCURRENCY )) || exit 0
-
-python3 - "$QUEUE" <<'PY' | while IFS=$'\t' read -r id timeout mode command; do
-import re,sys
+# Queue parser emits one base64-encoded command per record, so multiline Bash
+# commands cannot corrupt the record stream. Documentation/template IDs are
+# ignored. Claiming is delegated to state-manager.sh, which owns the lock.
+python3 - "$QUEUE" <<'PY' | while IFS=$'\t' read -r id timeout mode encoded; do
+import base64,re,sys
 p=sys.argv[1]
 s=open(p,encoding='utf-8').read()
 for block in re.split(r'(?m)^---\s*$',s):
     m=re.search(r'(?m)^COMMAND_ID:\s*(\S+)',block)
     st=re.search(r'(?m)^STATUS:\s*(\S+)',block)
-    if not m or not st or st.group(1)!='PENDING': continue
+    if not m or not st or st.group(1)!='PENDING':
+        continue
+    cid=m.group(1)
+    if not re.fullmatch(r'cmd-[0-9]{8}-[0-9]{6}-[A-Za-z0-9._-]+',cid):
+        continue
     tm=re.search(r'(?m)^TIMEOUT_MINUTES:\s*(\d+)',block)
     md=re.search(r'(?m)^MODE:\s*(\S+)',block)
     cm=re.search(r'(?ms)^COMMAND:\s*\n(.*?)(?:\n---\s*$|\Z)',block)
-    if not cm: continue
+    if not cm:
+        continue
     command=cm.group(1).strip('\n')
-    print(m.group(1),tm.group(1) if tm else '30',md.group(1) if md else 'sync',command.replace('\t',' '),sep='\t')
+    encoded=base64.b64encode(command.encode()).decode()
+    print(cid,tm.group(1) if tm else '30',md.group(1) if md else 'sync',encoded,sep='\t')
 PY
+  command=$(printf '%s' "$encoded" | base64 -d)
   state="$STATE_ROOT/$id.json"
-  lock="$state.lock"
-  exec 8>"$lock"
-  if ! flock -n 8; then continue; fi
-  if [[ -f "$state" ]] && ! grep -q '"status": "PENDING"' "$state"; then continue; fi
   attempt="${id}-attempt-$(date -u +%Y%m%dT%H%M%SZ)-$$"
-  "$ROOT/state-manager.sh" claim "$state" "$id" "$attempt" "$EXECUTOR_ID" >/dev/null 2>&1 || continue
+
+  # Do NOT acquire state.lock here. state-manager.sh opens the same lock and
+  # performs the atomic PENDING -> CLAIMED operation. Holding it here causes a
+  # self-deadlock when state-manager tries to claim the command.
+  if ! "$ROOT/state-manager.sh" claim "$state" "$id" "$attempt" "$EXECUTOR_ID" >/dev/null 2>&1; then
+    continue
+  fi
 
   work="$RESULT_ROOT/$id/$attempt"
   mkdir -p "$work"
