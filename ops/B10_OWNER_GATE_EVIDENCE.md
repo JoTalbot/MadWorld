@@ -30,8 +30,8 @@ This is the conservative evidence register for the remaining environment/owner g
 
 ## Repository-side verification that does NOT close owner gates
 
-- Current exact-head Backend CI `33863071784 / #557`: SUCCESS.
-- Current exact-head Release Gate `33863071728 / #38`: SUCCESS.
+- Exact-head Backend CI and Release Gate must be rerun after this evidence-register update.
+- Previous exact-head Release Gate `33867453992 / #51`: SUCCESS on the preceding exact-head commit.
 - Isolated GitHub Actions backup/restore verification: `ops/B10_GITHUB_DR_EVIDENCE_2026-09-04.md`.
 - Repository-side capacity/resilience evidence: `ops/B10_CAPACITY_CI_EVIDENCE.md`.
 - Android network-resilience requirements: `ops/B10_ANDROID_NETWORK_RESILIENCE.md`.
@@ -39,9 +39,12 @@ This is the conservative evidence register for the remaining environment/owner g
 ## Target-environment recovery evidence
 
 - Production scheduled backup and isolated recovery evidence: `ops/B10_PROD_DR_RPO_EVIDENCE_2026-09-04.md`.
-- Latest verified backup restored into a separate MadWorld-only PostgreSQL 16 container without production interruption.
+- Latest verified backup was restored into a separate MadWorld-only PostgreSQL 16 container without production interruption.
 - Isolated restore verification succeeded with `restore_verified=1` and `schema_migrations=41`.
 - Measured same-host isolated restore duration was approximately 2 seconds.
+- The temporary DR container, volume and network were subsequently confirmed absent from the server.
+- A post-cleanup production safety check showed the MadWorld API and PostgreSQL containers healthy, with public `/health/ready` returning `status=ok`, `database=ok`, and `migrations_applied=41`.
+- The cleanup verification did not touch Octopus or Liza resources.
 - This does not close the fresh-host or target-recovery-environment DR/RTO gates.
 
 ## Current decision
