@@ -32,6 +32,14 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon
       - name: Assemble release APK
         run: gradle :app:assembleRelease -PMADWORLD_API_URL=https://api.autosklo.org.ua --no-daemon
+      - name: Normalize release APK path
+        run: |
+          set -euo pipefail
+          APK="$(find app/build/outputs -type f -name '*.apk' | sort | head -n 1)"
+          test -n "$APK"
+          mkdir -p app/build/outputs/apk/release
+          cp "$APK" app/build/outputs/apk/release/app-release.apk
+          test -s app/build/outputs/apk/release/app-release.apk
       - name: Generate release checksum
         run: sha256sum app/build/outputs/apk/release/app-release.apk > app/build/outputs/apk/release/app-release.apk.sha256
       - name: Upload Android build artifacts
@@ -39,6 +47,6 @@ jobs:
         with:
           name: madworld-android-ci
           path: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/app-release.apk
-            app/build/outputs/apk/release/app-release.apk.sha256
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/release/app-release.apk.sha256
