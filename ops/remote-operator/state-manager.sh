@@ -4,6 +4,7 @@ set -euo pipefail
 # Atomic state helper. Usage:
 #   state-manager.sh claim <state-file> <command-id> <attempt-id> <executor>
 #   state-manager.sh transition <state-file> <expected> <new-state> <metadata-json>
+#   state-manager.sh request-cancel <state-file>
 
 ACTION=${1:-}
 STATE_FILE=${2:-}
@@ -47,6 +48,25 @@ PY
   mv -f -- "$tmp" "$STATE_FILE"
 }
 
+request_cancel() {
+  local now
+  [[ -f "$STATE_FILE" ]] || { echo 'STATE_NOT_FOUND' >&2; return 1; }
+  now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  python3 - "$STATE_FILE" "$now" <<'PY'
+import json,sys,os,tempfile
+p,now=sys.argv[1:]
+with open(p,encoding='utf-8') as f: data=json.load(f)
+state=data.get('status')
+if state != 'RUNNING': raise SystemExit(f"cannot cancel state={state}")
+data['cancel_requested_at']=now
+fd,tmp=tempfile.mkstemp(prefix='.state.',dir=os.path.dirname(p),text=True)
+os.close(fd)
+with open(tmp,'w',encoding='utf-8') as f: json.dump(data,f,indent=2); f.write('\n')
+os.replace(tmp,p)
+PY
+  echo 'CANCEL_REQUESTED'
+}
+
 transition() {
   local expected=$3 new_state=$4 metadata=$5
   [[ -n "$expected" && -n "$new_state" ]] || {
@@ -70,6 +90,7 @@ PY
 
 case "$ACTION" in
   claim) with_lock claim "$@" ;;
+  request-cancel) with_lock request_cancel "$@" ;;
   transition) with_lock transition "$@" ;;
-  *) echo 'usage: state-manager.sh {claim|transition} STATE_FILE ...' >&2; exit 2 ;;
+  *) echo 'usage: state-manager.sh {claim|request-cancel|transition} STATE_FILE ...' >&2; exit 2 ;;
 esac
