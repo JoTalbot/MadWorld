@@ -2,6 +2,15 @@
 
 This repository uses GitHub Actions and a server-side queue executor as an SSH bridge to the configured Linux server.
 
+## Canonical documentation
+
+For reusable installation and migration instructions, see:
+
+- `docs/REMOTE_OPERATOR_UNIVERSAL.md` — setup for **new projects and existing/legacy projects**;
+- `docs/REMOTE_OPERATOR_INSTALL.md` — server installation;
+- `.github/remote-operator/QUEUE.md` — queue protocol and lifecycle;
+- `AGENTS.md` — mandatory agent behavior, including waiting for results.
+
 ## Agent access
 
 **All MadWorld AI agents may use the Remote Operator SSH module for server-side work.**
@@ -30,6 +39,8 @@ The installed server-side executor watches this queue and executes pending comma
 - `REMOTE_SSH_PRIVATE_KEY`
 - `REMOTE_SSH_HOST_KEY`
 - `REMOTE_WORKDIR` (optional)
+
+`REMOTE_SSH_HOST_KEY` must be a complete `known_hosts` entry, not only a bare public-key blob. Keep strict host-key verification enabled.
 
 Secret values must never be committed or printed.
 
@@ -63,6 +74,20 @@ Relevant components:
 The executor supports parallel independent commands, bounded concurrency, command timeouts, cancellation, process-group cleanup and idempotent command IDs.
 
 Agents should not bypass this mechanism for tasks intended to run through Remote Operator.
+
+## Mandatory wait-for-result rule
+
+Putting a command into the queue is only **submission**, not execution completion.
+
+After submitting a command, the agent must wait until a terminal state is recorded:
+
+`DONE | FAILED | TIMEOUT | CANCELLED | INTERRUPTED | INVALID`
+
+The agent must inspect the actual result, including exit code and available stdout/stderr, before reporting success or starting a dependent operation.
+
+`async` means polling is required. It does **not** mean fire-and-forget.
+
+If the timeout expires without a trustworthy terminal result, report `TIMEOUT` or `UNKNOWN`; never invent success.
 
 ## Sync
 
