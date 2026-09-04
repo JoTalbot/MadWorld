@@ -7,6 +7,7 @@ on:
     paths-ignore:
       - '.github/remote-operator/state/**'
       - '.github/remote-operator/results/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,7 +30,7 @@ jobs:
       REMOTE_WORKDIR: ${{ secrets.REMOTE_WORKDIR }}
 
     steps:
-      - name: Checkout exact pushed commit
+      - name: Checkout exact target commit
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
@@ -75,9 +76,6 @@ jobs:
 
           ssh "${SSH_OPTS[@]}" "$TARGET" "mkdir -p -- $(printf '%q' "$REMOTE_WORKDIR")"
 
-          # Copy every tracked repository file, including newly added files.
-          # Existing server-only files are preserved because --delete is intentionally not used.
-          # .git is excluded so the server's working directory remains a runtime checkout.
           rsync -a --checksum \
             --exclude='.git/' \
             -e "ssh ${SSH_OPTS[*]}" \
@@ -100,7 +98,7 @@ jobs:
           )
           TARGET="${SSH_USER}@${SSH_HOST}"
 
-          ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"${GITHUB_SHA}\" && test -f AGENTS.md && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\""
+          ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"${GITHUB_SHA}\" && test -f AGENTS.md && test -f .github/remote-operator/COMMANDS.txt && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf '%s\\n' 'remote-operator-queue-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\""
 
       - name: Deployment summary
         if: always()
@@ -114,5 +112,6 @@ jobs:
             echo "- **Target:** \`${REMOTE_WORKDIR}\`"
             echo '- **Mode:** repository → server file sync'
             echo '- **Deletes:** disabled; server-only files are preserved'
+            echo '- **Remote-operator queue:** explicitly verified'
             echo '- **Remote-operator result/state-only pushes:** ignored'
           } >> "$GITHUB_STEP_SUMMARY"
