@@ -1,7 +1,29 @@
 # B10 Current Release Audit
 
 Date: 2026-09-03
-Current HEAD: `46626506f4cfe9d0708053ebce0526e8698394a5`
+Updated: 2026-09-04
+Current HEAD: `ec213ceaff60a4c5ee7f7afe992c303c22374049`
+
+## Update 2026-09-04 — backup/RPO and DR/RTO batch
+
+- ⚠️ This update records a **BLOCKED execution batch**, not a pass.
+- ❌ Scheduled-backup + measured-RPO gate: **still OPEN — NOT PASSED**. Evidence record: `ops/B10_BACKUP_RPO_EVIDENCE_2026-09-04.md`.
+- ❌ Fresh-host DR + measured-RTO gate: **still OPEN — NOT PASSED**. Evidence record: `ops/B10_DR_RTO_EVIDENCE_2026-09-04.md`.
+- 🚧 Blocker: the executing environment has no SSH key material and no
+  application-layer connectivity to `129.213.177.56` (SSH reset at
+  `kex_exchange_identification`; TLS reset before handshake; every probed port
+  answers the TCP handshake instantly — egress-interception signature). The
+  sandbox also has no `psql`/`pg_dump`/`pg_restore`/`docker` and no copy of a
+  production dump. No production backup was executed and no RPO/RTO is claimed.
+- ✅ Only repository-side static validation passed (`bash -n` on
+  `ops/backup_daily.sh`, `ops/backup_restore.sh`; unit-file presence on HEAD).
+  This does not count as production evidence.
+- ℹ️ Production HTTPS row below reflects the previously committed
+  `ops/PROD_HARDENING_EVIDENCE_2026-09-03.md`. It was NOT re-verified in this
+  batch (sandbox egress cannot reach Cloudflare-fronted endpoints); this batch
+  neither confirms nor contradicts that record.
+- 🚫 Decision unchanged: **NO-GO** for production release while any mandatory
+  gate below is OPEN.
 
 ## Repository state
 

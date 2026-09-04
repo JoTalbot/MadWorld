@@ -1,14 +1,28 @@
 # B10 Release GO / NO-GO Matrix
 
 Date: 2026-09-03
+Updated: 2026-09-04
+
+## Update 2026-09-04
+
+- ❌ **Scheduled backup + actual RPO** and **Fresh-host DR/RTO** remain **OPEN**.
+  The 2026-09-04 execution batch was blocked (no SSH/host access, no production
+  dump, no PostgreSQL tooling in the executing environment). Evidence:
+  `ops/B10_BACKUP_RPO_EVIDENCE_2026-09-04.md`, `ops/B10_DR_RTO_EVIDENCE_2026-09-04.md`.
+- ⚠️ These two rows are NOT marked PASS: no production backup was executed and
+  no DR rehearsal was run, therefore no RPO and no RTO were measured.
+- ℹ️ Production HTTPS row retains the status recorded 2026-09-03; it was not
+  re-verifiable from this batch's sandbox (egress restriction) and is neither
+  upgraded nor regressed here.
+- 🚫 Decision unchanged: **NO-GO** while any mandatory gate is OPEN.
 
 | Gate | Required for Production GREEN | Current |
 |---|---|---|
 | Backend + Release Gate | Yes | GREEN |
 | Android build/unit gate | Yes | GREEN |
 | Production HTTPS | Yes | OPEN |
-| Scheduled backup + actual RPO | Yes | OPEN |
-| Fresh-host DR/RTO | Yes | OPEN |
+| Scheduled backup + actual RPO | Yes | OPEN (blocked 2026-09-04 — see evidence record) |
+| Fresh-host DR/RTO | Yes | OPEN (blocked 2026-09-04 — see evidence record) |
 | Capacity approval | Yes | OPEN |
 | Android device matrix | Yes | OPEN |
 | Push | If release requirement | OPEN / OWNER DECISION |
