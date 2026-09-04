@@ -16,3 +16,6 @@ FINAL_DEPLOYMENT_REPORT.md
 android/local.properties
 android/.gradle/
 android/app/build/
+
+# Runtime lock files
+*.lock
