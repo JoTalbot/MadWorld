@@ -7,9 +7,9 @@ This is the conservative evidence register for the remaining environment/owner g
 ## Evidence status
 
 - [x] Production domain/DNS/TLS/reverse proxy verified on the real host. Evidence: `ops/PROD_HARDENING_EVIDENCE_2026-09-03.md`.
-- [ ] Scheduled PostgreSQL backup installed and observed running under `/opt/madworld/backups`.
-- [ ] Backup retention, SHA-256 manifest, integrity check and low-disk fail-closed behavior observed in the target environment.
-- [ ] RPO evidence recorded from an actual scheduled production backup.
+- [x] Scheduled PostgreSQL backup installed and observed running under `/opt/madworld/backups`. Evidence: `ops/B10_PROD_DR_RPO_EVIDENCE_2026-09-04.md`.
+- [x] Backup retention, SHA-256 manifest, integrity check and low-disk fail-closed behavior observed in the target environment. Evidence: `ops/B10_PROD_DR_RPO_EVIDENCE_2026-09-04.md`.
+- [x] RPO target <=24h is supported by the daily scheduled production backup. A measured data-loss RPO is not claimed. Evidence: `ops/B10_PROD_DR_RPO_EVIDENCE_2026-09-04.md`.
 - [ ] Fresh-host recovery rehearsal completed and measured RTO recorded.
 - [ ] Production-like capacity test completed with owner-approved thresholds and no unsafe shared-infrastructure impact.
 - [ ] Android API 26 validation.
@@ -35,6 +35,14 @@ This is the conservative evidence register for the remaining environment/owner g
 - Isolated GitHub Actions backup/restore verification: `ops/B10_GITHUB_DR_EVIDENCE_2026-09-04.md`.
 - Repository-side capacity/resilience evidence: `ops/B10_CAPACITY_CI_EVIDENCE.md`.
 - Android network-resilience requirements: `ops/B10_ANDROID_NETWORK_RESILIENCE.md`.
+
+## Target-environment recovery evidence
+
+- Production scheduled backup and isolated recovery evidence: `ops/B10_PROD_DR_RPO_EVIDENCE_2026-09-04.md`.
+- Latest verified backup restored into a separate MadWorld-only PostgreSQL 16 container without production interruption.
+- Isolated restore verification succeeded with `restore_verified=1` and `schema_migrations=41`.
+- Measured same-host isolated restore duration was approximately 2 seconds.
+- This does not close the fresh-host or target-recovery-environment DR/RTO gates.
 
 ## Current decision
 
