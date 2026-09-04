@@ -21,10 +21,14 @@
 
 - GitHub является source of truth для кода, workflows и документации.
 - Перед существенными изменениями проверяй текущую ветку и HEAD.
-- Для серверных операций используй `.github/workflows/remote-operator.yml`, когда он доступен и workflow может быть запущен текущими инструментами.
-- Remote Operator намеренно поддерживает произвольные shell-команды без command allowlist.
+- Для серверных операций используй **новый Remote Operator SSH-модуль** через каноническую очередь `.github/remote-operator/COMMANDS.txt`.
+- Все AI-агенты MadWorld имеют право использовать Remote Operator для выполнения серверных Bash/SSH-операций, необходимых для диагностики, тестирования, деплоя, обслуживания и проверки проекта.
+- Remote Operator предоставляет SSH-доступ к настроенному production Linux-серверу через SSH-учётную запись, GitHub Actions/SSH bridge и установленный на сервере queue executor.
+- Агент должен не выполнять SSH-команду самостоятельно вне предусмотренного механизма, а создавать задание в `COMMANDS.txt`, если операция предназначена для Remote Operator.
+- Remote Operator намеренно поддерживает произвольные shell-команды без command allowlist. Безопасность обеспечивается SSH-учётной записью, GitHub Secrets, host-key verification и системными правами сервера.
 - Короткие операции выполняй в `sync`, длительные — в `async` с polling и timeout.
-- Проверяй фактический `stdout`, `stderr`, `exit_code`, workflow/job status и artifacts.
+- Для установленного server-side queue executor новые задания должны добавляться в `COMMANDS.txt`; executor сам выполняет их с lifecycle `PENDING -> CLAIMED -> RUNNING -> DONE | FAILED | TIMEOUT | CANCELLED | INTERRUPTED | INVALID`.
+- Проверяй фактический `stdout`, `stderr`, `exit_code`, состояние выполнения и доступный result artifact/record.
 - Не утверждай, что операция выполнена, если она не подтверждена фактическим результатом.
 - Используй статусы `VERIFIED`, `PARTIALLY VERIFIED`, `NOT VERIFIED`, `NOT EXECUTED`, `FAILED`, `UNKNOWN` там, где это уместно.
 - Secrets и приватные ключи никогда не записывать в репозиторий, логи, artifacts, issues или отчёты.
