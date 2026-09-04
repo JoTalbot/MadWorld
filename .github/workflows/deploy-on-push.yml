@@ -1,0 +1,114 @@
+name: Deploy on Push
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: madworld-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Sync repository to project server
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SSH_HOST: ${{ secrets.REMOTE_SSH_HOST }}
+      SSH_PORT: ${{ secrets.REMOTE_SSH_PORT }}
+      SSH_USER: ${{ secrets.REMOTE_SSH_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.REMOTE_SSH_PRIVATE_KEY }}
+      SSH_HOST_KEY: ${{ secrets.REMOTE_SSH_HOST_KEY }}
+      REMOTE_WORKDIR: ${{ secrets.REMOTE_WORKDIR }}
+
+    steps:
+      - name: Checkout exact pushed commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${SSH_HOST:-}" ]] || { echo 'REMOTE_SSH_HOST is not configured' >&2; exit 2; }
+          [[ -n "${SSH_USER:-}" ]] || { echo 'REMOTE_SSH_USER is not configured' >&2; exit 2; }
+          [[ -n "${SSH_PRIVATE_KEY:-}" ]] || { echo 'REMOTE_SSH_PRIVATE_KEY is not configured' >&2; exit 2; }
+          [[ -n "${SSH_HOST_KEY:-}" ]] || { echo 'REMOTE_SSH_HOST_KEY is not configured' >&2; exit 2; }
+          [[ -n "${REMOTE_WORKDIR:-}" ]] || { echo 'REMOTE_WORKDIR is not configured' >&2; exit 2; }
+          [[ "${REMOTE_WORKDIR}" == /* ]] || { echo 'REMOTE_WORKDIR must be an absolute path' >&2; exit 2; }
+          echo "Deploying commit: ${GITHUB_SHA}"
+
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_HOST_KEY" > "$RUNNER_TEMP/deploy_known_hosts"
+          chmod 600 "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy_known_hosts"
+
+      - name: Sync repository files to server
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy_known_hosts"' EXIT
+
+          SSH_OPTS=(
+            -i "$RUNNER_TEMP/deploy_key"
+            -p "${SSH_PORT:-22}"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$RUNNER_TEMP/deploy_known_hosts"
+            -o ConnectTimeout=20
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=3
+          )
+          TARGET="${SSH_USER}@${SSH_HOST}"
+
+          ssh "${SSH_OPTS[@]}" "$TARGET" "mkdir -p -- $(printf '%q' "$REMOTE_WORKDIR")"
+
+          # Copy every tracked repository file, including newly added files.
+          # Existing server-only files are preserved because --delete is intentionally not used.
+          # .git is excluded so the server's working directory remains a runtime checkout.
+          rsync -a --checksum \
+            --exclude='.git/' \
+            -e "ssh ${SSH_OPTS[*]}" \
+            "$GITHUB_WORKSPACE/" \
+            "${TARGET}:${REMOTE_WORKDIR}/"
+
+      - name: Verify deployed revision and files
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy_known_hosts"' EXIT
+
+          SSH_OPTS=(
+            -i "$RUNNER_TEMP/deploy_key"
+            -p "${SSH_PORT:-22}"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$RUNNER_TEMP/deploy_known_hosts"
+            -o ConnectTimeout=20
+          )
+          TARGET="${SSH_USER}@${SSH_HOST}"
+
+          ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"${GITHUB_SHA}\" && test -f AGENTS.md && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\""
+
+      - name: Deployment summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## 🚀 MadWorld deployment'
+            echo
+            echo "- **Commit:** \`${GITHUB_SHA}\`"
+            echo "- **Branch:** \`${GITHUB_REF_NAME}\`"
+            echo "- **Target:** \`${REMOTE_WORKDIR}\`"
+            echo '- **Mode:** repository → server file sync'
+            echo '- **Deletes:** disabled; server-only files are preserved'
+          } >> "$GITHUB_STEP_SUMMARY"
