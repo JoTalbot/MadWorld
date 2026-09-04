@@ -1,0 +1,18 @@
+REMOTE OPERATOR COMMAND
+========================
+
+This file is the persistent command input for the prepared GitHub Actions Remote Operator.
+
+The command written here is intended to be read by the Remote Operator workflow and executed on the configured remote server over SSH.
+
+IMPORTANT:
+- Never store secrets, private keys, access tokens, passwords, or other credentials in this file.
+- Keep commands reproducible and explicit.
+- Each technical operator request should update this file and create a technical commit so GitHub Actions can detect the change.
+- The workflow must record execution status, exit code, stdout, stderr, and timestamps in its result artifacts.
+
+CURRENT COMMAND:
+
+# Write the shell command to execute below this marker.
+# Example:
+# docker compose ps
