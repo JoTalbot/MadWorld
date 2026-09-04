@@ -1,6 +1,26 @@
 # Universal Remote Operator
 
-This repository uses GitHub Actions as an SSH bridge to a configured Linux server.
+This repository uses GitHub Actions and a server-side queue executor as an SSH bridge to the configured Linux server.
+
+## Agent access
+
+**All MadWorld AI agents may use the Remote Operator SSH module for server-side work.**
+
+Use it whenever a task requires access to the Linux server, including:
+
+- diagnostics and health checks;
+- testing against the deployed environment;
+- service/systemd inspection and maintenance;
+- deployment and post-deployment verification;
+- database checks and migrations when explicitly required by the task;
+- logs, filesystem, Docker and networking checks;
+- recovery and operational procedures.
+
+The agent-facing interface is the canonical command queue:
+
+`.github/remote-operator/COMMANDS.txt`
+
+The installed server-side executor watches this queue and executes pending commands over the configured server account. Agents must treat the queue and recorded execution result as the audit trail.
 
 ## Required GitHub repository secrets
 
@@ -15,7 +35,7 @@ Secret values must never be committed or printed.
 
 ## Workflow
 
-`.github/workflows/remote-operator.yml` currently supports `workflow_dispatch`.
+`.github/workflows/remote-operator.yml` supports SSH command execution through GitHub Actions.
 
 Inputs:
 
@@ -25,6 +45,24 @@ Inputs:
 - `timeout_minutes`: timeout for async polling
 - `workdir`: optional remote working directory
 - `cleanup`: cleanup for completed async jobs
+
+## Server-side queue executor
+
+The production server also runs the Remote Operator queue executor as a systemd service.
+
+Relevant components:
+
+- `ops/remote-operator/executor.sh`
+- `ops/remote-operator/watcher.sh`
+- `ops/remote-operator/state-manager.sh`
+- `ops/remote-operator/result-manager.sh`
+- `ops/remote-operator/cancel.sh`
+- `ops/remote-operator/madworld-remote-operator.service`
+- `ops/remote-operator/result-sync.sh`
+
+The executor supports parallel independent commands, bounded concurrency, command timeouts, cancellation, process-group cleanup and idempotent command IDs.
+
+Agents should not bypass this mechanism for tasks intended to run through Remote Operator.
 
 ## Sync
 
@@ -36,14 +74,16 @@ Inputs:
 
 ## Results
 
-Each run publishes an artifact named `remote-operator-result` containing:
+Each workflow run publishes an artifact named `remote-operator-result` containing:
 
 - `result.json`
 - `result.md`
 - `stdout.log`
 - `stderr.log`
 
-The workflow also writes a concise Job Summary.
+The server-side executor additionally stores state and results under `.github/remote-operator/state/` and `.github/remote-operator/results/`.
+
+Runtime state/results are published to the dedicated `remote-operator-results` branch and are intentionally excluded from normal deployment triggers. They must not be pushed into `main` as runtime-result commits.
 
 ## Command queue
 
@@ -52,35 +92,28 @@ The canonical agent-facing queue is `.github/remote-operator/COMMANDS.txt`.
 - New remote Bash requests are appended only to the end of `COMMANDS.txt`.
 - Every request has a unique immutable `COMMAND_ID` and starts as `STATUS: PENDING`.
 - Commands must not contain secrets.
-- The intended lifecycle is `PENDING -> CLAIMED -> RUNNING -> DONE`, with `FAILED` and `TIMEOUT` failure states.
+- The intended lifecycle is `PENDING -> CLAIMED -> RUNNING -> DONE`, with `FAILED`, `TIMEOUT`, `CANCELLED`, `INTERRUPTED` and `INVALID` terminal states where applicable.
 - Completed commands remain available as an audit trail.
+- Parallel agents may append independent commands but must not rewrite active commands belonging to other agents.
 - Detailed queue and concurrency rules are documented in `.github/remote-operator/QUEUE.md`.
 - `.github/remote-operator/COMMAND.txt` is legacy and must not be used for new requests.
 
 ## Automatic queue execution status
 
-The repository documents the queue protocol, but the currently installed GitHub connector cannot dispatch `workflow_dispatch` and cannot write an arbitrary SSH-executing workflow through the connector's security boundary. Therefore a pending queue entry must **not** be represented as executed until an actual Actions run and its stdout/stderr/exit code are verified.
+The repository documents both the GitHub Actions SSH bridge and the installed server-side queue executor.
 
-Do not replace this limitation with a fake success state or an unverified claim.
+A queue entry is **not** considered executed merely because it was appended to `COMMANDS.txt`. The agent must verify the actual state/result and, where applicable, stdout, stderr and exit code.
 
-## Initial smoke test
-
-Use `operation=command`, `mode=sync` with:
-
-```bash
-echo "REMOTE_OPERATOR_OK"
-hostname
-uname -a
-id
-pwd
-```
-
-Do not use production deployment or destructive commands as the first test.
+Do not replace an unverified execution with a fake success state or an unverified claim.
 
 ## Security
 
-The operator intentionally does not use a command allowlist. Access is constrained by the SSH account and GitHub Secrets. Host key verification is enabled. Secrets and private keys must not appear in logs, artifacts or repository files.
+The operator intentionally does not use a command allowlist. Access is constrained by the SSH account, GitHub Secrets, host-key verification and Linux permissions on the server.
 
-## ChatGPT operation
+Secrets, private keys, passwords, tokens, cookies and other credentials must never appear in queue entries, logs, artifacts, repository files, issues or reports.
 
-ChatGPT should use this workflow for server operations when the connected GitHub tooling can dispatch the workflow. If the current connector cannot dispatch `workflow_dispatch`, report `NOT EXECUTED` rather than claiming success.
+Do not use force push or destructive production operations unless explicitly required and authorized by the task.
+
+## ChatGPT / agent operation
+
+When server access is required, agents should use the Remote Operator SSH module rather than inventing a local-only result. Prefer the canonical queue for server-side execution when working through the installed production executor. Always report the actual execution status and evidence.
