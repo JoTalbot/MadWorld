@@ -84,7 +84,7 @@ jobs:
 
           ssh "${SSH_OPTS[@]}" "$TARGET" "printf '%s\\n' '${GITHUB_SHA}' > $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha && chmod 644 $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha"
 
-      - name: Verify deployed revision and files
+      - name: Verify deployed revision, files and root runtime
         shell: bash
         run: |
           set -euo pipefail
@@ -99,64 +99,7 @@ jobs:
           TARGET="${SSH_USER}@${SSH_HOST}"
           EXPECTED_SHA="${GITHUB_SHA}"
 
-          ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && actual=\$(cat .github-deployed-sha 2>/dev/null || true) && test \"\$actual\" = \"$EXPECTED_SHA\" && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"\$actual\" && test -f AGENTS.md && test -f .github/remote-operator/COMMANDS.txt && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf '%s\\n' 'remote-operator-queue-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\""
-
-      - name: Verify root runtime and deployed SHA
-        shell: bash
-        run: |
-          set -uo pipefail
-          start=$(date +%s)
-          tmp="$RUNNER_TEMP/root-runtime"
-          mkdir -p "$tmp"
-          trap 'rm -f "$tmp/stdout.log" "$tmp/stderr.log"' EXIT
-          SSH_OPTS=(
-            -i "$RUNNER_TEMP/deploy_key"
-            -p "${SSH_PORT:-22}"
-            -o BatchMode=yes
-            -o StrictHostKeyChecking=yes
-            -o UserKnownHostsFile="$RUNNER_TEMP/deploy_known_hosts"
-            -o ConnectTimeout=20
-            -o ServerAliveInterval=30
-            -o ServerAliveCountMax=3
-          )
-          TARGET="${SSH_USER}@${SSH_HOST}"
-          qworkdir=$(printf '%q' "$REMOTE_WORKDIR")
-          qexpected=$(printf '%q' "$GITHUB_SHA")
-          timeout --signal=TERM --kill-after=20s 5m ssh "${SSH_OPTS[@]}" "$TARGET" "cd $qworkdir && if [[ \$(id -u) -eq 0 ]]; then bash -lc 'set -euo pipefail; test \"\$(id -u)\" -eq 0; printf \"ROOT_RUNTIME_VERIFY_START\\n\"; printf \"HOST=%s\\n\" \"\$(hostname)\"; printf \"EUID=%s\\n\" \"\$(id -u)\"; printf \"USER=%s\\n\" \"\$(id -un)\"; printf \"ROOT=yes\\n\"; actual=\$(cat .github-deployed-sha); test \"\$actual\" = $qexpected; printf \"DEPLOYED_SHA=%s\\n\" \"\$actual\"; printf \"ROOT_RUNTIME_VERIFY_END\\n\"'; else sudo -n bash -lc 'set -euo pipefail; test \"\$(id -u)\" -eq 0; printf \"ROOT_RUNTIME_VERIFY_START\\n\"; printf \"HOST=%s\\n\" \"\$(hostname)\"; printf \"EUID=%s\\n\" \"\$(id -u)\"; printf \"USER=%s\\n\" \"\$(id -un)\"; printf \"ROOT=yes\\n\"; actual=\$(cat .github-deployed-sha); test \"\$actual\" = $qexpected; printf \"DEPLOYED_SHA=%s\\n\" \"\$actual\"; printf \"ROOT_RUNTIME_VERIFY_END\\n\"'; fi" >"$tmp/stdout.log" 2>"$tmp/stderr.log"
-          rc=$?
-          status=SUCCESS
-          [[ $rc -eq 0 ]] || status=FAILED
-          [[ $rc -eq 124 || $rc -eq 137 ]] && status=TIMEOUT
-          run_as=unknown
-          if grep -q '^ROOT=yes$' "$tmp/stdout.log" && grep -q '^EUID=0$' "$tmp/stdout.log"; then run_as=root; fi
-          cat "$tmp/stdout.log"
-          cat "$tmp/stderr.log" >&2
-          finished=$(date +%s)
-          duration=$((finished-start))
-          python3 - "$tmp/result.json" "$status" "$rc" "$start" "$finished" "$duration" "$SSH_HOST" "$REMOTE_WORKDIR" "$GITHUB_SHA" "$run_as" <<'PY'
-import json,sys
-path,status,rc,start,finished,duration,server,workdir,expected,run_as=sys.argv[1:]
-d={'status':status,'operation':'root-runtime-verification','mode':'sync','server':server,'workdir':workdir,'expected_deployed_sha':expected,'run_as':run_as,'started_epoch':int(start),'finished_epoch':int(finished),'duration_seconds':int(duration),'exit_code':int(rc)}
-json.dump(d,open(path,'w',encoding='utf-8'),indent=2)
-print(json.dumps(d,indent=2))
-PY
-          cp "$tmp/result.json" root-runtime-result.json
-          {
-            echo '## Root Runtime Verification'
-            echo
-            cat root-runtime-result.json
-          } >> "$GITHUB_STEP_SUMMARY"
-          [[ "$status" == SUCCESS ]] && [[ "$run_as" == root ]]
-
-      - name: Upload deployment verification artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-verification
-          path: |
-            root-runtime-result.json
-          if-no-files-found: error
-          retention-days: 14
+          ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && actual=\$(cat .github-deployed-sha 2>/dev/null || true) && test \"\$actual\" = \"$EXPECTED_SHA\" && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"\$actual\" && test -f AGENTS.md && test -f .github/remote-operator/COMMANDS.txt && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf '%s\\n' 'remote-operator-queue-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\" && printf 'transport_euid=%s\\n' \"\$(id -u)\" && if [[ \$(id -u) -eq 0 ]]; then printf '%s\\n' 'root-runtime=yes'; else test \"\$(sudo -n id -u)\" = 0 && printf '%s\\n' 'root-runtime=yes'; fi"
 
       - name: Cleanup SSH credentials
         if: always()
@@ -178,7 +121,7 @@ PY
             echo '- **Mode:** repository → server file sync'
             echo '- **Deletes:** disabled; server-only files are preserved'
             echo '- **Deployment marker:** exact GitHub SHA written and verified'
-            echo '- **Root runtime:** exact EUID=0 and deployed SHA verified in the same deployment job'
+            echo '- **Root runtime:** EUID=0 verified directly or through non-interactive sudo'
             echo '- **Remote-operator queue:** explicitly verified'
-            echo '- **Remote-operator state/result pushes:** ignored'
+            echo '- **Remote-operator result/state-only pushes:** ignored'
           } >> "$GITHUB_STEP_SUMMARY"
