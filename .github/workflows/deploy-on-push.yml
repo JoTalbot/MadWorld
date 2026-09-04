@@ -55,13 +55,13 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/deploy_key"
           printf '%s\n' "$SSH_HOST_KEY" > "$RUNNER_TEMP/deploy_known_hosts"
           chmod 600 "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy_known_hosts"
+          test -s "$RUNNER_TEMP/deploy_key"
+          test -s "$RUNNER_TEMP/deploy_known_hosts"
 
       - name: Sync repository files to server
         shell: bash
         run: |
           set -euo pipefail
-          trap 'rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy_known_hosts"' EXIT
-
           SSH_OPTS=(
             -i "$RUNNER_TEMP/deploy_key"
             -p "${SSH_PORT:-22}"
@@ -86,8 +86,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          trap 'rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy_known_hosts"' EXIT
-
           SSH_OPTS=(
             -i "$RUNNER_TEMP/deploy_key"
             -p "${SSH_PORT:-22}"
@@ -99,6 +97,13 @@ jobs:
           TARGET="${SSH_USER}@${SSH_HOST}"
 
           ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"${GITHUB_SHA}\" && test -f AGENTS.md && test -f .github/remote-operator/COMMANDS.txt && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf '%s\\n' 'remote-operator-queue-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\""
+
+      - name: Cleanup SSH credentials
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f "$RUNNER_TEMP/deploy_key" "$RUNNER_TEMP/deploy_known_hosts"
 
       - name: Deployment summary
         if: always()
