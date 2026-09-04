@@ -10,6 +10,7 @@ MAX_CONCURRENCY=${REMOTE_OPERATOR_MAX_CONCURRENCY:-4}
 DEFAULT_TIMEOUT=${REMOTE_OPERATOR_DEFAULT_TIMEOUT:-30}
 GRACE_SECONDS=${REMOTE_OPERATOR_GRACE_SECONDS:-15}
 EXECUTOR_ID=${REMOTE_OPERATOR_EXECUTOR_ID:-$(hostname -s)}
+RESCAN_SECONDS=${REMOTE_OPERATOR_EXECUTOR_RESCAN_SECONDS:-1}
 
 mkdir -p "$STATE_ROOT" "$RESULT_ROOT"
 [[ -f "$QUEUE" ]] || exit 0
@@ -20,7 +21,6 @@ execute_one() {
 
   command=$(printf '%s' "$encoded" | base64 -d)
   state="$STATE_ROOT/$id.json"
-  # BASHPID is the actual worker-shell PID; $$ is the parent executor PID.
   attempt="${id}-attempt-$(date -u +%Y%m%dT%H%M%SZ)-${BASHPID}"
 
   if ! "$ROOT/state-manager.sh" claim "$state" "$id" "$attempt" "$EXECUTOR_ID" >/dev/null 2>&1; then
@@ -44,12 +44,8 @@ execute_one() {
   cancel_requested=0
 
   set +e
-  # setsid creates a dedicated process group so cancellation/timeout can
-  # terminate the command and its descendants without killing the executor.
   setsid bash "$work/command.sh" >"$work/stdout.log" 2>"$work/stderr.log" &
   pid=$!
-
-  # Persist the actual command PID, not the executor/worker PID.
   "$ROOT/state-manager.sh" transition "$state" RUNNING RUNNING "{\"pid\":$pid}" >/dev/null
 
   while kill -0 "$pid" 2>/dev/null; do
@@ -85,8 +81,6 @@ PY
   observed=$?
   set -e
 
-  # A cancellation request that races with natural command completion wins
-  # while the state is still RUNNING; the terminal transition remains atomic.
   if (( timed_out == 0 && cancel_requested == 0 )); then
     if python3 - "$state" <<'PY' >/dev/null 2>&1
 import json,sys
@@ -115,12 +109,8 @@ PY
   rm -rf "$work"
 }
 
-# Materialize parser output first so background workers are controlled by this
-# parent shell rather than a pipeline subshell. Different COMMAND_IDs may
-# execute concurrently, up to MAX_CONCURRENCY workers.
-records=$(mktemp)
-trap 'rm -f "$records"' EXIT
-python3 - "$QUEUE" <<'PY' >"$records"
+parse_queue() {
+  python3 - "$QUEUE" <<'PY'
 import base64,re,sys
 p=sys.argv[1]
 s=open(p,encoding='utf-8').read()
@@ -141,19 +131,52 @@ for block in re.split(r'(?m)^---\s*$',s):
     encoded=base64.b64encode(command.encode()).decode()
     print(cid,tm.group(1) if tm else '30',md.group(1) if md else 'sync',encoded,sep='\t')
 PY
+}
 
-active=0
-while IFS=$'\t' read -r id timeout mode encoded; do
-  [[ -n "$id" ]] || continue
-  while (( active >= MAX_CONCURRENCY )); do
-    sleep 1
-    active=0
-    for job in $(jobs -rp); do
-      kill -0 "$job" 2>/dev/null && active=$((active+1)) || true
-    done
+count_active() {
+  local n=0 job
+  for job in $(jobs -rp); do
+    kill -0 "$job" 2>/dev/null && n=$((n+1)) || true
   done
-  execute_one "$id" "$timeout" "$mode" "$encoded" &
-  active=$((active+1))
-done <"$records"
+  printf '%s' "$n"
+}
+
+# Keep rescanning while workers are alive. This allows commands appended to
+# COMMANDS.txt after an earlier batch started to enter free worker slots
+# without waiting for the watcher to finish the current executor invocation.
+while true; do
+  active=$(count_active)
+  launched=0
+
+  if (( active < MAX_CONCURRENCY )); then
+    records=$(mktemp)
+    trap 'rm -f "$records"' EXIT
+    parse_queue >"$records"
+
+    while IFS=$'\t' read -r id timeout mode encoded; do
+      [[ -n "$id" ]] || continue
+      active=$(count_active)
+      (( active < MAX_CONCURRENCY )) || break
+      execute_one "$id" "$timeout" "$mode" "$encoded" &
+      launched=$((launched+1))
+    done <"$records"
+    rm -f "$records"
+  fi
+
+  active=$(count_active)
+  if (( active == 0 )); then
+    # One final parse closes the race where a new command was appended just
+    # after the previous scan. If none is pending, this executor is done.
+    records=$(mktemp)
+    parse_queue >"$records"
+    if ! grep -q . "$records"; then
+      rm -f "$records"
+      break
+    fi
+    rm -f "$records"
+  fi
+
+  sleep "$RESCAN_SECONDS"
+done
 
 wait
