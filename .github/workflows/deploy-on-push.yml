@@ -84,6 +84,21 @@ jobs:
 
           ssh "${SSH_OPTS[@]}" "$TARGET" "printf '%s\\n' '${GITHUB_SHA}' > $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha && chmod 644 $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha"
 
+      - name: Restart remote operator after deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH_OPTS=(
+            -i "$RUNNER_TEMP/deploy_key"
+            -p "${SSH_PORT:-22}"
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$RUNNER_TEMP/deploy_known_hosts"
+            -o ConnectTimeout=20
+          )
+          TARGET="${SSH_USER}@${SSH_HOST}"
+          ssh "${SSH_OPTS[@]}" "$TARGET" "sudo -n systemctl restart madworld-remote-operator.service && sudo -n systemctl is-active madworld-remote-operator.service"
+
       - name: Verify deployed revision, files and root runtime
         shell: bash
         run: |
@@ -121,6 +136,7 @@ jobs:
             echo '- **Mode:** repository → server file sync'
             echo '- **Deletes:** disabled; server-only files are preserved'
             echo '- **Deployment marker:** exact GitHub SHA written and verified'
+            echo '- **Remote Operator:** restarted after deployment so new request intake is immediately active'
             echo '- **Root runtime:** EUID=0 verified directly or through non-interactive sudo'
             echo '- **Remote-operator queue:** explicitly verified'
             echo '- **Remote-operator result/state-only pushes:** ignored'
