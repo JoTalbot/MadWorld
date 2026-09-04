@@ -1,0 +1,23 @@
+[Unit]
+Description=MadWorld Remote Operator Queue Watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/madworld
+Environment=REMOTE_OPERATOR_PROJECT_ROOT=/opt/madworld
+Environment=REMOTE_OPERATOR_MAX_CONCURRENCY=4
+Environment=REMOTE_OPERATOR_DEFAULT_TIMEOUT=30
+Environment=REMOTE_OPERATOR_GRACE_SECONDS=15
+Environment=REMOTE_OPERATOR_DEBOUNCE_SECONDS=1
+Environment=REMOTE_OPERATOR_RESCAN_SECONDS=30
+ExecStart=/opt/madworld/ops/remote-operator/watcher.sh
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
