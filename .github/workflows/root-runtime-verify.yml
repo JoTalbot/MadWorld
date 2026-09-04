@@ -1,12 +1,11 @@
 name: Root Runtime Verification
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '.github/remote-operator/state/**'
-      - '.github/remote-operator/results/**'
+  workflow_run:
+    workflows:
+      - Deploy on Push
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -14,6 +13,7 @@ permissions:
 jobs:
   verify:
     name: Verify server root runtime
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -23,6 +23,7 @@ jobs:
       SSH_PRIVATE_KEY: ${{ secrets.REMOTE_SSH_PRIVATE_KEY }}
       SSH_HOST_KEY: ${{ secrets.REMOTE_SSH_HOST_KEY }}
       REMOTE_WORKDIR: ${{ secrets.REMOTE_WORKDIR }}
+      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
 
     steps:
       - name: Validate configuration
@@ -34,6 +35,8 @@ jobs:
           [[ -n "${SSH_PRIVATE_KEY:-}" ]] || { echo 'REMOTE_SSH_PRIVATE_KEY is not configured' >&2; exit 2; }
           [[ -n "${SSH_HOST_KEY:-}" ]] || { echo 'REMOTE_SSH_HOST_KEY is not configured' >&2; exit 2; }
           [[ -n "${REMOTE_WORKDIR:-}" ]] || { echo 'REMOTE_WORKDIR is not configured' >&2; exit 2; }
+          [[ "${REMOTE_WORKDIR}" == /* ]] || { echo 'REMOTE_WORKDIR must be an absolute path' >&2; exit 2; }
+          [[ "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo 'workflow_run head_sha is invalid' >&2; exit 2; }
 
       - name: Execute root verification
         shell: bash
@@ -50,19 +53,22 @@ jobs:
           opts=(-i "$tmp/key" -p "${SSH_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$tmp/known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=3)
           target="${SSH_USER}@${SSH_HOST}"
           qworkdir=$(printf '%q' "${REMOTE_WORKDIR}")
+          qexpected=$(printf '%q' "${EXPECTED_SHA}")
           set +e
-          timeout --signal=TERM --kill-after=20s 5m ssh "${opts[@]}" "$target" "cd $qworkdir && if [[ \$(id -u) -eq 0 ]]; then bash -lc 'set -euo pipefail; printf \"ROOT_RUNTIME_VERIFY_START\\n\"; printf \"HOST=%s\\n\" \"\$(hostname)\"; printf \"EUID=%s\\n\" \"\$(id -u)\"; printf \"USER=%s\\n\" \"\$(id -un)\"; printf \"ROOT=%s\\n\" \"\$(if [[ \$(id -u) -eq 0 ]]; then echo yes; else echo no; fi)\"; printf \"REMOTE_HEAD=%s\\n\" \"\$(git -C /opt/madworld rev-parse HEAD 2>/dev/null || echo unknown)\"; printf \"ROOT_RUNTIME_VERIFY_END\\n\"'; else sudo -n bash -lc 'set -euo pipefail; printf \"ROOT_RUNTIME_VERIFY_START\\n\"; printf \"HOST=%s\\n\" \"\$(hostname)\"; printf \"EUID=%s\\n\" \"\$(id -u)\"; printf \"USER=%s\\n\" \"\$(id -un)\"; printf \"ROOT=%s\\n\" \"\$(if [[ \$(id -u) -eq 0 ]]; then echo yes; else echo no; fi)\"; printf \"REMOTE_HEAD=%s\\n\" \"\$(git -C /opt/madworld rev-parse HEAD 2>/dev/null || echo unknown)\"; printf \"ROOT_RUNTIME_VERIFY_END\\n\"'; fi" >"$tmp/stdout.log" 2>"$tmp/stderr.log"
+          timeout --signal=TERM --kill-after=20s 5m ssh "${opts[@]}" "$target" "cd $qworkdir && if [[ \$(id -u) -eq 0 ]]; then bash -lc 'set -euo pipefail; test \"\$(id -u)\" -eq 0; printf \"ROOT_RUNTIME_VERIFY_START\\n\"; printf \"HOST=%s\\n\" \"\$(hostname)\"; printf \"EUID=%s\\n\" \"\$(id -u)\"; printf \"USER=%s\\n\" \"\$(id -un)\"; printf \"ROOT=yes\\n\"; actual=\$(cat .github-deployed-sha); test \"\$actual\" = $qexpected; printf \"DEPLOYED_SHA=%s\\n\" \"\$actual\"; printf \"ROOT_RUNTIME_VERIFY_END\\n\"'; else sudo -n bash -lc 'set -euo pipefail; test \"\$(id -u)\" -eq 0; printf \"ROOT_RUNTIME_VERIFY_START\\n\"; printf \"HOST=%s\\n\" \"\$(hostname)\"; printf \"EUID=%s\\n\" \"\$(id -u)\"; printf \"USER=%s\\n\" \"\$(id -un)\"; printf \"ROOT=yes\\n\"; actual=\$(cat .github-deployed-sha); test \"\$actual\" = $qexpected; printf \"DEPLOYED_SHA=%s\\n\" \"\$actual\"; printf \"ROOT_RUNTIME_VERIFY_END\\n\"'; fi" >"$tmp/stdout.log" 2>"$tmp/stderr.log"
           rc=$?
           set -e
           status=SUCCESS
           [[ $rc -eq 0 ]] || status=FAILED
           [[ $rc -eq 124 || $rc -eq 137 ]] && status=TIMEOUT
+          run_as=unknown
+          if grep -q '^ROOT=yes$' "$tmp/stdout.log" && grep -q '^EUID=0$' "$tmp/stdout.log"; then run_as=root; fi
           cat "$tmp/stdout.log"
           cat "$tmp/stderr.log" >&2
-          python3 - "$tmp/result.json" "$status" "$rc" "$start" "$SSH_HOST" <<'PY'
+          python3 - "$tmp/result.json" "$status" "$rc" "$start" "$SSH_HOST" "$REMOTE_WORKDIR" "$EXPECTED_SHA" "$run_as" <<'PY'
 import json,sys,time
-path,status,rc,start,server=sys.argv[1:]
-d={'status':status,'operation':'root-runtime-verification','mode':'sync','server':server,'run_as':'root','started_epoch':int(start),'finished_epoch':int(time.time()),'duration_seconds':int(time.time())-int(start),'exit_code':int(rc)}
+path,status,rc,start,server,workdir,expected_sha,run_as=sys.argv[1:]
+d={'status':status,'operation':'root-runtime-verification','mode':'sync','server':server,'workdir':workdir,'expected_deployed_sha':expected_sha,'run_as':run_as,'started_epoch':int(start),'finished_epoch':int(time.time()),'duration_seconds':int(time.time())-int(start),'exit_code':int(rc)}
 json.dump(d,open(path,'w',encoding='utf-8'),indent=2)
 print(json.dumps(d,indent=2))
 PY
@@ -83,7 +89,7 @@ PY
             cat stderr.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          [[ "$status" == SUCCESS ]]
+          [[ "$status" == SUCCESS ]] && [[ "$run_as" == root ]]
 
       - name: Upload verification result
         if: always()
