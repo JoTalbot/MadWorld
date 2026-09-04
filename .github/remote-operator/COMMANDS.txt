@@ -210,3 +210,42 @@ printf '%s\n' 'OPERATOR='; systemctl is-active madworld-remote-operator.service 
 printf '%s\n' 'SYNC_TIMER='; systemctl is-active madworld-remote-operator-sync.timer 2>&1 || true
 printf '%s\n' 'RUNTIME_FINAL_END'
 ---
+COMMAND_ID: cmd-20260905-141500-production-proxy-check
+STATUS: PENDING
+AGENT: chatgpt-production-proxy
+CREATED_AT: 2026-09-05T14:15:00Z
+TIMEOUT_MINUTES: 5
+MODE: sync
+COMMAND:
+set -u
+printf '%s\n' 'PRODUCTION_PROXY_CHECK_START'
+printf 'HOST=%s\n' "$(hostname)"
+printf 'NOW=%s\n' "$(date -u +%FT%TZ)"
+printf 'REPO_HEAD=%s\n' "$(git -C /opt/madworld rev-parse HEAD 2>/dev/null || echo unknown)"
+printf 'ORIGIN_MAIN=%s\n' "$(git -C /opt/madworld rev-parse origin/main 2>/dev/null || echo unknown)"
+printf 'REPO_REMOTE=%s\n' "$(git -C /opt/madworld remote get-url origin 2>/dev/null || echo unknown)"
+printf 'BRANCH=%s\n' "$(git -C /opt/madworld branch --show-current 2>/dev/null || echo unknown)"
+printf '%s\n' 'RECENT_COMMITS='
+git -C /opt/madworld log -8 --oneline --decorate 2>/dev/null || true
+printf '%s\n' 'GIT_STATUS='
+git -C /opt/madworld status --short --branch 2>/dev/null || true
+printf '%s\n' 'NGINX_CONFIG_TEST='
+nginx -t 2>&1 || true
+printf '%s\n' 'NGINX_SERVER_NAMES='
+nginx -T 2>/dev/null | awk '/server_name[[:space:]]/{print}' | head -80 || true
+printf '%s\n' 'NGINX_LISTEN='
+nginx -T 2>/dev/null | awk '/listen[[:space:]]/{print}' | head -80 || true
+printf '%s\n' 'HTTP_HEADERS='
+curl -sS -D - -o /dev/null --max-time 10 http://127.0.0.1/health 2>&1 || true
+printf '%s\n' 'HTTPS_HEADERS='
+curl -k -sS -D - -o /dev/null --max-time 10 https://127.0.0.1/health 2>&1 || true
+printf '%s\n' 'LOCAL_HTTP_HEALTH='
+curl -sS -L -D - --max-time 10 http://127.0.0.1/health 2>&1 || true
+printf '%s\n' 'LOCAL_HTTP_READY='
+curl -sS -L -D - --max-time 10 http://127.0.0.1/health/ready 2>&1 || true
+printf '%s\n' 'DOCKER_PS='
+docker compose -f /opt/madworld/docker-compose.yml ps 2>&1 || docker ps --format '{{.Names}} {{.Status}}'
+printf '%s\n' 'API_PORTS='
+ss -lntp 2>/dev/null | grep -E ':(80|443|8000|8090|5432|5433)\\b' || true
+printf '%s\n' 'PRODUCTION_PROXY_CHECK_END'
+---
