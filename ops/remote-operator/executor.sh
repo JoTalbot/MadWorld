@@ -15,6 +15,11 @@ RESCAN_SECONDS=${REMOTE_OPERATOR_EXECUTOR_RESCAN_SECONDS:-1}
 mkdir -p "$STATE_ROOT" "$RESULT_ROOT"
 [[ -f "$QUEUE" ]] || exit 0
 
+# The watcher can receive several filesystem events for one queue update.
+# Serialize executor instances so MAX_CONCURRENCY is global per server.
+exec 9>"$STATE_ROOT/executor.lock"
+flock -n 9 || exit 0
+
 execute_one() {
   local id=$1 timeout=$2 mode=$3 encoded=$4
   local command state attempt work started start_epoch deadline rc status timed_out cancel_requested observed finished duration pid
@@ -165,8 +170,6 @@ while true; do
 
   active=$(count_active)
   if (( active == 0 )); then
-    # One final parse closes the race where a new command was appended just
-    # after the previous scan. If none is pending, this executor is done.
     records=$(mktemp)
     parse_queue >"$records"
     if ! grep -q . "$records"; then
