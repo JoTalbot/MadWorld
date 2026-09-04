@@ -1,0 +1,13 @@
+[Unit]
+Description=MadWorld Remote Operator Result Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/madworld
+Environment=REMOTE_OPERATOR_PROJECT_ROOT=/opt/madworld
+ExecStart=/opt/madworld/ops/remote-operator/result-sync.sh
+NoNewPrivileges=true
+PrivateTmp=true
