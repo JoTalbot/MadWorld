@@ -20,7 +20,8 @@ execute_one() {
 
   command=$(printf '%s' "$encoded" | base64 -d)
   state="$STATE_ROOT/$id.json"
-  attempt="${id}-attempt-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+  # BASHPID is the actual worker-shell PID; $$ is the parent executor PID.
+  attempt="${id}-attempt-$(date -u +%Y%m%dT%H%M%SZ)-${BASHPID}"
 
   if ! "$ROOT/state-manager.sh" claim "$state" "$id" "$attempt" "$EXECUTOR_ID" >/dev/null 2>&1; then
     return 0
@@ -32,9 +33,10 @@ execute_one() {
   chmod 700 "$work/command.sh"
   started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   start_epoch=$(date +%s)
-  "$ROOT/state-manager.sh" transition "$state" CLAIMED RUNNING "{\"started_at\":\"$started\",\"pid\":$$,\"timeout_minutes\":${timeout:-$DEFAULT_TIMEOUT},\"executor\":\"$EXECUTOR_ID\"}" >/dev/null
 
   timeout=${timeout:-$DEFAULT_TIMEOUT}
+  "$ROOT/state-manager.sh" transition "$state" CLAIMED RUNNING "{\"started_at\":\"$started\",\"timeout_minutes\":$timeout,\"executor\":\"$EXECUTOR_ID\"}" >/dev/null
+
   deadline=$((start_epoch + timeout*60))
   rc=0
   status=RUNNING
@@ -42,8 +44,14 @@ execute_one() {
   cancel_requested=0
 
   set +e
+  # setsid creates a dedicated process group so cancellation/timeout can
+  # terminate the command and its descendants without killing the executor.
   setsid bash "$work/command.sh" >"$work/stdout.log" 2>"$work/stderr.log" &
   pid=$!
+
+  # Persist the actual command PID, not the executor/worker PID.
+  "$ROOT/state-manager.sh" transition "$state" RUNNING RUNNING "{\"pid\":$pid}" >/dev/null
+
   while kill -0 "$pid" 2>/dev/null; do
     if python3 - "$state" <<'PY' >/dev/null 2>&1
 import json,sys
@@ -77,24 +85,38 @@ PY
   observed=$?
   set -e
 
-  finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-  duration=$(( $(date +%s)-start_epoch ))
+  # A cancellation request that races with natural command completion wins
+  # while the state is still RUNNING; the terminal transition remains atomic.
   if (( timed_out == 0 && cancel_requested == 0 )); then
-    rc=$observed
-    if [[ "$rc" -eq 0 ]]; then
-      status=DONE
+    if python3 - "$state" <<'PY' >/dev/null 2>&1
+import json,sys
+with open(sys.argv[1],encoding='utf-8') as f: d=json.load(f)
+raise SystemExit(0 if d.get('cancel_requested_at') else 1)
+PY
+    then
+      cancel_requested=1
+      rc=130
+      status=CANCELLED
     else
-      status=FAILED
+      rc=$observed
+      if [[ "$rc" -eq 0 ]]; then
+        status=DONE
+      else
+        status=FAILED
+      fi
     fi
   fi
+
+  finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  duration=$(( $(date +%s)-start_epoch ))
 
   "$ROOT/result-manager.sh" "$RESULT_ROOT" "$id" "$attempt" "$status" "$rc" "$started" "$finished" "$duration" "$work/command.sh" "$work/stdout.log" "$work/stderr.log" "$EXECUTOR_ID"
   "$ROOT/state-manager.sh" transition "$state" RUNNING "$status" "{\"finished_at\":\"$finished\",\"duration_seconds\":$duration,\"exit_code\":$rc,\"result_path\":\".github/remote-operator/results/$id/result.md\"}" >/dev/null
   rm -rf "$work"
 }
 
-# Materialize the parser output first so background workers are controlled by
-# this parent shell rather than a pipeline subshell. Different COMMAND_IDs may
+# Materialize parser output first so background workers are controlled by this
+# parent shell rather than a pipeline subshell. Different COMMAND_IDs may
 # execute concurrently, up to MAX_CONCURRENCY workers.
 records=$(mktemp)
 trap 'rm -f "$records"' EXIT
