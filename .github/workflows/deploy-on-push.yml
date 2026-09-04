@@ -86,6 +86,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Keep SSH credentials until all remote verification steps have completed.
           SSH_OPTS=(
             -i "$RUNNER_TEMP/deploy_key"
             -p "${SSH_PORT:-22}"
