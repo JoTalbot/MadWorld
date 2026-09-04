@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '.github/remote-operator/state/**'
+      - '.github/remote-operator/results/**'
 
 permissions:
   contents: read
@@ -111,4 +114,5 @@ jobs:
             echo "- **Target:** \`${REMOTE_WORKDIR}\`"
             echo '- **Mode:** repository → server file sync'
             echo '- **Deletes:** disabled; server-only files are preserved'
+            echo '- **Remote-operator result/state-only pushes:** ignored'
           } >> "$GITHUB_STEP_SUMMARY"
