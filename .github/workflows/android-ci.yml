@@ -35,8 +35,12 @@ jobs:
       - name: Normalize release APK path
         run: |
           set -euo pipefail
-          APK="$(find app/build/outputs -type f -name '*.apk' | sort | head -n 1)"
+          APK="$(find app/build/outputs -type f -name '*.apk' -path '*/release/*' | sort | head -n 1)"
           test -n "$APK"
+          case "$APK" in
+            */release/*) ;;
+            *) echo "not a release APK: $APK" >&2; exit 1 ;;
+          esac
           mkdir -p app/build/outputs/apk/release
           cp "$APK" app/build/outputs/apk/release/app-release.apk
           test -s app/build/outputs/apk/release/app-release.apk
