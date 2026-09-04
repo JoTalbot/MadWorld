@@ -1,0 +1,67 @@
+# Remote Operator Bash Command Queue
+
+## PURPOSE
+
+This file is the canonical append-only queue of Bash commands that agents request the prepared GitHub Actions Remote Operator to execute on the configured server.
+
+## AGENT RULES
+
+1. Every new Bash command MUST be appended to the END of this file.
+2. Never overwrite, reorder, or delete existing commands.
+3. Every command MUST have a unique immutable COMMAND_ID.
+4. New commands MUST start with `STATUS: PENDING`.
+5. Agents MUST NOT execute the command themselves when the intention is to use Remote Operator.
+6. Do not manually change a command from PENDING to DONE. Only the executor may record execution state and result.
+7. A command already marked CLAIMED, RUNNING, DONE, FAILED, or TIMEOUT must never be executed again automatically under the same COMMAND_ID.
+8. Parallel agents may append different commands. They must not modify another agent's active command.
+9. Keep the exact Bash command/script in the `COMMAND:` block.
+10. Never put passwords, private keys, tokens, cookies, or other secrets into this file.
+11. Commands are an audit trail and must remain in this file after completion.
+
+## COMMAND FORMAT
+
+Append a new block to the END of this file:
+
+---
+COMMAND_ID: cmd-YYYYMMDD-HHMMSS-unique
+STATUS: PENDING
+AGENT: <agent-id>
+CREATED_AT: <UTC timestamp>
+TIMEOUT_MINUTES: 30
+MODE: sync
+
+COMMAND:
+<exact Bash command or multiline Bash script>
+---
+
+## EXECUTION LIFECYCLE
+
+PENDING -> CLAIMED -> RUNNING -> DONE
+
+Failure paths:
+
+RUNNING -> FAILED
+RUNNING -> TIMEOUT
+
+The executor must claim a specific COMMAND_ID before starting it. Claiming must be concurrency-safe so two parallel workers cannot execute the same pending command.
+
+## RESULT RECORD
+
+After execution, the executor must preserve the original command and append/update execution metadata associated with the same COMMAND_ID:
+
+STATUS: DONE | FAILED | TIMEOUT
+ATTEMPT_ID: <unique attempt id>
+STARTED_AT: <UTC timestamp>
+FINISHED_AT: <UTC timestamp>
+EXIT_CODE: <integer>
+EXECUTOR: <worker/agent id>
+
+The full stdout/stderr and structured result should be stored in the corresponding Actions artifact/result record rather than embedded without limit in this queue file.
+
+## PARALLEL EXECUTION
+
+Different COMMAND_ID values may run concurrently. A worker must claim only one unclaimed command at a time according to its configured concurrency. The COMMAND_ID is the idempotency key.
+
+## IMPORTANT
+
+This file is the single human/agent-facing command queue. Do not use `.github/remote-operator/COMMAND.txt` for new requests. New requests belong at the END of `COMMANDS.txt`.
