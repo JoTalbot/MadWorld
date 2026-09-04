@@ -97,7 +97,7 @@ jobs:
             -o ConnectTimeout=20
           )
           TARGET="${SSH_USER}@${SSH_HOST}"
-          ssh "${SSH_OPTS[@]}" "$TARGET" "sudo -n systemctl restart madworld-remote-operator.service && sudo -n systemctl is-active madworld-remote-operator.service"
+          ssh "${SSH_OPTS[@]}" "$TARGET" "sudo -n systemctl restart madworld-remote-operator.service && sudo -n systemctl is-active madworld-remote-operator.service && touch $(printf '%q' "$REMOTE_WORKDIR")/.github/remote-operator/COMMANDS.txt"
 
       - name: Verify deployed revision, files and root runtime
         shell: bash
@@ -136,7 +136,7 @@ jobs:
             echo '- **Mode:** repository → server file sync'
             echo '- **Deletes:** disabled; server-only files are preserved'
             echo '- **Deployment marker:** exact GitHub SHA written and verified'
-            echo '- **Remote Operator:** restarted after deployment so new request intake is immediately active'
+            echo '- **Remote Operator:** restarted after deployment and queue wake-up signal issued'
             echo '- **Root runtime:** EUID=0 verified directly or through non-interactive sudo'
             echo '- **Remote-operator queue:** explicitly verified'
             echo '- **Remote-operator result/state-only pushes:** ignored'
