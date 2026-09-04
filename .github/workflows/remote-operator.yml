@@ -104,7 +104,7 @@ jobs:
           start_epoch=$(date +%s)
           started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           ssh_port="${SSH_PORT_EFFECTIVE:-22}"
-          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR:-/root}}"
+          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR:-$HOME}}"
           job_id="gha-${GH_RUN_ID}-${GH_RUN_ATTEMPT}"
           local_tmp="$RUNNER_TEMP/remote-operator-$job_id"
           mkdir -p "$local_tmp"
@@ -182,7 +182,7 @@ done'
           EOF
           else
             payload_b64=$(printf '%s' "$command_text" | base64 -w0)
-            remote_dir="${REMOTE_WORKDIR:-/root}/.gha-remote-operator/$job_id"
+            remote_dir="${REMOTE_WORKDIR:-$HOME}/.gha-remote-operator/$job_id"
             ssh "${ssh_opts[@]}" "$target" "mkdir -p $(printf '%q' "$remote_dir") && printf '%s' $(printf '%q' "$payload_b64") | base64 -d > $(printf '%q' "$remote_dir/command.sh") && chmod 700 $(printf '%q' "$remote_dir/command.sh") && (cd $(printf '%q' "$workdir") && if [[ \$(id -u) -eq 0 ]]; then bash $(printf '%q' "$remote_dir/command.sh") >$(printf '%q' "$remote_dir/stdout.log") 2>$(printf '%q' "$remote_dir/stderr.log"); else sudo -n bash $(printf '%q' "$remote_dir/command.sh") >$(printf '%q' "$remote_dir/stdout.log") 2>$(printf '%q' "$remote_dir/stderr.log"); fi; printf '%s\\n' \$? >$(printf '%q' "$remote_dir/exit_code")) </dev/null >/dev/null 2>&1 & echo \$! >$(printf '%q' "$remote_dir/pid")"
             deadline=$(( $(date +%s) + INPUT_TIMEOUT*60 ))
             rc=125
