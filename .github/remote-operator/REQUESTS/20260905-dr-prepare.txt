@@ -1,0 +1,16 @@
+---
+COMMAND_ID: cmd-20260905-160301-dr-prepare
+STATUS: PENDING
+AGENT: chatgpt-production-batch
+CREATED_AT: 2026-09-05T16:03:01Z
+TIMEOUT_MINUTES: 3
+MODE: sync
+
+COMMAND:
+set -euo pipefail
+cd /opt/madworld
+chmod 0755 ops/backup_restore.sh
+printf 'BACKUP_RESTORE_MODE=%s\n' "$(stat -c '%a' ops/backup_restore.sh)"
+test -x ops/backup_restore.sh
+printf '%s\n' 'DR_PREPARED'
+---
