@@ -3,6 +3,8 @@ name: Backup and DR Verification
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - 'ops/backup_daily.sh'
       - 'ops/backup_restore.sh'
@@ -71,7 +73,7 @@ jobs:
           export END_NS
           python3 - <<'PY'
           import os
-          start=int(os.environ['START_NS'])
-          end=int(os.environ['END_NS'])
+          start = int(os.environ['START_NS'])
+          end = int(os.environ['END_NS'])
           print(f"measured_backup_restore_rto_seconds={(end-start)/1_000_000_000:.3f}")
           PY
