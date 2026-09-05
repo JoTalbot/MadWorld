@@ -209,4 +209,4 @@ def player_state(player_id: UUID, uow: UnitOfWork = Depends(get_uow), authentica
     _assert_owner(authenticated_player, player_id)
     character = uow.characters.get_by_player_id(player_id)
     vehicles = [_vehicle_response(v) for v in VehicleService(uow).list_for_owner(player_id)]
-    return load_player_state(player_id, _character_response(character) if character else None, vehicles)
+    return load_player_state(uow, player_id, _character_response(character) if character else None, vehicles)

@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
-from app.application.ports import IdempotencyRecord, OutboxEvent
-from app.domain.primitives import Character, InventoryStack, Job, LedgerEntry, Vehicle, Wallet
+from app.application.ports import IdempotencyRecord, InventoryStackSnapshot, OutboxEvent, PlayerStateSnapshot
+from app.domain.primitives import Character, InventoryStack, Job, JobState, LedgerEntry, Vehicle, Wallet
 from app.domain.settlements import Settlement
 
 @dataclass
@@ -133,6 +133,25 @@ class InMemoryOutboxRepository:
         raise ConcurrencyConflict("outbox event is not leased by this owner")
 
 @dataclass
+class InMemoryPlayerStateRepository:
+    """Read model over the other in-memory repositories.
+
+    Ownership of wallets/inventories is not part of the write-side aggregates, so
+    tests register it explicitly via ``wallet_owners`` (owner_id -> wallet_id) and
+    ``inventory_owners`` (inventory_id -> owner_id). The repository reads through
+    the owning unit of work so repository swaps in tests stay visible.
+    """
+    uow: "InMemoryUnitOfWork" = field(repr=False)
+    wallet_owners: dict[UUID, UUID] = field(default_factory=dict)  # owner_id -> wallet_id
+    inventory_owners: dict[UUID, UUID] = field(default_factory=dict)  # inventory_id -> owner_id
+    def snapshot(self, player_id: UUID) -> PlayerStateSnapshot:
+        wallets, inventories, jobs_repo = self.uow.wallets, self.uow.inventories, self.uow.jobs
+        wallet_id = self.wallet_owners.get(player_id); wallet = wallets.get(wallet_id) if wallet_id else None
+        inventory = [InventoryStackSnapshot(inv_id, stack.item_definition_id, stack.quantity, stack.condition, stack.version) for (inv_id, _), stack in sorted(inventories.stacks.items(), key=lambda kv: (str(kv[0][0]), str(kv[0][1]))) if self.inventory_owners.get(inv_id) == player_id]
+        jobs = sorted((deepcopy(j) for j in jobs_repo.jobs.values() if j.owner_id == player_id and j.state in {JobState.QUEUED, JobState.RUNNING}), key=lambda j: (j.completes_at, str(j.id)))
+        return PlayerStateSnapshot(wallet, inventory, jobs)
+
+@dataclass
 class InMemoryUnitOfWork:
     wallets: InMemoryWalletRepository = field(default_factory=InMemoryWalletRepository)
     inventories: InMemoryInventoryRepository = field(default_factory=InMemoryInventoryRepository)
@@ -146,6 +165,8 @@ class InMemoryUnitOfWork:
     committed: bool = False
     rolled_back: bool = False
     _snapshot: dict | None = field(default=None, init=False, repr=False)
+    player_state: InMemoryPlayerStateRepository = field(init=False, repr=False)
+    def __post_init__(self) -> None: self.player_state = InMemoryPlayerStateRepository(self)
     def __enter__(self) -> "InMemoryUnitOfWork":
         self._snapshot = {"wallets": deepcopy(self.wallets), "inventories": deepcopy(self.inventories), "jobs": deepcopy(self.jobs), "characters": deepcopy(self.characters), "vehicles": deepcopy(self.vehicles), "settlements": deepcopy(self.settlements), "idempotency": deepcopy(self.idempotency), "audit": deepcopy(self.audit), "outbox": deepcopy(self.outbox)}
         return self

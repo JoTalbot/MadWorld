@@ -2,7 +2,7 @@
 
 ## Production topology
 
-- `api`: stateless FastAPI instances behind the deployment's load balancer.
+- `api`: stateless FastAPI instance behind the deployment's reverse proxy. **Run exactly one API process** until the in-process rate limiter / replay guard / abuse scorer are moved to shared storage (see `backend/README.md`, "Scaling constraint"). Horizontal API scaling is a tracked capacity-gate dependency, not a supported configuration today.
 - `world-tick-worker`: authoritative world clock worker. Multiple replicas are safe because PostgreSQL advisory locking permits one tick owner per transaction.
 - `migrator`: one-shot schema migration job, run before API/worker rollout.
 - PostgreSQL remains the authoritative persistent store.

@@ -35,3 +35,10 @@ Pass a fully qualified HTTPS API URL through Gradle property `MADWORLD_API_URL` 
 Never commit production URLs containing credentials or secrets. CI should provide the production URL through repository/environment configuration when a release build is enabled.
 
 The application reads `BuildConfig.MADWORLD_API_URL`; no runtime secret is stored in the APK.
+
+## Gradle version pinning
+
+`android/gradle/wrapper/gradle-wrapper.properties` is the single source of truth for the Gradle version. Android CI parses `distributionUrl` from that file instead of hard-coding a version. To bump Gradle, change `distributionUrl` only.
+
+The wrapper binary (`gradlew`, `gradle-wrapper.jar`) is not yet committed; generate it locally with `gradle wrapper` (the task reads the pinned version from the properties file) and commit both files once available.
+

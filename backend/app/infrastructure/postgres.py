@@ -12,7 +12,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
-from app.application.ports import IdempotencyRecord, OutboxEvent, UnitOfWork
+from app.application.ports import IdempotencyRecord, InventoryStackSnapshot, OutboxEvent, PlayerStateSnapshot, UnitOfWork
 from app.domain.primitives import Character, InventoryStack, Job, JobState, LedgerEntry, Vehicle, VehicleState, Wallet
 from app.infrastructure.errors import map_integrity_error
 
@@ -144,11 +144,30 @@ class PostgresOutboxRepository:
 def _json(value: object) -> str: return json.dumps(value)
 
 
+class PostgresPlayerStateRepository:
+    """Deterministic read model of one account's wallet, inventory and active jobs."""
+    def __init__(self, conn: Connection) -> None: self.conn = conn
+    def snapshot(self, player_id: UUID) -> PlayerStateSnapshot:
+        wallet_row = self.conn.execute(text("""
+            SELECT id, version, COALESCE((SELECT SUM(amount) FROM ledger_entries le WHERE le.wallet_id = w.id), 0) AS balance
+            FROM wallets w WHERE owner_id = :player_id"""), {"player_id": player_id}).mappings().first()
+        wallet = Wallet(UUID(str(wallet_row["id"])), int(wallet_row["balance"]), int(wallet_row["version"])) if wallet_row else None
+        inventory_rows = self.conn.execute(text("""
+            SELECT i.id AS inventory_id, ii.item_definition_id, ii.quantity, ii.condition, ii.version
+            FROM inventories i JOIN inventory_items ii ON ii.inventory_id = i.id
+            WHERE i.owner_id = :player_id ORDER BY i.id, ii.item_definition_id"""), {"player_id": player_id}).mappings().all()
+        inventory = [InventoryStackSnapshot(UUID(str(r["inventory_id"])), UUID(str(r["item_definition_id"])), int(r["quantity"]), int(r["condition"]), int(r["version"])) for r in inventory_rows]
+        job_rows = self.conn.execute(text("""
+            SELECT id, owner_id, job_type, started_at, completes_at, state, version, metadata
+            FROM jobs WHERE owner_id = :player_id AND state IN ('queued', 'running') ORDER BY completes_at, id"""), {"player_id": player_id}).mappings().all()
+        return PlayerStateSnapshot(wallet, inventory, [PostgresJobRepository._map(r) for r in job_rows])
+
+
 class PostgresUnitOfWork:
     def __init__(self, engine: Engine) -> None: self.engine = engine
     def __enter__(self) -> "PostgresUnitOfWork":
         self.conn = self.engine.connect(); self.tx = self.conn.begin()
-        self.wallets = PostgresWalletRepository(self.conn); self.inventories = PostgresInventoryRepository(self.conn); self.jobs = PostgresJobRepository(self.conn); self.characters = PostgresCharacterRepository(self.conn); self.vehicles = PostgresVehicleRepository(self.conn); self.idempotency = PostgresIdempotencyRepository(self.conn); self.audit = PostgresAuditRepository(self.conn); self.outbox = PostgresOutboxRepository(self.conn); return self
+        self.wallets = PostgresWalletRepository(self.conn); self.inventories = PostgresInventoryRepository(self.conn); self.jobs = PostgresJobRepository(self.conn); self.characters = PostgresCharacterRepository(self.conn); self.vehicles = PostgresVehicleRepository(self.conn); self.player_state = PostgresPlayerStateRepository(self.conn); self.idempotency = PostgresIdempotencyRepository(self.conn); self.audit = PostgresAuditRepository(self.conn); self.outbox = PostgresOutboxRepository(self.conn); return self
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         if exc_type is None: self.commit()
         else: self.rollback()

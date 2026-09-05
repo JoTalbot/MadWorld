@@ -1,0 +1,22 @@
+diff --git a/.github/workflows/android-ci.yml b/.github/workflows/android-ci.yml
+index 9a795df..0e74256 100644
+--- a/.github/workflows/android-ci.yml
++++ b/.github/workflows/android-ci.yml
+@@ -23,9 +23,16 @@ jobs:
+         with:
+           distribution: temurin
+           java-version: '17'
++      - name: Resolve pinned Gradle version from wrapper properties
++        id: gradle
++        run: |
++          set -euo pipefail
++          VERSION="$(sed -n 's#^distributionUrl=.*/gradle-\([0-9][0-9.]*\)-\(bin\|all\)\.zip$#\1#p' gradle/wrapper/gradle-wrapper.properties)"
++          test -n "$VERSION"
++          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+       - uses: gradle/actions/setup-gradle@v4
+         with:
+-          gradle-version: '8.10'
++          gradle-version: ${{ steps.gradle.outputs.version }}
+       - name: Run Android unit tests
+         run: gradle :app:testDebugUnitTest --no-daemon
+       - name: Assemble debug APK
