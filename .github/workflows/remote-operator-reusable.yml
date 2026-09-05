@@ -4,11 +4,11 @@ on:
   workflow_call:
     inputs:
       command:
-        description: Arbitrary shell command or multiline bash script
+        description: Arbitrary shell command or multiline Bash script
         required: true
         type: string
       timeout_minutes:
-        description: Maximum execution time
+        description: Maximum execution time in minutes
         required: false
         default: 30
         type: number
@@ -18,23 +18,17 @@ on:
         default: ''
         type: string
       cleanup:
-        description: Cleanup temporary remote files
+        description: Cleanup completed async job directory
         required: false
         default: true
         type: boolean
     secrets:
-      REMOTE_SSH_HOST:
-        required: true
-      REMOTE_SSH_PORT:
-        required: true
-      REMOTE_SSH_USER:
-        required: true
-      REMOTE_SSH_PRIVATE_KEY:
-        required: true
-      REMOTE_SSH_HOST_KEY:
-        required: true
-      REMOTE_WORKDIR:
-        required: true
+      REMOTE_SSH_HOST: { required: true }
+      REMOTE_SSH_PORT: { required: true }
+      REMOTE_SSH_USER: { required: true }
+      REMOTE_SSH_PRIVATE_KEY: { required: true }
+      REMOTE_SSH_HOST_KEY: { required: true }
+      REMOTE_WORKDIR: { required: true }
 
 permissions:
   contents: read
@@ -51,97 +45,65 @@ jobs:
       SSH_PRIVATE_KEY: ${{ secrets.REMOTE_SSH_PRIVATE_KEY }}
       SSH_HOST_KEY: ${{ secrets.REMOTE_SSH_HOST_KEY }}
       REMOTE_WORKDIR: ${{ secrets.REMOTE_WORKDIR }}
-      INPUT_COMMAND: ${{ inputs.command }}
-      INPUT_TIMEOUT: ${{ inputs.timeout_minutes }}
+      COMMAND: ${{ inputs.command }}
+      TIMEOUT: ${{ inputs.timeout_minutes }}
       INPUT_WORKDIR: ${{ inputs.workdir }}
-      INPUT_CLEANUP: ${{ inputs.cleanup }}
-
+      CLEANUP: ${{ inputs.cleanup }}
     steps:
       - name: Validate configuration
         shell: bash
         run: |
           set -euo pipefail
-          [[ -n "${SSH_HOST:-}" ]] || { echo 'REMOTE_SSH_HOST is not configured' >&2; exit 2; }
-          [[ -n "${SSH_USER:-}" ]] || { echo 'REMOTE_SSH_USER is not configured' >&2; exit 2; }
-          [[ -n "${SSH_PRIVATE_KEY:-}" ]] || { echo 'REMOTE_SSH_PRIVATE_KEY is not configured' >&2; exit 2; }
-          [[ -n "${SSH_HOST_KEY:-}" ]] || { echo 'REMOTE_SSH_HOST_KEY is not configured' >&2; exit 2; }
-          [[ -n "${REMOTE_WORKDIR:-}" ]] || { echo 'REMOTE_WORKDIR is not configured' >&2; exit 2; }
-          [[ "${REMOTE_WORKDIR}" == /* ]] || { echo 'REMOTE_WORKDIR must be an absolute path' >&2; exit 2; }
-          [[ -n "${INPUT_COMMAND:-}" ]] || { echo 'command is required' >&2; exit 2; }
-          [[ "${INPUT_TIMEOUT}" =~ ^[0-9]+$ && "${INPUT_TIMEOUT}" -gt 0 ]] || { echo 'timeout_minutes must be positive' >&2; exit 2; }
+          [[ -n "${SSH_HOST:-}" && -n "${SSH_USER:-}" && -n "${SSH_PRIVATE_KEY:-}" && -n "${SSH_HOST_KEY:-}" && -n "${REMOTE_WORKDIR:-}" ]] || { echo 'Remote SSH secrets are incomplete' >&2; exit 2; }
+          [[ "$REMOTE_WORKDIR" == /* ]] || { echo 'REMOTE_WORKDIR must be absolute' >&2; exit 2; }
+          [[ -n "${COMMAND:-}" ]] || { echo 'command is required' >&2; exit 2; }
+          [[ "$TIMEOUT" =~ ^[0-9]+$ && "$TIMEOUT" -gt 0 ]] || { echo 'timeout_minutes must be positive' >&2; exit 2; }
+
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/remote_key"
+          printf '%s\n' "$SSH_HOST_KEY" > "$RUNNER_TEMP/remote_known_hosts"
+          chmod 600 "$RUNNER_TEMP/remote_key" "$RUNNER_TEMP/remote_known_hosts"
 
       - name: Execute and collect result
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           start_epoch=$(date +%s)
           started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          local_tmp="$RUNNER_TEMP/remote-operator"
+          workdir="${INPUT_WORKDIR:-$REMOTE_WORKDIR}"
+          job_id="gha-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          local_tmp="$RUNNER_TEMP/remote-$job_id"
           mkdir -p "$local_tmp"
-          key_file="$local_tmp/key"
-          known_hosts="$local_tmp/known_hosts"
-          trap 'rm -f "$key_file" "$known_hosts"' EXIT
-          umask 077
-          printf '%s\n' "$SSH_PRIVATE_KEY" > "$key_file"
-          printf '%s\n' "$SSH_HOST_KEY" > "$known_hosts"
-          chmod 600 "$key_file" "$known_hosts"
-
-          ssh_opts=(-i "$key_file" -p "${SSH_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=3)
+          ssh_opts=(-i "$RUNNER_TEMP/remote_key" -p "${SSH_PORT:-22}" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/remote_known_hosts" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=3)
           target="${SSH_USER}@${SSH_HOST}"
-          workdir="${INPUT_WORKDIR:-${REMOTE_WORKDIR}}"
           printf -v qworkdir '%q' "$workdir"
-          printf -v qcommand '%q' "$INPUT_COMMAND"
-
+          printf -v qcommand '%q' "$COMMAND"
           set +e
-          timeout --signal=TERM --kill-after=30s "${INPUT_TIMEOUT}m" ssh "${ssh_opts[@]}" "$target" "cd $qworkdir && if [[ \$(id -u) -eq 0 ]]; then bash -lc $qcommand; else sudo -n bash -lc $qcommand; fi" >"$local_tmp/stdout.log" 2>"$local_tmp/stderr.log"
+          timeout --signal=TERM --kill-after=30s "${TIMEOUT}m" ssh "${ssh_opts[@]}" "$target" "cd $qworkdir && if [[ \$(id -u) -eq 0 ]]; then bash -lc $qcommand; else sudo -n bash -lc $qcommand; fi" >"$local_tmp/stdout.log" 2>"$local_tmp/stderr.log"
           rc=$?
           set -e
-
           status=SUCCESS
           [[ $rc -eq 0 ]] || status=FAILED
           if [[ $rc -eq 124 || $rc -eq 137 ]]; then
             status=TIMEOUT
-            printf '%s\n' 'Remote command exceeded timeout.' >> "$local_tmp/stderr.log"
+            printf 'Remote command exceeded timeout.\n' >>"$local_tmp/stderr.log"
           fi
-
           finished_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           duration=$(( $(date +%s) - start_epoch ))
-          python3 - "$local_tmp/result.json" "$status" "$rc" "$started_at" "$finished_at" "$duration" "$SSH_HOST" "$workdir" <<'PY'
-import json, sys
-path, status, rc, started, finished, duration, server, workdir = sys.argv[1:]
-d = {
-  'status': status,
-  'operation': 'command',
-  'mode': 'sync',
-  'server': server,
-  'workdir': workdir,
-  'run_as': 'root',
-  'started_at': started,
-  'finished_at': finished,
-  'duration_seconds': int(duration),
-  'exit_code': int(rc),
-}
-json.dump(d, open(path, 'w', encoding='utf-8'), indent=2)
-print(json.dumps(d, indent=2))
+          python3 - "$local_tmp/result.json" "$status" "$rc" "$started_at" "$finished_at" "$duration" "$SSH_HOST" "$workdir" "$job_id" <<'PY'
+import json,sys
+path,status,rc,started,finished,duration,server,workdir,job_id=sys.argv[1:]
+d={'status':status,'operation':'command','mode':'sync','job_id':job_id,'server':server,'workdir':workdir,'run_as':'root','started_at':started,'finished_at':finished,'duration_seconds':int(duration),'exit_code':int(rc)}
+json.dump(d,open(path,'w',encoding='utf-8'),indent=2)
 PY
-
           cp "$local_tmp/result.json" result.json
           cp "$local_tmp/stdout.log" stdout.log
           cp "$local_tmp/stderr.log" stderr.log
-          {
-            echo '## Remote Operator Result'
-            echo
-            cat result.json
-            echo
-            echo '### stdout (tail)'
-            echo '```text'
-            tail -n 80 stdout.log || true
-            echo '```'
-            echo '### stderr (tail)'
-            echo '```text'
-            tail -n 80 stderr.log || true
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          cat result.json >> "$GITHUB_STEP_SUMMARY"
           exit "$rc"
 
       - name: Upload result artifact
