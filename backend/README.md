@@ -82,7 +82,12 @@ Tuning: `MADWORLD_RATE_LIMIT` (requests per 60 s per client, default 120).
   `MADWORLD_READY_MAX_TICK_LAG_SECONDS`, default 900). Degraded tick lag is informational:
   the API stays ready while the world worker is recovered.
 
-## Lint
+## Quality gates
 
-`ruff check .` (config in `ruff.toml`) runs in CI. The rule set is intentionally narrow –
-correctness, unused imports, import order and modern syntax – and does not enforce formatting.
+- `ruff check .` (config in `ruff.toml`). Intentionally narrow – correctness, unused
+  imports, import order and modern syntax; formatting is not enforced.
+- `mypy` (config in `mypy.ini`). Scoped to the domain model, application ports and the
+  new infrastructure modules; widen `files` as modules are cleaned up.
+- `python scripts/export_openapi.py --check` – `contracts/openapi.json` is the committed
+  Android-facing API contract. After an intentional API change run the script without
+  `--check` and review the JSON diff in the PR.

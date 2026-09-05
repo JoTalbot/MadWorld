@@ -3,9 +3,7 @@
 # wholesale. Formatting (ruff format) is not enforced yet.
 target-version = "py312"
 line-length = 200
-# app/domain/contracts.py uses `a:int; b:int` on one line, which CPython accepts but
-# ruff's parser rejects; excluded until the file is reformatted.
-extend-exclude = ["migrations", ".venv", "app/domain/contracts.py"]
+extend-exclude = ["migrations", ".venv"]
 
 [lint]
 select = ["E9", "F", "B006", "B008", "B904", "I", "UP", "W6"]

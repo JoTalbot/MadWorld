@@ -9,7 +9,9 @@ import org.json.JSONObject
 import java.util.UUID
 
 /** Local/in-app notification foundation. Server push delivery belongs to B9. */
-class NotificationCenter(context: Context) {
+class NotificationCenter(private val store: KeyValueStore, private val clock: () -> Long = System::currentTimeMillis) {
+    constructor(context: Context) : this(SharedPreferencesStore(context, "madworld_notifications"))
+
     data class Notification(
         val id: String,
         val title: String,
@@ -19,13 +21,12 @@ class NotificationCenter(context: Context) {
         val read: Boolean = false,
     )
 
-    private val prefs = context.getSharedPreferences("madworld_notifications", Context.MODE_PRIVATE)
     private val _items = MutableStateFlow(read())
     val items: StateFlow<List<Notification>> = _items.asStateFlow()
 
     fun publish(title: String, body: String, severity: String = "info") {
-        val item = Notification(UUID.randomUUID().toString(), title, body, severity)
-        persist((_items.value + item).takeLast(50))
+        val item = Notification(UUID.randomUUID().toString(), title, body, severity, clock())
+        persist((_items.value + item).takeLast(MAX_ITEMS))
     }
 
     fun markRead(id: String) {
@@ -40,12 +41,14 @@ class NotificationCenter(context: Context) {
             array.put(JSONObject().put("id", it.id).put("title", it.title).put("body", it.body)
                 .put("severity", it.severity).put("createdAt", it.createdAt).put("read", it.read))
         }
-        prefs.edit().putString("items", array.toString()).apply()
+        store.put("items", array.toString())
         _items.value = items
     }
 
+    fun unreadCount(): Int = _items.value.count { !it.read }
+
     private fun read(): List<Notification> = runCatching {
-        val array = JSONArray(prefs.getString("items", "[]"))
+        val array = JSONArray(store.get("items") ?: "[]")
         buildList {
             for (i in 0 until array.length()) {
                 val x = array.getJSONObject(i)
@@ -53,4 +56,8 @@ class NotificationCenter(context: Context) {
             }
         }
     }.getOrDefault(emptyList())
+
+    companion object {
+        const val MAX_ITEMS = 50
+    }
 }

@@ -8,14 +8,14 @@ import org.json.JSONObject
  * The server remains authoritative: queued entries carry only command intent and
  * an idempotency key, never an authoritative result or balance.
  */
-class OfflineCommandQueue(context: Context) {
+class OfflineCommandQueue(private val store: KeyValueStore) {
+    constructor(context: Context) : this(SharedPreferencesStore(context, "madworld_offline_commands"))
+
     data class Command(
         val name: String,
         val payload: String,
         val idempotencyKey: String,
     )
-
-    private val prefs = context.getSharedPreferences("madworld_offline_commands", Context.MODE_PRIVATE)
 
     fun enqueue(command: Command) {
         val items = read().toMutableList()
@@ -32,11 +32,11 @@ class OfflineCommandQueue(context: Context) {
     }
 
     fun clear() {
-        prefs.edit().remove("queue").apply()
+        store.remove("queue")
     }
 
     private fun read(): List<Command> {
-        val raw = prefs.getString("queue", null) ?: return emptyList()
+        val raw = store.get("queue") ?: return emptyList()
         return runCatching {
             val array = JSONArray(raw)
             buildList {
@@ -64,6 +64,6 @@ class OfflineCommandQueue(context: Context) {
                     .put("idempotencyKey", command.idempotencyKey),
             )
         }
-        prefs.edit().putString("queue", array.toString()).apply()
+        store.put("queue", array.toString())
     }
 }

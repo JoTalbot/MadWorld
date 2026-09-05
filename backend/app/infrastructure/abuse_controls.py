@@ -14,6 +14,7 @@ The readiness probe surfaces the database outage separately.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Protocol
 
@@ -134,7 +135,7 @@ def prune_expired(engine: Engine, now: datetime | None = None, rate_window_secon
     return {"hits": hits, "replays": replays, "scores": scores}
 
 
-def build_abuse_controls(backend: str, engine_factory, *, rate_limit: int = 120, rate_window_seconds: int = 60, replay_ttl_seconds: int = 300, score_decay_seconds: int = 300, score_threshold: int = 100) -> tuple[RateLimiter, ReplayDetector, Scorer]:
+def build_abuse_controls(backend: str, engine_factory: Callable[[], Engine], *, rate_limit: int = 120, rate_window_seconds: int = 60, replay_ttl_seconds: int = 300, score_decay_seconds: int = 300, score_threshold: int = 100) -> tuple[RateLimiter, ReplayDetector, Scorer]:
     """Select the abuse-control backend.
 
     ``backend`` is ``"memory"`` (single process only) or ``"postgres"`` (shared).

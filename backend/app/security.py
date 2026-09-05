@@ -56,7 +56,7 @@ class ReplayGuard:
             if key in self._seen:
                 return False
             if len(self._seen) >= self.max_entries:
-                oldest = min(self._seen, key=self._seen.get)
+                oldest = min(self._seen, key=lambda k: self._seen[k])
                 self._seen.pop(oldest, None)
             self._seen[key] = current
             return True

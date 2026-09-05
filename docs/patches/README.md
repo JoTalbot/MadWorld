@@ -4,7 +4,7 @@ The Arena GitHub connection cannot modify `.github/workflows/*`. Workflow change
 
 ```bash
 git apply docs/patches/android-ci-gradle-version-from-wrapper.patch
-git apply docs/patches/backend-ci-ruff.patch
+git apply docs/patches/backend-ci-quality-gates.patch
 ```
 
 Delete a patch once it has been applied and merged.

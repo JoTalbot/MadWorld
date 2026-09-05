@@ -66,4 +66,6 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
+    // Real org.json for JVM unit tests (the Android SDK stub throws "not mocked").
+    testImplementation("org.json:json:20240303")
 }

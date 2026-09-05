@@ -42,3 +42,11 @@ The application reads `BuildConfig.MADWORLD_API_URL`; no runtime secret is store
 
 The wrapper binary (`gradlew`, `gradle-wrapper.jar`) is not yet committed; generate it locally with `gradle wrapper` (the task reads the pinned version from the properties file) and commit both files once available.
 
+## Unit tests
+
+Client-side stores (`OfflineCommandQueue`, `NotificationCenter`) take a `KeyValueStore`;
+production uses `SharedPreferencesStore`, tests use `InMemoryKeyValueStore`, so the queue,
+drainer, dispatcher allowlist and notification history are covered by plain JVM tests
+(`./gradlew :app:testDebugUnitTest`). `org.json` is added as a test dependency because the
+Android SDK stub throws "Method ... not mocked" on the JVM.
+

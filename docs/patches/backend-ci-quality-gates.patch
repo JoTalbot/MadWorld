@@ -1,15 +1,19 @@
 diff --git a/.github/workflows/backend-ci.yml b/.github/workflows/backend-ci.yml
-index f84ea82..fe71610 100644
+index f84ea82..368987f 100644
 --- a/.github/workflows/backend-ci.yml
 +++ b/.github/workflows/backend-ci.yml
-@@ -41,7 +41,9 @@ jobs:
+@@ -41,7 +41,13 @@ jobs:
            cache: pip
            cache-dependency-path: backend/requirements.txt
        - name: Install dependencies
 -        run: python -m pip install -r requirements.txt pytest
-+        run: python -m pip install -r requirements.txt pytest ruff
++        run: python -m pip install -r requirements.txt pytest ruff mypy
 +      - name: Lint (ruff)
 +        run: python -m ruff check .
++      - name: Type check (mypy, scoped)
++        run: python -m mypy
++      - name: OpenAPI contract is current
++        run: python scripts/export_openapi.py --check
        - name: Apply database migrations
          run: python scripts/migrate.py
        - name: Verify application module resolution
