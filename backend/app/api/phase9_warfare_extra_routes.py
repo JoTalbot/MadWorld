@@ -1,10 +1,13 @@
 """B5 supply-line, checkpoint and reinforcement commands."""
-from uuid import UUID,uuid4
-from fastapi import APIRouter,Depends,Header
-from pydantic import BaseModel,Field
+from uuid import UUID, uuid4
+
+from fastapi import APIRouter, Depends, Header
+from pydantic import BaseModel, Field
 from sqlalchemy import text
-from app.api.dependencies import get_authenticated_player,get_uow
+
+from app.api.dependencies import get_authenticated_player, get_uow
 from app.application.territory_warfare import member
+
 router=APIRouter(prefix='/api/v1/territory/warfare',tags=['territory-warfare'])
 class SupplyRequest(BaseModel):
  region_id:str=Field(min_length=1,max_length=64);source_target_id:str;destination_target_id:str;owner_corporation_id:UUID;capacity:int=Field(gt=0);current_supply:int=Field(ge=0)

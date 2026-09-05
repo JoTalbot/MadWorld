@@ -12,7 +12,6 @@ from app.domain.primitives import Wallet, utc_now
 from app.infrastructure.db import create_engine_from_env
 from app.infrastructure.postgres import PostgresUnitOfWork
 
-
 pytestmark = pytest.mark.integration
 
 

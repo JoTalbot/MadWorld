@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
 from app.api.economy_routes import JobResponse, RecipeResponse, _json
-
 
 RECIPE_ID = UUID("60000000-0000-0000-0000-000000000001")
 SETTLEMENT_ID = UUID("20000000-0000-0000-0000-000000000001")
@@ -31,7 +30,7 @@ def test_json_accepts_decoded_and_serialized_recipe_payloads():
 
 
 def test_job_completion_timestamp_is_strictly_after_start():
-    started = datetime(2026, 9, 3, 18, 0, tzinfo=timezone.utc)
+    started = datetime(2026, 9, 3, 18, 0, tzinfo=UTC)
     completes = started + timedelta(seconds=30)
     response = JobResponse(
         id=UUID("70000000-0000-0000-0000-000000000001"),

@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import json
 from uuid import UUID
+
 from sqlalchemy import Connection, text
 from sqlalchemy.exc import IntegrityError
+
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
 from app.domain.settlements import Settlement
+
 
 class PostgresSettlementRepository:
     def __init__(self, conn: Connection) -> None: self.conn = conn

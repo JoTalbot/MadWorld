@@ -1,3 +1,4 @@
+from datetime import UTC
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -52,11 +53,12 @@ def test_player_bootstrap_rolls_back_when_vehicle_creation_fails() -> None:
 
 def test_player_state_snapshot_includes_wallet_inventory_and_active_jobs() -> None:
     from datetime import datetime, timedelta, timezone
+
     from app.domain.primitives import InventoryStack, Job, JobState, Wallet
     player_id = uuid4(); wallet_id = uuid4(); inventory_id = uuid4(); item_id = uuid4(); uow = InMemoryUnitOfWork()
     uow.wallets.wallets[wallet_id] = Wallet(wallet_id, 40, 3); uow.player_state.wallet_owners[player_id] = wallet_id
     uow.inventories.stacks[(inventory_id, item_id)] = InventoryStack(item_id, 7, 90, 2); uow.player_state.inventory_owners[inventory_id] = player_id
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     uow.jobs.jobs[uuid4()] = Job(uuid4(), player_id, "craft", now, now + timedelta(minutes=5), JobState.RUNNING, 1)
     uow.jobs.jobs[uuid4()] = Job(uuid4(), player_id, "old", now, now + timedelta(minutes=1), JobState.COMPLETED, 1)
     uow.jobs.jobs[uuid4()] = Job(uuid4(), uuid4(), "other", now, now + timedelta(minutes=1), JobState.QUEUED, 1)

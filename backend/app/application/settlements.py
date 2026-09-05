@@ -1,6 +1,8 @@
 """Settlement application service."""
 from __future__ import annotations
+
 from uuid import UUID
+
 from app.application.ports import UnitOfWork
 from app.domain.events import DEFAULT_EVENT_REGISTRY
 from app.domain.settlements import Settlement

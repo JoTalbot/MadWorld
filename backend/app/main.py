@@ -1,10 +1,14 @@
 """FastAPI application entrypoint."""
 from __future__ import annotations
+
 import logging
+import os
 from uuid import uuid4
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
 from app.api.contract_routes import router as contract_router
 from app.api.crafting_routes import router as crafting_router
 from app.api.damage_routes import router as damage_router
@@ -12,8 +16,8 @@ from app.api.economy_loop_routes import router as economy_loop_router
 from app.api.economy_routes import router as economy_router
 from app.api.expedition_routes import router as expedition_router
 from app.api.gathering_routes import router as gathering_router
-from app.api.market_routes import router as market_router
 from app.api.market_cancel_routes import router as market_cancel_router
+from app.api.market_routes import router as market_router
 from app.api.phase3_routes import router as phase3_router
 from app.api.phase4_alliance_extra_routes import router as phase4_alliance_extra_router
 from app.api.phase4_alliance_routes import router as phase4_alliance_router
@@ -26,8 +30,8 @@ from app.api.phase5_territory_routes import router as phase5_territory_router
 from app.api.phase6_world_routes import router as phase6_world_router
 from app.api.phase7_economy_routes import router as phase7_economy_router
 from app.api.phase8_faction_routes import router as phase8_faction_router
-from app.api.phase9_warfare_routes import router as phase9_warfare_router
 from app.api.phase9_warfare_extra_routes import router as phase9_warfare_extra_router
+from app.api.phase9_warfare_routes import router as phase9_warfare_router
 from app.api.phase10_finance_routes import router as phase10_finance_router
 from app.api.repair_routes import router as repair_router
 from app.api.routes import router as api_v1_router
@@ -36,15 +40,22 @@ from app.api.settlement_routes import router as settlement_router
 from app.api.travel_routes import router as travel_router
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict, NotFound
 from app.domain.primitives import DomainError
-from app.security import AbuseScorer, ReplayGuard, SlidingWindowRateLimiter
+from app.infrastructure.abuse_controls import build_abuse_controls
+
 logger=logging.getLogger("madworld.api")
 app=FastAPI(title="MadWorld API",version="0.1.0")
 for router in (api_v1_router,session_router,market_router,market_cancel_router,gathering_router,crafting_router,repair_router,damage_router,contract_router,expedition_router,settlement_router,economy_router,economy_loop_router,phase3_router,phase4_router,phase4_alliance_router,phase4_alliance_extra_router,phase4_wallet_router,phase4_asset_router,phase4_asset_provenance_router,phase4_completion_router,phase5_territory_router,phase6_world_router,phase7_economy_router,phase8_faction_router,phase9_warfare_router,phase9_warfare_extra_router,phase10_finance_router):
     app.include_router(router)
 app.include_router(travel_router)
-_rate_limiter=SlidingWindowRateLimiter(limit=120,window_seconds=60)
-_replay_guard=ReplayGuard(ttl_seconds=300,max_entries=10000)
-_abuse_scorer=AbuseScorer(decay_seconds=300,threshold=100)
+def _abuse_backend()->str:
+    # Shared (PostgreSQL) controls whenever a database is configured so multi-replica
+    # deployments enforce one policy; explicit override via MADWORLD_ABUSE_CONTROL_BACKEND.
+    return os.getenv("MADWORLD_ABUSE_CONTROL_BACKEND") or ("postgres" if os.getenv("MADWORLD_DATABASE_URL") else "memory")
+def _engine_factory():
+    from app.api.dependencies import get_engine
+    return get_engine()
+_rate_limiter,_replay_guard,_abuse_scorer=build_abuse_controls(_abuse_backend(),_engine_factory,rate_limit=int(os.getenv("MADWORLD_RATE_LIMIT","120")),rate_window_seconds=60,replay_ttl_seconds=300,score_decay_seconds=300,score_threshold=100)
+logger.info("abuse controls backend=%s",_abuse_backend())
 @app.middleware("http")
 async def request_id_middleware(request:Request,call_next):
     request_id=request.headers.get("X-Request-ID") or str(uuid4()); request.state.request_id=request_id
@@ -85,21 +96,21 @@ async def validation_error_handler(request:Request,exc:RequestValidationError)->
 def health()->dict[str,str]:return {"status":"ok","service":"madworld-api"}
 
 @app.get("/health/ready")
-def ready():
-    """Real readiness probe: verifies PostgreSQL connectivity and that the
-    authoritative schema has been migrated (schema_migrations present)."""
+def ready(max_tick_lag_seconds:int=int(os.getenv("MADWORLD_READY_MAX_TICK_LAG_SECONDS","900"))):
+    """Readiness probe: PostgreSQL reachable, schema migrated, and the authoritative
+    world tick has advanced recently (world worker alive). Tick lag beyond the
+    threshold is reported as degraded but does NOT fail readiness, because API
+    reads/writes remain correct while the world worker is being recovered."""
     from sqlalchemy import text
-    from app.infrastructure.db import create_engine_from_env
-    engine = create_engine_from_env()
+
+    from app.api.dependencies import get_engine
+    from app.infrastructure.readiness import evaluate_readiness
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-            migrations = conn.execute(text("SELECT COUNT(*) FROM schema_migrations")).scalar()
-        return {"status":"ok","service":"madworld-api","database":"ok","migrations_applied":int(migrations)}
+        with get_engine().connect() as conn:
+            report=evaluate_readiness(lambda q,p=None: conn.execute(text(q),p or {}),max_tick_lag_seconds=max_tick_lag_seconds)
     except Exception as exc:  # noqa: BLE001
-        return JSONResponse(status_code=503,content={"status":"degraded","service":"madworld-api","database":"error","error":str(exc)[:200]})
-    finally:
-        engine.dispose()
+        return JSONResponse(status_code=503,content={"status":"unavailable","service":"madworld-api","database":"error","error":str(exc)[:200]})
+    return JSONResponse(status_code=200,content={"service":"madworld-api",**report})
 @app.get("/api/v1/world")
 def world()->dict:
     return {"season":1,"tick":0,"regions":[{"id":"dust_basin","name":"Dust Basin","security":"lawless"},{"id":"iron_ruins","name":"Iron Ruins","security":"contested"},{"id":"salt_coast","name":"Salt Coast","security":"frontier"}]}

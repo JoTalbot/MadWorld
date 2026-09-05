@@ -7,7 +7,6 @@ from sqlalchemy import text
 from app.application.travel_service import claim_recovery, depart_travel, plan_travel, resolve_encounter
 from app.infrastructure.db import create_engine_from_env
 
-
 pytestmark = pytest.mark.integration
 
 

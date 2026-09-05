@@ -1,9 +1,11 @@
 """B8 security primitives: bounded rate limiting, replay detection, circuit breaking and abuse scoring."""
 from __future__ import annotations
+
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from threading import Lock
 from time import monotonic
+
 
 @dataclass(frozen=True, slots=True)
 class RateLimitDecision:

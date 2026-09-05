@@ -1,9 +1,12 @@
 """Authoritative manufacturer provenance binding for corporate assets."""
 from __future__ import annotations
+
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
 from app.api.phase4_routes import _require_permission
 from app.application.ports import UnitOfWork

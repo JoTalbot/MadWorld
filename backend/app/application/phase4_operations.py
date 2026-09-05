@@ -1,5 +1,6 @@
 """Pure Phase 4 lifecycle rules shared by API/application adapters."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from uuid import UUID
 

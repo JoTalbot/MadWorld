@@ -51,6 +51,38 @@ Notes:
 - Every HTTP handler reads storage through the `UnitOfWork` port (`app/application/ports.py`). The account snapshot (`PlayerStateRepository`) and the session boundary (`app/infrastructure/sessions.py`) have both PostgreSQL and in-memory implementations, so the whole API layer is testable without a database.
 - Migration files must have a unique, monotonically increasing numeric prefix. `discover_migrations` rejects duplicates; the historical duplicates (`003`, `009`, `010`, `011`, `012`) are grandfathered because their order is already recorded in production `schema_migrations` history.
 
-## Scaling constraint: in-process abuse controls
+## Abuse controls and horizontal scaling
 
-The rate limiter, replay guard and abuse scorer in `app/main.py` keep state in process memory. They protect a single API process. Running several uvicorn workers or API replicas multiplies the effective limits and makes replay detection per-process. Until these primitives are backed by PostgreSQL or Redis, production must run exactly one API process (as `ops/docker-compose.production.yml` does), or the edge (reverse proxy / WAF) must enforce equivalent limits.
+Rate limiting, replay detection and abuse scoring have two interchangeable backends
+(`app/infrastructure/abuse_controls.py`):
+
+| `MADWORLD_ABUSE_CONTROL_BACKEND` | Storage | Safe for |
+|---|---|---|
+| `postgres` (default when `MADWORLD_DATABASE_URL` is set) | `abuse_control_*` tables (migration 034) | any number of API processes / replicas |
+| `memory` (default otherwise; also used by the unit suite) | process memory | exactly one API process |
+
+The PostgreSQL backend is **fail-open**: if the database is unreachable the request is
+admitted and the failure is logged, so a control-plane outage does not turn into a full
+API outage; `/health/ready` reports the database problem separately. Hot-path writes prune
+expired rows for their own key; `prune_expired()` performs bulk cleanup for operators.
+
+Tuning: `MADWORLD_RATE_LIMIT` (requests per 60 s per client, default 120).
+
+## Sessions
+
+- `POST /api/v1/sessions` – create/refresh a session for a handle (30-day TTL).
+- `DELETE /api/v1/sessions/current` – log out the presented bearer token (204).
+- `DELETE /api/v1/sessions` – log out everywhere; returns the number of revoked sessions.
+
+## Health probes
+
+- `GET /health` – liveness, no dependencies.
+- `GET /health/ready` – 503 if PostgreSQL is unreachable; otherwise 200 with `status`
+  `ok` or `degraded` (unmigrated schema, missing world state, or world tick older than
+  `MADWORLD_READY_MAX_TICK_LAG_SECONDS`, default 900). Degraded tick lag is informational:
+  the API stays ready while the world worker is recovered.
+
+## Lint
+
+`ruff check .` (config in `ruff.toml`) runs in CI. The rule set is intentionally narrow –
+correctness, unused imports, import order and modern syntax – and does not enforce formatting.

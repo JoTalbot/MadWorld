@@ -1,11 +1,11 @@
 from __future__ import annotations
-from datetime import datetime, timedelta, timezone
+
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+
 from app.api.dependencies import get_authenticated_player
-from app.application.phase3_vehicle_combat import CombatService, RecoveryService, SalvageService, Weapon
-from app.domain.primitives import DamageType, Vehicle, VehicleState
 
 router = APIRouter(prefix="/api/v1/phase3", tags=["phase3"])
 

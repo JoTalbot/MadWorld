@@ -1,8 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import uuid4
+
 import pytest
 from pydantic import ValidationError
-from app.api.phase5_territory_routes import ClaimRequest, InfrastructureRequest, ResourceSiteRequest, RoadRequest, ObjectiveRequest
+
+from app.api.phase5_territory_routes import ClaimRequest, InfrastructureRequest, ObjectiveRequest, ResourceSiteRequest, RoadRequest
 
 
 def test_claim_requires_nonempty_target_fields():
@@ -25,7 +27,7 @@ def test_road_modifiers_are_bounded():
 
 
 def test_objective_window_is_timezone_aware_and_ordered_at_command_boundary():
-    start=datetime.now(timezone.utc)
+    start=datetime.now(UTC)
     end=start+timedelta(minutes=30)
     request=ObjectiveRequest(corporation_id=uuid4(), region_id="dust_basin", target_type="depot", target_id="d1", opens_at=start, contest_ends_at=end)
     assert request.contest_ends_at > request.opens_at

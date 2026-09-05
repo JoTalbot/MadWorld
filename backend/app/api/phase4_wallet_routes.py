@@ -1,13 +1,16 @@
 """Authoritative corporate wallet operations for Phase 4."""
 from __future__ import annotations
+
 from uuid import UUID, uuid4
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
 from app.api.idempotency import replay_or_none, require_key, store_response
-from app.application.ports import UnitOfWork
 from app.api.phase4_routes import _require_permission
+from app.application.ports import UnitOfWork
 
 router = APIRouter(prefix="/api/v1/social", tags=["social-wallet"])
 

@@ -1,16 +1,18 @@
 """Authoritative Phase 4 social-sandbox commands."""
 from __future__ import annotations
+
 import json
-from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
-from app.application.ports import UnitOfWork
-from app.application.phase4_social import PERMISSIONS, SocialPolicy
 from app.application.phase4_operations import Phase4Operations
+from app.application.phase4_social import PERMISSIONS, SocialPolicy
+from app.application.ports import UnitOfWork
 
 router = APIRouter(prefix="/api/v1/social", tags=["social"])
 ROLE_PERMISSIONS: dict[str, set[str]] = {
@@ -97,7 +99,7 @@ def create_contract(payload: ContractCreate,player_id: UUID=Depends(get_authenti
 def transition_contract(payload: ContractTransitionRequest,player_id: UUID=Depends(get_authenticated_player),uow: UnitOfWork=Depends(get_uow)):
     row=uow.conn.execute(text("SELECT issuer_corporation_id,counterparty_corporation_id,counterparty_player_id,state,version FROM social_contracts WHERE id=:id FOR UPDATE"),{"id":payload.contract_id}).mappings().first()
     if not row: raise HTTPException(404,"social contract not found")
-    issuer=UUID(str(row["issuer_corporation_id"])); counter=UUID(str(row["counterparty_corporation_id"])) if row["counterparty_corporation_id"] else None
+    issuer=UUID(str(row["issuer_corporation_id"]))
     if _member_role(uow,issuer,player_id) is None and not (row["counterparty_player_id"] and UUID(str(row["counterparty_player_id"]))==player_id): raise HTTPException(403,"contract participant required")
     Phase4Operations.transition_contract(str(row["state"]),payload.new_state)
     uow.conn.execute(text("UPDATE social_contracts SET state=:state,version=version+1 WHERE id=:id AND version=:v"),{"state":payload.new_state,"id":payload.contract_id,"v":row["version"]}); uow.audit.append("social_contract.transitioned","social_contract",payload.contract_id,{"actor_id":str(player_id),"state":payload.new_state}); return {"ok":True,"state":payload.new_state}

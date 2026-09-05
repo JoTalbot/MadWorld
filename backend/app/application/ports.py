@@ -1,13 +1,17 @@
 """Persistence and transaction contracts for authoritative use cases."""
 from __future__ import annotations
+
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
+
 from app.domain.contracts import Contract, ContractTemplate
 from app.domain.primitives import Character, InventoryStack, Job, LedgerEntry, Vehicle, Wallet
 from app.domain.settlements import Settlement
+
+
 @dataclass(frozen=True,slots=True)
 class IdempotencyRecord: command_name:str; idempotency_key:str; request_hash:str; response_status:int; response_payload:dict; actor_id:UUID|None; created_at:datetime
 @dataclass(frozen=True,slots=True)
@@ -70,5 +74,5 @@ class UnitOfWork(AbstractContextManager["UnitOfWork"],Protocol):
     wallets:WalletRepository; inventories:InventoryRepository; jobs:JobRepository; characters:CharacterRepository; vehicles:VehicleRepository; settlements:SettlementRepository; contracts:ContractRepository; player_state:PlayerStateRepository; idempotency:IdempotencyRepository; audit:AuditRepository; outbox:OutboxRepository
     def commit(self)->None: ...
     def rollback(self)->None: ...
-    def __enter__(self)->"UnitOfWork": ...
+    def __enter__(self)->UnitOfWork: ...
     def __exit__(self,exc_type,exc_value,traceback)->None: ...

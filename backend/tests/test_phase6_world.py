@@ -1,6 +1,7 @@
-from app.application.phase6_world import EVENT_CYCLE, REGIONS, RESOURCE_TYPES, _score, _seed
-from app.api.phase6_world_routes import run_world_tick
 from pydantic import ValidationError
+
+from app.api.phase6_world_routes import run_world_tick
+from app.application.phase6_world import EVENT_CYCLE, REGIONS, RESOURCE_TYPES, _score, _seed
 
 
 def test_simulation_seed_is_stable():

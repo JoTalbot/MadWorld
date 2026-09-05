@@ -4,7 +4,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
 
-
 IDEMPOTENCY_CONSTRAINTS = {
     "ledger_entries_idempotency_key_key",
     "jobs_idempotency_key_key",

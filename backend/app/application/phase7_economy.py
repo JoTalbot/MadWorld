@@ -1,6 +1,8 @@
 """B3 Advanced Economy read-model services."""
 from uuid import UUID
+
 from sqlalchemy import text
+
 from app.application.errors import NotFound
 
 

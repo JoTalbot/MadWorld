@@ -7,7 +7,7 @@ from datetime import timedelta
 from functools import lru_cache
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from app.domain.primitives import utc_now
@@ -44,6 +44,37 @@ def create_session(payload: SessionCreateRequest, store: SessionStore = Depends(
     token = secrets.token_urlsafe(32)
     player = store.create(payload.handle, token, now, expires)
     return SessionResponse(player_id=player.player_id, handle=player.handle, token=token, expires_at=expires.isoformat())
+
+
+class SessionRevokeAllResponse(BaseModel):
+    player_id: UUID
+    revoked: int
+
+
+def _bearer(authorization: str | None) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="bearer session token is required")
+    return authorization[7:].strip()
+
+
+@router.delete("/current", status_code=204, response_class=Response)
+def revoke_current_session(authorization: str | None = Header(default=None), store: SessionStore = Depends(get_session_store)) -> Response:
+    """Log out: revoke the presented session token. Idempotent for already-revoked tokens of a valid session."""
+    token = _bearer(authorization)
+    if store.resolve(token, utc_now()) is None:
+        raise HTTPException(status_code=401, detail="invalid or expired session")
+    store.revoke(token, utc_now())
+    return Response(status_code=204)
+
+
+@router.delete("", response_model=SessionRevokeAllResponse)
+def revoke_all_sessions(authorization: str | None = Header(default=None), store: SessionStore = Depends(get_session_store)) -> SessionRevokeAllResponse:
+    """Log out everywhere: revoke every active session of the authenticated player, including this one."""
+    token = _bearer(authorization)
+    player_id = store.resolve(token, utc_now())
+    if player_id is None:
+        raise HTTPException(status_code=401, detail="invalid or expired session")
+    return SessionRevokeAllResponse(player_id=player_id, revoked=store.revoke_all(player_id, utc_now()))
 
 
 def resolve_session(token: str, store: SessionStore | None = None) -> UUID:

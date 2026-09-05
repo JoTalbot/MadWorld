@@ -1,9 +1,12 @@
 """Phase 3 authoritative vehicle fitting, combat, salvage and recovery primitives."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
+
 from app.domain.primitives import DamageType, InvalidQuantity, InvalidTransition, Vehicle, VehicleState
+
 
 @dataclass(frozen=True, slots=True)
 class Module:

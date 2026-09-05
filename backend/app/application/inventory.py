@@ -6,7 +6,7 @@ from uuid import UUID
 
 from app.application.errors import NotFound
 from app.application.ports import UnitOfWork
-from app.domain.primitives import InventoryStack, InvalidQuantity
+from app.domain.primitives import InvalidQuantity, InventoryStack
 
 
 class InventoryService:

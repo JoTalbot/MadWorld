@@ -1,9 +1,11 @@
 """B4 NPC faction observation, planning and execution API."""
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header
+
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
-from app.application.npc_faction_simulation import observe, choose_action, execute_action
+from app.application.npc_faction_simulation import choose_action, execute_action, observe
 
 router=APIRouter(prefix="/api/v1/factions",tags=["npc-factions"])
 

@@ -1,18 +1,22 @@
 """HTTP dependencies and infrastructure wiring."""
 
 from __future__ import annotations
+
 from collections.abc import Generator
 from functools import lru_cache
 from uuid import UUID
+
 from fastapi import Header, HTTPException, Request
+
+from app.api.session_routes import get_session_store, resolve_session
 from app.application.ports import UnitOfWork
+from app.infrastructure.contracts import PostgresContractRepository
 from app.infrastructure.db import create_engine_from_env
 from app.infrastructure.postgres import PostgresUnitOfWork
-from app.infrastructure.vehicle_components import ComponentVehicleRepository
-from app.infrastructure.contracts import PostgresContractRepository
-from app.infrastructure.settlements import PostgresSettlementRepository
 from app.infrastructure.sessions import SessionStore
-from app.api.session_routes import get_session_store, resolve_session
+from app.infrastructure.settlements import PostgresSettlementRepository
+from app.infrastructure.vehicle_components import ComponentVehicleRepository
+
 
 @lru_cache(maxsize=1)
 def get_engine(): return create_engine_from_env()

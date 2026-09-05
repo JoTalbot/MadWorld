@@ -59,3 +59,31 @@ def test_session_handle_validation() -> None:
         assert client.post("/api/v1/sessions", json={"handle": "ab"}).status_code == 422
         assert client.post("/api/v1/sessions", json={"handle": "bad handle!"}).status_code == 422
     finally: app.dependency_overrides.clear()
+
+
+def test_logout_revokes_current_session_only() -> None:
+    store = InMemorySessionStore()
+    try:
+        client = _client(store)
+        t1 = client.post("/api/v1/sessions", json={"handle": "multi_01"}).json()["token"]
+        t2 = client.post("/api/v1/sessions", json={"handle": "multi_01"}).json()["token"]
+        player_id = client.post("/api/v1/sessions", json={"handle": "multi_01"}).json()["player_id"]
+        assert client.delete("/api/v1/sessions/current").status_code == 401
+        assert client.delete("/api/v1/sessions/current", headers={"Authorization": f"Bearer {t1}"}).status_code == 204
+        assert client.delete("/api/v1/sessions/current", headers={"Authorization": f"Bearer {t1}"}).status_code == 401
+        assert client.get(f"/api/v1/players/{player_id}/state", headers={"Authorization": f"Bearer {t1}"}).status_code == 401
+        assert client.get(f"/api/v1/players/{player_id}/state", headers={"Authorization": f"Bearer {t2}"}).status_code == 200
+    finally: app.dependency_overrides.clear()
+
+
+def test_logout_everywhere_revokes_all_active_sessions() -> None:
+    store = InMemorySessionStore()
+    try:
+        client = _client(store)
+        tokens = [client.post("/api/v1/sessions", json={"handle": "every_02"}).json()["token"] for _ in range(3)]
+        other = client.post("/api/v1/sessions", json={"handle": "bystander"}).json()
+        body = client.delete("/api/v1/sessions", headers={"Authorization": f"Bearer {tokens[0]}"})
+        assert body.status_code == 200 and body.json()["revoked"] == 3
+        for t in tokens: assert client.delete("/api/v1/sessions/current", headers={"Authorization": f"Bearer {t}"}).status_code == 401
+        assert client.get(f"/api/v1/players/{other['player_id']}/state", headers={"Authorization": f"Bearer {other['token']}"}).status_code == 200
+    finally: app.dependency_overrides.clear()

@@ -21,7 +21,7 @@ class Settlement:
     version: int = 0
 
     @classmethod
-    def create(cls, owner_id: UUID, region: str) -> "Settlement":
+    def create(cls, owner_id: UUID, region: str) -> Settlement:
         if not region.strip():
             raise ValueError("settlement region is required")
         return cls(uuid4(), owner_id, region.strip(), 1)

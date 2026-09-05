@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 
 from app.domain.primitives import utc_now
 
+
 @dataclass(frozen=True, slots=True)
 class EventEnvelope:
     event_id: UUID

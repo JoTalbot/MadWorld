@@ -1,13 +1,16 @@
 """Authoritative Phase 5 territory commands and state queries."""
 from __future__ import annotations
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
+from app.api.idempotency import replay_or_none, require_key, store_response
 from app.application.ports import UnitOfWork
-from app.api.idempotency import require_key, replay_or_none, store_response
 
 router = APIRouter(prefix="/api/v1/territory", tags=["territory"])
 
@@ -147,7 +150,7 @@ def create_objective(payload: ObjectiveRequest,player: UUID=Depends(get_authenti
     _authorized(uow,payload.corporation_id,player)
     if payload.contest_ends_at<=payload.opens_at:raise HTTPException(400,"contest_ends_at must be after opens_at")
     oid=uuid4();uow.conn.execute(text("INSERT INTO territory_objectives(id,region_id,target_type,target_id,state,opens_at,contest_ends_at) VALUES (:id,:r,:t,:tid,CASE WHEN :o<=now() THEN 'OPEN' ELSE 'SCHEDULED' END,:o,:e)"),{"id":oid,"r":payload.region_id,"t":payload.target_type,"tid":payload.target_id,"o":payload.opens_at,"e":payload.contest_ends_at})
-    result={"ok":True,"objective_id":str(oid),"state":"OPEN" if payload.opens_at<=datetime.now(timezone.utc) else "SCHEDULED"};_event(uow,payload.region_id,"territory.objective_created",oid,payload.corporation_id,result);store_response(uow,"territory.objective",key,body,result,201,player);return result
+    result={"ok":True,"objective_id":str(oid),"state":"OPEN" if payload.opens_at<=datetime.now(UTC) else "SCHEDULED"};_event(uow,payload.region_id,"territory.objective_created",oid,payload.corporation_id,result);store_response(uow,"territory.objective",key,body,result,201,player);return result
 
 @router.post("/objectives/{objective_id}/resolve")
 def resolve_objective(objective_id: UUID,payload: ResolveObjectiveRequest,player: UUID=Depends(get_authenticated_player),uow: UnitOfWork=Depends(get_uow),idempotency_key: str|None=Header(default=None,alias="Idempotency-Key")):
@@ -156,7 +159,7 @@ def resolve_objective(objective_id: UUID,payload: ResolveObjectiveRequest,player
     _authorized(uow,payload.corporation_id,player);row=uow.conn.execute(text("SELECT region_id,state,contest_ends_at,target_type,target_id FROM territory_objectives WHERE id=:id FOR UPDATE"),{"id":objective_id}).mappings().first()
     if not row:raise HTTPException(404,"objective not found")
     if row["state"] not in ("OPEN","CONTESTED"):raise HTTPException(409,"objective is not resolvable in current state")
-    now=datetime.now(timezone.utc)
+    now=datetime.now(UTC)
     if now<row["contest_ends_at"]:raise HTTPException(409,"objective contest window is still open")
     uow.conn.execute(text("UPDATE territory_objectives SET state='RESOLVED',resolved_at=now(),winner_corporation_id=:w,version=version+1 WHERE id=:id"),{"w":payload.winner_corporation_id,"id":objective_id})
     result={"ok":True,"objective_id":str(objective_id),"state":"RESOLVED","winner_corporation_id":str(payload.winner_corporation_id) if payload.winner_corporation_id else None};_event(uow,str(row["region_id"]),"territory.objective_resolved",objective_id,payload.corporation_id,result);store_response(uow,"territory.objective.resolve",key,body,result,200,player);return result

@@ -6,9 +6,11 @@ It does not create a second source of truth.
 from __future__ import annotations
 
 from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_engine
 
 router = APIRouter(prefix="/api/v1/economy", tags=["economy-loop"])

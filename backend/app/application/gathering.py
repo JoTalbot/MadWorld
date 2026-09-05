@@ -1,12 +1,15 @@
 """Authoritative resource gathering use case."""
 from __future__ import annotations
+
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
+
 from app.application.errors import NotFound
 from app.application.ports import UnitOfWork
 from app.application.services import InventoryService
 from app.domain.events import DEFAULT_EVENT_REGISTRY
+
 
 @dataclass(frozen=True, slots=True)
 class ResourceNode:
@@ -22,7 +25,7 @@ class GatheringService:
         from app.infrastructure.resource_nodes import PostgresResourceNodeRepository
         return PostgresResourceNodeRepository(conn)
     def gather(self,player_id:UUID,inventory_id:UUID,node_id:UUID,now:datetime|None=None):
-        current=now or datetime.now(timezone.utc); node=self._nodes().get_for_update(node_id)
+        current=now or datetime.now(UTC); node=self._nodes().get_for_update(node_id)
         if node is None: raise NotFound("resource node not found")
         if node.quantity<=0: raise ValueError("resource node is depleted")
         if node.last_gathered_at is not None and current<node.last_gathered_at+timedelta(seconds=node.cooldown_seconds): raise ValueError("resource node is on cooldown")

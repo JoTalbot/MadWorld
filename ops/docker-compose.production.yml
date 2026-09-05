@@ -8,6 +8,9 @@ services:
       MADWORLD_DB_POOL_SIZE: ${MADWORLD_DB_POOL_SIZE:-10}
       MADWORLD_DB_MAX_OVERFLOW: ${MADWORLD_DB_MAX_OVERFLOW:-20}
       MADWORLD_LOG_LEVEL: ${MADWORLD_LOG_LEVEL:-INFO}
+      MADWORLD_ABUSE_CONTROL_BACKEND: ${MADWORLD_ABUSE_CONTROL_BACKEND:-postgres}
+      MADWORLD_RATE_LIMIT: ${MADWORLD_RATE_LIMIT:-120}
+      MADWORLD_READY_MAX_TICK_LAG_SECONDS: ${MADWORLD_READY_MAX_TICK_LAG_SECONDS:-900}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]

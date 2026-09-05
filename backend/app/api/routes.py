@@ -10,9 +10,21 @@ from app.api.dependencies import get_authenticated_player, get_uow
 from app.api.idempotency import replay_or_none, require_key, store_response
 from app.api.player_state import load_player_state
 from app.api.schemas import (
-    CharacterCreateRequest, CharacterResponse, InventoryAddRequest, InventoryRemoveRequest, InventoryResponse,
-    JobCreateRequest, JobResponse, PlayerBootstrapRequest, PlayerBootstrapResponse, PlayerStateResponse,
-    VehicleCreateRequest, VehicleMutationRequest, VehicleResponse, WalletEntryRequest, WalletEntryResponse,
+    CharacterCreateRequest,
+    CharacterResponse,
+    InventoryAddRequest,
+    InventoryRemoveRequest,
+    InventoryResponse,
+    JobCreateRequest,
+    JobResponse,
+    PlayerBootstrapRequest,
+    PlayerBootstrapResponse,
+    PlayerStateResponse,
+    VehicleCreateRequest,
+    VehicleMutationRequest,
+    VehicleResponse,
+    WalletEntryRequest,
+    WalletEntryResponse,
 )
 from app.application.ports import UnitOfWork
 from app.application.services import CharacterService, InventoryService, JobService, PlayerBootstrapService, VehicleService, WalletService

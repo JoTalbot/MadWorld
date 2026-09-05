@@ -29,6 +29,8 @@ class SessionPlayer:
 class SessionStore(Protocol):
     def create(self, handle: str, token: str, now: datetime, expires_at: datetime) -> SessionPlayer: ...
     def resolve(self, token: str, now: datetime) -> UUID | None: ...
+    def revoke(self, token: str, now: datetime) -> bool: ...
+    def revoke_all(self, player_id: UUID, now: datetime) -> int: ...
 
 
 class PostgresSessionStore:
@@ -41,8 +43,12 @@ class PostgresSessionStore:
             if row is None:
                 row = conn.execute(text("INSERT INTO players (handle) VALUES (:handle) RETURNING id, handle"), {"handle": handle}).mappings().one()
             player_id = row["id"]
-            conn.execute(text("INSERT INTO wallets (owner_id) VALUES (:player_id) ON CONFLICT (owner_id) DO NOTHING"), {"player_id": player_id})
-            conn.execute(text("INSERT INTO inventories (owner_id, name) VALUES (:player_id, 'personal') ON CONFLICT DO NOTHING"), {"player_id": player_id})
+            # wallets.owner_id uniqueness is a partial index since migration 017 (corporate wallets have NULL owner),
+            # so the conflict target must repeat the predicate.
+            conn.execute(text("INSERT INTO wallets (owner_id) VALUES (:player_id) ON CONFLICT (owner_id) WHERE owner_id IS NOT NULL DO NOTHING"), {"player_id": player_id})
+            # inventories has no unique (owner, name) key; make the personal inventory creation idempotent explicitly.
+            conn.execute(text("""INSERT INTO inventories (owner_id, name) SELECT :player_id, 'personal'
+                                 WHERE NOT EXISTS (SELECT 1 FROM inventories WHERE owner_id = :player_id AND name = 'personal')"""), {"player_id": player_id})
             conn.execute(
                 text("""INSERT INTO player_sessions (player_id, token_hash, created_at, last_seen_at, expires_at)
                         VALUES (:player_id, :token_hash, :created_at, :last_seen_at, :expires_at)"""),
@@ -61,6 +67,14 @@ class PostgresSessionStore:
             if row is None: return None
             conn.execute(text("UPDATE player_sessions SET last_seen_at = :now WHERE token_hash = :token_hash"), {"now": now, "token_hash": token_hash})
             return UUID(str(row["player_id"]))
+
+    def revoke(self, token: str, now: datetime) -> bool:
+        with self.engine.begin() as conn:
+            return conn.execute(text("UPDATE player_sessions SET revoked_at = :now WHERE token_hash = :token_hash AND revoked_at IS NULL"), {"now": now, "token_hash": hash_token(token)}).rowcount == 1
+
+    def revoke_all(self, player_id: UUID, now: datetime) -> int:
+        with self.engine.begin() as conn:
+            return conn.execute(text("UPDATE player_sessions SET revoked_at = :now WHERE player_id = :player_id AND revoked_at IS NULL AND expires_at > :now"), {"now": now, "player_id": player_id}).rowcount
 
 
 @dataclass
@@ -81,6 +95,13 @@ class InMemorySessionStore:
         record["last_seen_at"] = now
         return record["player_id"]
 
-    def revoke(self, token: str, now: datetime) -> None:
+    def revoke(self, token: str, now: datetime) -> bool:
         record = self.sessions.get(hash_token(token))
-        if record is not None: record["revoked_at"] = now
+        if record is None or record["revoked_at"] is not None: return False
+        record["revoked_at"] = now; return True
+
+    def revoke_all(self, player_id: UUID, now: datetime) -> int:
+        count = 0
+        for record in self.sessions.values():
+            if record["player_id"] == player_id and record["revoked_at"] is None and record["expires_at"] > now: record["revoked_at"] = now; count += 1
+        return count

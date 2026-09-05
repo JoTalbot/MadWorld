@@ -1,6 +1,8 @@
 """Authoritative territory warfare commands."""
 from uuid import UUID, uuid4
+
 from sqlalchemy import text
+
 
 def member(conn, corp:UUID, player:UUID)->bool:
  return conn.execute(text("SELECT 1 FROM corporation_members WHERE corporation_id=:c AND player_id=:p"),{"c":corp,"p":player}).first() is not None

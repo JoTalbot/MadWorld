@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
 
-from app.application.expeditions import ExpeditionService, SCRAP_METAL_ID, SALVAGED_WIRE_ID
+from app.application.expeditions import SALVAGED_WIRE_ID, SCRAP_METAL_ID, ExpeditionService
 from app.domain.expeditions import ExpeditionRisk
 from app.domain.primitives import Vehicle
 from app.infrastructure.memory import InMemoryUnitOfWork
@@ -18,7 +18,7 @@ def setup_player():
 
 def test_expedition_is_persistent_and_consumes_fuel():
     uow, player, vehicle_id, inventory_id = setup_player()
-    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2030, 1, 1, tzinfo=UTC)
     with uow:
         job = ExpeditionService(uow).start(player, vehicle_id, inventory_id, "dust_basin", 100, ExpeditionRisk.HIGH, "exp-1", now)
         assert job.metadata["fuel_cost"] == 16
@@ -28,7 +28,7 @@ def test_expedition_is_persistent_and_consumes_fuel():
 
 def test_expedition_completion_is_time_guarded_and_rewards_inventory():
     uow, player, vehicle_id, inventory_id = setup_player()
-    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2030, 1, 1, tzinfo=UTC)
     with uow:
         job = ExpeditionService(uow).start(player, vehicle_id, inventory_id, "iron_ruins", 10, ExpeditionRisk.LOW, "exp-2", now)
         with pytest.raises(ValueError):
@@ -42,7 +42,7 @@ def test_expedition_completion_is_time_guarded_and_rewards_inventory():
 
 def test_expedition_completion_is_idempotent_after_resolution():
     uow, player, vehicle_id, inventory_id = setup_player()
-    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    now = datetime(2030, 1, 1, tzinfo=UTC)
     with uow:
         job = ExpeditionService(uow).start(player, vehicle_id, inventory_id, "salt_coast", 5, ExpeditionRisk.MEDIUM, "exp-3", now)
         first = ExpeditionService(uow).complete(player, job.id, now + timedelta(seconds=300))

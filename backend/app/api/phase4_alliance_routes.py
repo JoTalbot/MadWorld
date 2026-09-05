@@ -1,9 +1,12 @@
 """Authoritative alliance lifecycle commands for Phase 4."""
 from __future__ import annotations
+
 from uuid import UUID, uuid4
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
 from app.application.ports import UnitOfWork
 

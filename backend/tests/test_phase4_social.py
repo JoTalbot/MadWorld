@@ -1,7 +1,10 @@
 from uuid import uuid4
+
 import pytest
-from app.application.phase4_social import SocialPolicy
+
 from app.application.phase4_operations import Phase4Operations
+from app.application.phase4_social import SocialPolicy
+
 
 def test_corporation_creation_normalizes_code_and_validates_tax():
     owner=uuid4(); corp=SocialPolicy.create_corporation(owner,"  dustco ","Dust Co",250)

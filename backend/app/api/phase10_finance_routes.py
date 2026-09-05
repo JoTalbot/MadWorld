@@ -1,10 +1,13 @@
 """B6 authoritative finance and asset provenance commands."""
 from __future__ import annotations
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
 from app.api.idempotency import replay_or_none, require_key, store_response
 from app.application.ports import UnitOfWork
@@ -74,7 +77,7 @@ def create_credit(payload: CreditCreate, player_id: UUID = Depends(get_authentic
     key = require_key(idempotency_key); body = payload.model_dump(mode="json")
     replay = replay_or_none(uow,"finance.credit.create",key,body)
     if replay is not None: return replay
-    if payload.due_at <= datetime.now(timezone.utc): raise HTTPException(400,"due_at must be in the future")
+    if payload.due_at <= datetime.now(UTC): raise HTTPException(400,"due_at must be in the future")
     lender = payload.lender_player_id
     if lender == player_id: raise HTTPException(400,"borrower and lender must differ")
     agreement = uuid4()
@@ -113,7 +116,7 @@ def default_credit(agreement_id: UUID, player_id: UUID = Depends(get_authenticat
     if not row:raise HTTPException(404,"credit agreement not found")
     if UUID(str(row["borrower_player_id"]))!=player_id:raise HTTPException(403,"borrower authorization required")
     if row["status"]!="ACTIVE":raise HTTPException(409,"credit is not active")
-    if row["due_at"]>datetime.now(timezone.utc):raise HTTPException(409,"credit is not due")
+    if row["due_at"]>datetime.now(UTC):raise HTTPException(409,"credit is not due")
     uow.conn.execute(text("UPDATE finance_credit_agreements SET status='DEFAULTED',version=version+1,updated_at=now() WHERE id=:id"),{"id":agreement_id})
     result={"ok":True,"credit_agreement_id":str(agreement_id),"status":"DEFAULTED"}; store_response(uow,"finance.credit.default",key,body,result,200,player_id); uow.audit.append("finance.credit.defaulted","finance",agreement_id,{"actor_id":str(player_id)}); uow.outbox.enqueue("finance.credit.defaulted","finance",agreement_id,result); return result
 
@@ -136,7 +139,7 @@ def pledge_collateral(agreement_id: UUID, payload: CollateralCreate, player_id: 
 def create_insurance(payload: InsuranceCreate, player_id: UUID = Depends(get_authenticated_player), uow: UnitOfWork = Depends(get_uow), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
     key=require_key(idempotency_key); body=payload.model_dump(mode="json"); replay=replay_or_none(uow,"finance.insurance.create",key,body)
     if replay is not None:return replay
-    if payload.expires_at<=datetime.now(timezone.utc):raise HTTPException(400,"expires_at must be in the future")
+    if payload.expires_at<=datetime.now(UTC):raise HTTPException(400,"expires_at must be in the future")
     if payload.deductible>payload.coverage_value:raise HTTPException(400,"deductible exceeds coverage")
     _asset_owned(uow,player_id,payload.asset_id); _debit(uow,player_id,payload.premium,key+":premium","insurance premium")
     pid=uuid4(); uow.conn.execute(text("INSERT INTO finance_insurance_policies(id,holder_player_id,asset_id,coverage_value,premium,deductible,expires_at) VALUES (:id,:p,:a,:c,:pr,:d,:e)"),{"id":pid,"p":player_id,"a":payload.asset_id,"c":payload.coverage_value,"pr":payload.premium,"d":payload.deductible,"e":payload.expires_at})
@@ -147,7 +150,7 @@ def create_insurance(payload: InsuranceCreate, player_id: UUID = Depends(get_aut
 def create_investment(payload: InvestmentCreate, player_id: UUID = Depends(get_authenticated_player), uow: UnitOfWork = Depends(get_uow), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
     key=require_key(idempotency_key); body=payload.model_dump(mode="json"); replay=replay_or_none(uow,"finance.investment.create",key,body)
     if replay is not None:return replay
-    if payload.maturity_at<=datetime.now(timezone.utc):raise HTTPException(400,"maturity_at must be in the future")
+    if payload.maturity_at<=datetime.now(UTC):raise HTTPException(400,"maturity_at must be in the future")
     _debit(uow,player_id,payload.principal,key+":principal","investment principal")
     iid=uuid4(); uow.conn.execute(text("INSERT INTO finance_investments(id,investor_player_id,principal,target_type,target_id,return_bps,maturity_at) VALUES (:id,:p,:v,:t,:tid,:r,:m)"),{"id":iid,"p":player_id,"v":payload.principal,"t":payload.target_type,"tid":payload.target_id,"r":payload.return_bps,"m":payload.maturity_at})
     result={"ok":True,"investment_id":str(iid),"status":"ACTIVE","principal":payload.principal}; store_response(uow,"finance.investment.create",key,body,result,201,player_id); uow.audit.append("finance.investment.created","finance",iid,{"actor_id":str(player_id),"principal":payload.principal}); return result
