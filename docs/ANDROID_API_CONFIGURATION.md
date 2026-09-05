@@ -26,7 +26,7 @@ Debug builds allow cleartext HTTP specifically for local development. Release bu
 
 ## Production
 
-Pass a fully qualified HTTPS API URL through Gradle property `MADWORLD_API_URL` or environment variable `MADWORLD_API_URL`.
+Pass a fully qualified HTTPS API URL through Gradle property `MADWORLD_API_URL` or environment variable `MADWORLD_API_URL`. The requirement is enforced only when a release task is scheduled (`gradle.taskGraph.whenReady`), so `testDebugUnitTest` and `assembleDebug` run without it.
 
 ```bash
 ./gradlew assembleRelease -PMADWORLD_API_URL=https://api.example.invalid

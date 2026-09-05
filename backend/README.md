@@ -86,8 +86,10 @@ Tuning: `MADWORLD_RATE_LIMIT` (requests per 60 s per client, default 120).
 
 - `ruff check .` (config in `ruff.toml`). Intentionally narrow – correctness, unused
   imports, import order and modern syntax; formatting is not enforced.
-- `mypy` (config in `mypy.ini`). Scoped to the domain model, application ports and the
-  new infrastructure modules; widen `files` as modules are cleaned up.
+- `mypy` (config in `mypy.ini`). Covers `app/domain`, all of `app/application` and the
+  new infrastructure modules. Legacy application modules are listed with
+  `disallow_incomplete_defs = False`; real type errors are still reported there.
+  Remove a module from that list once its signatures are complete.
 - `python scripts/export_openapi.py --check` – `contracts/openapi.json` is the committed
   Android-facing API contract. After an intentional API change run the script without
   `--check` and review the JSON diff in the PR.

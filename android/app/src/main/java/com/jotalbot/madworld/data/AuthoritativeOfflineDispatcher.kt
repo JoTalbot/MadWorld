@@ -8,7 +8,7 @@ import java.util.UUID
  * Unknown commands are rejected rather than executed optimistically.
  */
 class AuthoritativeOfflineDispatcher(
-    private val api: MadWorldApi,
+    private val api: MadWorldApiClient,
 ) : OfflineCommandDispatcher {
     override fun dispatch(command: OfflineCommandQueue.Command, session: SessionState) {
         val payload = JSONObject(command.payload)

@@ -78,7 +78,7 @@ def run_world_tick(conn, expected_tick: int | None = None) -> dict:
         elif kind == 'resource_discovery':
             mt, title, reward, risk = 'RECOVER', 'Recover newly discovered resources', 700, 1800
         elif kind == 'disaster':
-            severity = int(payload.get('severity', event['severity']))
+            severity = int(payload.get('severity') or event.get('severity') or 1)
             mt, title, reward, risk = 'DISASTER_RESPONSE', 'Respond to regional catastrophe', 1000 + severity*500, min(9500, severity*1600)
         elif kind == 'regional_shortage':
             mt, title, reward, risk = 'SUPPLY', 'Relieve regional shortage', 750, 2500

@@ -4,8 +4,8 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
 
-class WorldRepository(private val baseUrl:String){
-    fun fetch(token:String):WorldState{
+class WorldRepository(private val baseUrl:String):WorldApiClient{
+    override fun fetch(token:String):WorldState{
         val c=(URI.create("${baseUrl.trimEnd('/')}/api/v1/world-simulation").toURL().openConnection() as HttpURLConnection).apply{
             requestMethod="GET"; connectTimeout=10_000; readTimeout=10_000
             setRequestProperty("Accept","application/json"); setRequestProperty("Authorization","Bearer $token")

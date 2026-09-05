@@ -24,7 +24,7 @@ def require_key(value: str | None) -> str:
     return value.strip()
 
 
-def replay_or_none(uow: UnitOfWork, command_name: str, key: str, payload: object):
+def replay_or_none(uow: UnitOfWork, command_name: str, key: str, payload: object) -> dict | None:
     record = uow.idempotency.get(command_name, key)
     if record is None:
         return None

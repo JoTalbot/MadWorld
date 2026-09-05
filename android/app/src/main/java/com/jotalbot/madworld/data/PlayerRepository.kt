@@ -4,25 +4,35 @@ import android.content.Context
 import org.json.JSONObject
 import java.util.UUID
 
-class PlayerRepository(context: Context, private val api: MadWorldApi) {
-    private val cache = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
-    private val session = context.getSharedPreferences("player_session", Context.MODE_PRIVATE)
-    private val settlementCache = context.getSharedPreferences("settlement_state", Context.MODE_PRIVATE)
+class PlayerRepository(
+    private val api: MadWorldApiClient,
+    private val cache: KeyValueStore,
+    private val session: KeyValueStore,
+    private val settlementCache: KeyValueStore,
+) {
+    constructor(context: Context, api: MadWorldApiClient) : this(
+        api,
+        SharedPreferencesStore(context, "player_state"),
+        SharedPreferencesStore(context, "player_session"),
+        SharedPreferencesStore(context, "settlement_state"),
+    )
 
     fun session(): SessionState? {
-        val playerId = session.getString("player_id", null)?.let(UUID::fromString) ?: return null
-        val handle = session.getString("handle", null) ?: return null
-        val token = session.getString("token", null) ?: return null
-        val expiresAt = session.getString("expires_at", null) ?: return null
+        val playerId = session.get("player_id")?.let(UUID::fromString) ?: return null
+        val handle = session.get("handle") ?: return null
+        val token = session.get("token") ?: return null
+        val expiresAt = session.get("expires_at") ?: return null
         return SessionState(playerId, handle, token, expiresAt)
     }
 
+    fun clearSession() { listOf("player_id", "handle", "token", "expires_at").forEach(session::remove) }
+
     fun createSession(handle: String): SessionState = api.createSession(handle).also { value ->
-        session.edit().putString("player_id", value.playerId.toString()).putString("handle", value.handle).putString("token", value.token).putString("expires_at", value.expiresAt).apply()
+        session.put("player_id", value.playerId.toString()); session.put("handle", value.handle); session.put("token", value.token); session.put("expires_at", value.expiresAt)
     }
 
-    fun cached(playerId: UUID): PlayerState? = cache.getString(playerId.toString(), null)?.let(::parseCached)
-    fun cachedSettlement(playerId: UUID): SettlementState? = settlementCache.getString(playerId.toString(), null)?.let(::parseSettlement)
+    fun cached(playerId: UUID): PlayerState? = cache.get(playerId.toString())?.let { runCatching { parseCached(it) }.getOrNull() }
+    fun cachedSettlement(playerId: UUID): SettlementState? = settlementCache.get(playerId.toString())?.let { runCatching { parseSettlement(it) }.getOrNull() }
     fun refresh(session: SessionState): PlayerState = api.fetchPlayerState(session.playerId, session.token).also { save(session.playerId, it) }
     fun refreshSettlement(session: SessionState): SettlementState = api.fetchSettlement(session.playerId, session.token).also { saveSettlement(session.playerId, it) }
     fun refreshEconomy(session: SessionState): EconomyOverviewState = api.fetchEconomyOverview(session.playerId, session.token)
@@ -31,7 +41,7 @@ class PlayerRepository(context: Context, private val api: MadWorldApi) {
     private fun saveSettlement(playerId: UUID, state: SettlementState) {
         val modules = JSONObject(); state.modules.forEach { (key, value) -> modules.put(key, value) }
         val capabilities = JSONObject(); state.capabilities.forEach { (key, value) -> capabilities.put(key, value) }
-        settlementCache.edit().putString(playerId.toString(), JSONObject().put("id", state.id).put("owner_id", state.ownerId).put("region", state.region).put("level", state.level).put("modules", modules).put("capabilities", capabilities).put("version", state.version).toString()).apply()
+        settlementCache.put(playerId.toString(), JSONObject().put("id", state.id).put("owner_id", state.ownerId).put("region", state.region).put("level", state.level).put("modules", modules).put("capabilities", capabilities).put("version", state.version).toString())
     }
 
     private fun save(playerId: UUID, state: PlayerState) {
@@ -41,7 +51,7 @@ class PlayerRepository(context: Context, private val api: MadWorldApi) {
         val inventory = org.json.JSONArray(); state.inventory.forEach { i -> inventory.put(JSONObject().put("inventory_id", i.inventoryId).put("item_definition_id", i.itemDefinitionId).put("quantity", i.quantity).put("condition", i.condition).put("version", i.version)) }; root.put("inventory", inventory)
         val jobs = org.json.JSONArray(); state.activeJobs.forEach { j -> jobs.put(JSONObject().put("id", j.id).put("owner_id", j.ownerId).put("job_type", j.jobType).put("started_at", j.startedAt).put("completes_at", j.completesAt).put("state", j.state).put("version", j.version)) }; root.put("active_jobs", jobs)
         state.wallet?.let { w -> root.put("wallet", JSONObject().put("id", w.id).put("balance", w.balance).put("version", w.version)) } ?: root.put("wallet", JSONObject.NULL)
-        cache.edit().putString(playerId.toString(), root.toString()).apply()
+        cache.put(playerId.toString(), root.toString())
     }
 
     private fun parseSettlement(json: String): SettlementState {

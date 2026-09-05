@@ -28,14 +28,13 @@ android {
             manifestPlaceholders["madworldAllowCleartext"] = true
         }
         release {
+            // Resolved lazily: evaluating the release build type must not fail
+            // debug-only invocations (unit tests, assembleDebug) that legitimately
+            // run without MADWORLD_API_URL. Validation happens in taskGraph.whenReady.
             val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
                 .orElse(providers.environmentVariable("MADWORLD_API_URL"))
                 .orNull
-                ?: throw GradleException("MADWORLD_API_URL is required for release builds")
-            require(apiUrl.startsWith("https://")) {
-                "MADWORLD_API_URL must use HTTPS for release builds"
-            }
-            buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+            buildConfigField("String", "MADWORLD_API_URL", "\"${(apiUrl ?: "").replace("\\", "\\\\").replace("\"", "\\\"")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = false
         }
     }
@@ -68,4 +67,17 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     // Real org.json for JVM unit tests (the Android SDK stub throws "not mocked").
     testImplementation("org.json:json:20240303")
+}
+
+// Release builds require an explicit HTTPS API URL. Enforced only when a release
+// task is actually scheduled so debug/test builds stay independent of the setting.
+gradle.taskGraph.whenReady {
+    val releaseScheduled = allTasks.any { it.project == project && it.name.contains("Release") && !it.name.contains("UnitTest") }
+    if (releaseScheduled) {
+        val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
+            .orElse(providers.environmentVariable("MADWORLD_API_URL"))
+            .orNull
+            ?: throw GradleException("MADWORLD_API_URL is required for release builds")
+        require(apiUrl.startsWith("https://")) { "MADWORLD_API_URL must use HTTPS for release builds" }
+    }
 }
