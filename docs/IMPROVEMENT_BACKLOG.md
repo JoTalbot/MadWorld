@@ -241,3 +241,43 @@ New product-changing ideas discovered during implementation remain subject to th
 - Fix: debug builds now explicitly allow cleartext HTTP for local development; release builds keep cleartext disabled.
 - Physical-device configuration documented: build debug with `-PMADWORLD_API_URL=http://<LAN-IP>:8000`, where `<LAN-IP>` is the reachable address of the development server.
 - Production remains HTTPS-only.
+
+## Remote Operator workflow breakage — 2026-09-05
+
+- Status: **IMPLEMENTED (repository side) — technical bug fix, no product change.**
+- Observed: `.github/workflows/remote-operator.yml` and `remote-operator-reusable.yml` on `main` were invalid YAML (heredoc body / multiline `command_text` literal at column 0 inside `run: |`). Every Remote Operator run failed in 0s with "workflow file issue"; the `COMMANDS.txt` queue could not be executed and the failure was invisible to application CI.
+- Fix: `docs/patches/remote-operator-yaml-heredoc-fix.patch` (the Arena GitHub connection lacks `workflows` permission; owner must `git apply`). Executed bash is byte-identical.
+- Guard: `backend/tests/test_workflow_yaml_validity.py` — every workflow must parse as YAML, every `run:` step must pass `bash -n`, no column-0 non-key lines. Runs in Backend CI and Release Gate. `pyyaml` added to `backend/requirements.txt`.
+- While the patch file exists and the workflows are still broken, the two Remote Operator workflows are strict `xfail`; once the owner applies the patch (and deletes it per `docs/patches/README.md`) the tests must pass. Removing the patch without applying it turns the tests red.
+- Queue: appended `cmd-20260905-160000-dr-rehearsal-preflight` (read-only DR preflight) and `cmd-20260905-160500-capacity-baseline-readonly-probe` (bounded read-only baseline). Status: NOT EXECUTED — pending workflow fix and executor pickup. Neither closes an owner gate.
+
+## Post-B10 candidates — PLANNED (awaiting owner variant selection)
+
+All B1–B10 and Phase 0–6 items are COMPLETE. Nothing below is implemented; per policy, new product-changing work starts as PLANNED and requires a variant choice.
+
+### IMP-135 — Phase 7: Finance & advanced sandbox (player loans, insurance, escrow, bounty markets)
+- Minimal: escrow for existing contracts only; no interest, no insurance.
+- Systemic: escrow + corporation-issued loans with collateral seizure through the existing ledger authority.
+- Advanced: Systemic + convoy/cargo insurance pools and bounty market fed by reputation/territory events.
+- Hybrid (recommended): escrow + collateralised loans now; insurance and bounties as a follow-up slice behind feature flags.
+
+### IMP-136 — Phase 8: Onboarding & first-hour retention
+- Minimal: server-driven tutorial checklist in the existing mission system.
+- Systemic: staged "safe zone" region with reduced loss and NPC-guided contracts.
+- Advanced: Systemic + adaptive difficulty from telemetry and cohort A/B routing.
+- Hybrid (recommended): checklist + safe-zone region; telemetry hooks only, no adaptive logic yet.
+
+### IMP-137 — Phase 8: Localization (uk/ru/en) & accessibility
+- Minimal: Android string extraction + uk/en; server messages stay English keys.
+- Systemic: server-side message keys with client-side catalogs for uk/ru/en; RTL-safe layouts.
+- Advanced: Systemic + dynamic content (item/region names) localized via item-definition metadata.
+- Hybrid (recommended): Systemic scope for UI + accessibility (font scale, TalkBack labels); dynamic content later.
+
+### IMP-138 — LiveOps tooling (admin console for events, clamps, bans)
+- Minimal: read-only admin endpoints over existing telemetry.
+- Systemic: authenticated admin API for scheduling world events and toggling disaster clamps with audit log.
+- Advanced: Systemic + web dashboard and role-scoped operators.
+- Hybrid (recommended): Systemic API + minimal dashboard; every mutation emits a versioned domain event.
+
+### IMP-139 — Push / crash / analytics provider integration
+- Blocked on owner decisions (B10 owner gates). Variants deferred until the provider decision is recorded.
