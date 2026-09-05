@@ -57,3 +57,10 @@ No gameplay/economy balance change was introduced by B10 release hardening. Any 
 Production verification must remain scoped to MadWorld. Do not touch Octopus infrastructure, unrelated PostgreSQL, existing Docker networks/volumes, host port 8000, global Docker cleanup or UFW as part of MadWorld release work.
 
 See `ops/B10_CURRENT_RELEASE_AUDIT.md` and `ops/B10_OWNER_GATE_EVIDENCE.md` for the current exact-head and owner-gate matrices.
+
+## Addendum — 2026-09-05
+
+- ⚠️ Remote Operator workflows on `main` are invalid YAML; queue execution is blocked. Fix: `docs/patches/remote-operator-yaml-heredoc-fix.patch` (owner must apply; bot lacks `workflows` permission).
+- Guard added: `backend/tests/test_workflow_yaml_validity.py`.
+- Pending owner-applied patches: `remote-operator-yaml-heredoc-fix`, `backend-ci-quality-gates`, `android-ci-gradle-version-from-wrapper`.
+- Release decision unchanged: **NO-GO until owner/environment gates are verified.**
