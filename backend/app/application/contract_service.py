@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 from uuid import UUID
+
 from app.application.errors import NotFound
 from app.application.services import WalletService
 from app.domain.contracts import Contract, ContractState, ContractTemplate
 from app.domain.primitives import utc_now
+
 
 class ContractService:
     def __init__(self, uow): self.uow=uow; self.repo=uow.contracts

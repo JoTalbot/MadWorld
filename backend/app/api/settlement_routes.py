@@ -1,7 +1,10 @@
 from __future__ import annotations
+
 from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+
 from app.api.dependencies import get_authenticated_player, get_uow
 from app.application.ports import UnitOfWork
 from app.application.settlements import SettlementService

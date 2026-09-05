@@ -13,7 +13,7 @@ def test_migrations_are_deterministic_and_unique() -> None:
 
 
 def test_migration_checksum_mismatch_is_rejected() -> None:
-    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pytest.importorskip("sqlalchemy")
     from sqlalchemy import create_engine, text
 
     engine = create_engine("sqlite+pysqlite:///:memory:")

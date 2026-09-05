@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 TRAVEL_SERVICE = Path(__file__).parents[1] / "app" / "application" / "travel_service.py"
 MASTER_SERVICE = Path(__file__).parents[1] / "app" / "application" / "master_b1_b2.py"
 

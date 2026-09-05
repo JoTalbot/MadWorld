@@ -1,11 +1,15 @@
 from __future__ import annotations
+
 import json
 from copy import deepcopy
 from dataclasses import asdict
 from uuid import UUID
+
 from sqlalchemy import text
+
 from app.application.errors import ConcurrencyConflict
 from app.domain.contracts import Contract, ContractObjective, ContractReward, ContractRisk, ContractState, ContractTemplate
+
 
 class InMemoryContractRepository:
     def __init__(self): self.templates={}; self.contracts={}; self.reputation={}

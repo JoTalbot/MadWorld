@@ -1,6 +1,8 @@
 from uuid import uuid4
+
 import pytest
 from fastapi import HTTPException
+
 from app.api.phase4_wallet_routes import WalletTransfer, _validate_recipient
 
 

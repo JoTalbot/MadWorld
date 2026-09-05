@@ -3,10 +3,10 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
+from test_market_api import auth, engine, seed_market_players
 
 from app.api import market_routes
 from app.main import app
-from test_market_api import auth, engine, seed_market_players
 
 pytestmark = pytest.mark.integration
 

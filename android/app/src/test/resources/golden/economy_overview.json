@@ -1,0 +1,23 @@
+{
+  "active_jobs": [],
+  "contract_count": 0,
+  "facilities": [
+    {
+      "code": "refinery",
+      "efficiency_bps": 10000,
+      "level": 1
+    },
+    {
+      "code": "workshop",
+      "efficiency_bps": 10000,
+      "level": 1
+    }
+  ],
+  "market_price_points": 3,
+  "next_action": "prepare_expedition",
+  "ready_vehicles": 1,
+  "region": "dust_basin",
+  "settlement_id": "20000000-0000-0000-0000-000000000001",
+  "warehouse_capacity": 1000,
+  "warehouse_used": 0
+}

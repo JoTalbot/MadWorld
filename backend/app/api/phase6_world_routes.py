@@ -1,11 +1,14 @@
 """Authoritative Phase 6 world-state queries and simulation control surface."""
 from __future__ import annotations
+
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
-from app.application.ports import UnitOfWork
 from app.application.phase6_world import simulate_tick
-from uuid import UUID
+from app.application.ports import UnitOfWork
 
 router = APIRouter(prefix="/api/v1/world-simulation", tags=["world-simulation"])
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import uuid4
 
 from app.application.clock import FixedClock
@@ -9,7 +9,7 @@ from app.infrastructure.memory import InMemoryUnitOfWork
 
 
 def test_fixed_clock_and_scheduler_are_deterministic() -> None:
-    start = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    start = datetime(2030, 1, 1, tzinfo=UTC)
     clock = FixedClock(start)
     uow = InMemoryUnitOfWork()
     owner = uuid4()
@@ -22,7 +22,7 @@ def test_fixed_clock_and_scheduler_are_deterministic() -> None:
 
 
 def test_scheduler_completes_due_job_using_authoritative_service() -> None:
-    start = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    start = datetime(2030, 1, 1, tzinfo=UTC)
     clock = FixedClock(start)
     uow = InMemoryUnitOfWork()
     with uow:

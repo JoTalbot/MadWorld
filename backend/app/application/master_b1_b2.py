@@ -14,7 +14,6 @@ from sqlalchemy import text
 
 from app.application.world_event_consumers import consume_once
 
-
 ECONOMY_CONSUMER = "economy.world-v1"
 TERRITORY_CONSUMER = "territory.world-v1"
 

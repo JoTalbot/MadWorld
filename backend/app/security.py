@@ -1,9 +1,11 @@
 """B8 security primitives: bounded rate limiting, replay detection, circuit breaking and abuse scoring."""
 from __future__ import annotations
+
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from threading import Lock
 from time import monotonic
+
 
 @dataclass(frozen=True, slots=True)
 class RateLimitDecision:
@@ -54,7 +56,7 @@ class ReplayGuard:
             if key in self._seen:
                 return False
             if len(self._seen) >= self.max_entries:
-                oldest = min(self._seen, key=self._seen.get)
+                oldest = min(self._seen, key=lambda k: self._seen[k])
                 self._seen.pop(oldest, None)
             self._seen[key] = current
             return True

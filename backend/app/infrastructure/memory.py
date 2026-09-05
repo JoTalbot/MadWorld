@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
-from app.application.ports import IdempotencyRecord, OutboxEvent
-from app.domain.primitives import Character, InventoryStack, Job, LedgerEntry, Vehicle, Wallet
+from app.application.ports import IdempotencyRecord, InventoryStackSnapshot, OutboxEvent, PlayerStateSnapshot
+from app.domain.primitives import Character, InventoryStack, Job, JobState, LedgerEntry, Vehicle, Wallet
 from app.domain.settlements import Settlement
+
 
 @dataclass
 class InMemoryWalletRepository:
@@ -116,7 +117,7 @@ class InMemoryOutboxRepository:
     events: list[dict] = field(default_factory=list)
     def enqueue(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: self.events.append({"id": uuid4(), "event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": deepcopy(payload), "attempts": 0, "lease_owner": None, "lease_until": None, "published": False})
     def claim(self, owner: str, limit: int = 50, lease_seconds: int = 60, max_attempts: int = 10) -> list[OutboxEvent]:
-        now = datetime.now(timezone.utc); result = []
+        now = datetime.now(UTC); result = []
         for event in self.events:
             if len(result) >= limit: break
             if event["published"] or event["attempts"] >= max_attempts or (event["lease_until"] and event["lease_until"] > now): continue
@@ -129,8 +130,27 @@ class InMemoryOutboxRepository:
         raise ConcurrencyConflict("outbox event is not leased by this owner")
     def mark_failed(self, event_id: UUID, owner: str, error: str, retry_after_seconds: int) -> None:
         for event in self.events:
-            if event["id"] == event_id and event["lease_owner"] == owner: event["lease_until"] = datetime.now(timezone.utc) + timedelta(seconds=retry_after_seconds); event["last_error"] = error; return
+            if event["id"] == event_id and event["lease_owner"] == owner: event["lease_until"] = datetime.now(UTC) + timedelta(seconds=retry_after_seconds); event["last_error"] = error; return
         raise ConcurrencyConflict("outbox event is not leased by this owner")
+
+@dataclass
+class InMemoryPlayerStateRepository:
+    """Read model over the other in-memory repositories.
+
+    Ownership of wallets/inventories is not part of the write-side aggregates, so
+    tests register it explicitly via ``wallet_owners`` (owner_id -> wallet_id) and
+    ``inventory_owners`` (inventory_id -> owner_id). The repository reads through
+    the owning unit of work so repository swaps in tests stay visible.
+    """
+    uow: InMemoryUnitOfWork = field(repr=False)
+    wallet_owners: dict[UUID, UUID] = field(default_factory=dict)  # owner_id -> wallet_id
+    inventory_owners: dict[UUID, UUID] = field(default_factory=dict)  # inventory_id -> owner_id
+    def snapshot(self, player_id: UUID) -> PlayerStateSnapshot:
+        wallets, inventories, jobs_repo = self.uow.wallets, self.uow.inventories, self.uow.jobs
+        wallet_id = self.wallet_owners.get(player_id); wallet = wallets.get(wallet_id) if wallet_id else None
+        inventory = [InventoryStackSnapshot(inv_id, stack.item_definition_id, stack.quantity, stack.condition, stack.version) for (inv_id, _), stack in sorted(inventories.stacks.items(), key=lambda kv: (str(kv[0][0]), str(kv[0][1]))) if self.inventory_owners.get(inv_id) == player_id]
+        jobs = sorted((deepcopy(j) for j in jobs_repo.jobs.values() if j.owner_id == player_id and j.state in {JobState.QUEUED, JobState.RUNNING}), key=lambda j: (j.completes_at, str(j.id)))
+        return PlayerStateSnapshot(wallet, inventory, jobs)
 
 @dataclass
 class InMemoryUnitOfWork:
@@ -146,7 +166,9 @@ class InMemoryUnitOfWork:
     committed: bool = False
     rolled_back: bool = False
     _snapshot: dict | None = field(default=None, init=False, repr=False)
-    def __enter__(self) -> "InMemoryUnitOfWork":
+    player_state: InMemoryPlayerStateRepository = field(init=False, repr=False)
+    def __post_init__(self) -> None: self.player_state = InMemoryPlayerStateRepository(self)
+    def __enter__(self) -> InMemoryUnitOfWork:
         self._snapshot = {"wallets": deepcopy(self.wallets), "inventories": deepcopy(self.inventories), "jobs": deepcopy(self.jobs), "characters": deepcopy(self.characters), "vehicles": deepcopy(self.vehicles), "settlements": deepcopy(self.settlements), "idempotency": deepcopy(self.idempotency), "audit": deepcopy(self.audit), "outbox": deepcopy(self.outbox)}
         return self
     def __exit__(self, exc_type, exc_value, traceback) -> None:

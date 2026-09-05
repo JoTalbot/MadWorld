@@ -1,8 +1,11 @@
 package com.jotalbot.madworld
+
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.jotalbot.madworld.data.*
+import com.jotalbot.madworld.data.PlayerSessionCoordinator.LoadOutcome
+import com.jotalbot.madworld.data.PlayerSessionCoordinator.Snapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,25 +13,160 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.UUID
+
 sealed interface PlayerUiState {
-    data object Loading:PlayerUiState; data object SignedOut:PlayerUiState
-    data class Ready(val state:PlayerState,val session:SessionState,val settlement:SettlementState?=null,val economy:EconomyOverviewState?=null,val corporation:CorporationState?=null,val socialWalletBalance:Long?=null,val territory:TerritoryState?=null,val world:WorldState?=null,val offline:Boolean=false,val settlementError:String?=null,val economyError:String?=null,val socialError:String?=null,val territoryError:String?=null,val worldError:String?=null):PlayerUiState
-    data class Error(val message:String,val cached:PlayerState?=null):PlayerUiState
+    data object Loading : PlayerUiState
+    data object SignedOut : PlayerUiState
+    data class Ready(
+        val state: PlayerState,
+        val session: SessionState,
+        val settlement: SettlementState? = null,
+        val economy: EconomyOverviewState? = null,
+        val corporation: CorporationState? = null,
+        val socialWalletBalance: Long? = null,
+        val territory: TerritoryState? = null,
+        val world: WorldState? = null,
+        val offline: Boolean = false,
+        val settlementError: String? = null,
+        val economyError: String? = null,
+        val socialError: String? = null,
+        val territoryError: String? = null,
+        val worldError: String? = null,
+    ) : PlayerUiState
+
+    data class Error(val message: String, val cached: PlayerState? = null) : PlayerUiState
 }
-class PlayerViewModel(application:Application):AndroidViewModel(application){
- private val api=MadWorldApi(BuildConfig.MADWORLD_API_URL);private val repository=PlayerRepository(application,api);private val worldRepository=WorldRepository(BuildConfig.MADWORLD_API_URL);private val offlineQueue=OfflineCommandQueue(application);private val offlineDrainer=OfflineQueueDrainer(offlineQueue,AuthoritativeOfflineDispatcher(api));private val notifications=NotificationCenter(application);private val staleGuard=StaleStateGuard();private val _uiState=MutableStateFlow<PlayerUiState>(PlayerUiState.Loading);val uiState:StateFlow<PlayerUiState> = _uiState.asStateFlow()
- private fun acceptSettlement(current:SettlementState?,candidate:SettlementState?):SettlementState?=if(candidate==null)current else if(staleGuard.accept("settlement:${candidate.id}",candidate.version.toLong()))candidate else current
- private fun drainQueuedCommands(s:SessionState):OfflineQueueDrainer.DrainResult{val result=offlineDrainer.drain(s);if(result.delivered>0)notifications.publish("Offline commands synchronized","${result.delivered} queued command(s) delivered.","info");if(result.remaining>0)notifications.publish("Offline queue paused","${result.remaining} command(s) remain queued after a failed authoritative request.","warning");return result}
- fun enqueueOfflineCommand(name:String,payload:JSONObject,idempotencyKey:String=UUID.randomUUID().toString()){offlineQueue.enqueue(OfflineCommandQueue.Command(name,payload.toString(),idempotencyKey));notifications.publish("Command queued","$name will be synchronized after reconnect.","info")}
- fun load(){val s=repository.session();if(s==null){_uiState.value=PlayerUiState.SignedOut;return};val cached=repository.cached(s.playerId);val cs=repository.cachedSettlement(s.playerId);if(cached!=null)_uiState.value=PlayerUiState.Ready(cached,s,cs,offline=true);viewModelScope.launch(Dispatchers.IO){runCatching{repository.refresh(s)}.onSuccess{initial->drainQueuedCommands(s);val state=runCatching{repository.refresh(s)}.getOrDefault(initial);val settlement=acceptSettlement(cs,runCatching{repository.refreshSettlement(s)}.getOrNull());val economy=runCatching{repository.refreshEconomy(s)}.getOrNull();val territory=runCatching{api.fetchTerritory(s.token)}.getOrNull();val world=runCatching{worldRepository.fetch(s.token)}.getOrNull();_uiState.value=PlayerUiState.Ready(state,s,settlement,economy,territory=territory,world=world,offline=false,settlementError=if(settlement==null)"Settlement unavailable"else null,economyError=if(economy==null)"Economy unavailable"else null,territoryError=if(territory==null)"Territory unavailable"else null,worldError=if(world==null)"World unavailable"else null)}.onFailure{if(cached==null)_uiState.value=PlayerUiState.Error(it.message?:"Unable to load player state")}}}
- fun refreshSettlement(){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;viewModelScope.launch(Dispatchers.IO){runCatching{repository.refreshSettlement(x.session)}.onSuccess{candidate->_uiState.value=x.copy(settlement=acceptSettlement(x.settlement,candidate),settlementError=null,offline=false)}.onFailure{_uiState.value=x.copy(settlementError=it.message?:"Unable to load settlement")}}}
- fun refreshEconomy(){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;viewModelScope.launch(Dispatchers.IO){runCatching{repository.refreshEconomy(x.session)}.onSuccess{_uiState.value=x.copy(economy=it,economyError=null,offline=false)}.onFailure{_uiState.value=x.copy(economyError=it.message?:"Unable to load economy")}}}
- fun refreshTerritory(){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;viewModelScope.launch(Dispatchers.IO){runCatching{api.fetchTerritory(x.session.token)}.onSuccess{_uiState.value=x.copy(territory=it,territoryError=null,offline=false)}.onFailure{_uiState.value=x.copy(territoryError=it.message?:"Unable to load territory")}}}
- fun refreshWorld(){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;viewModelScope.launch(Dispatchers.IO){runCatching{worldRepository.fetch(x.session.token)}.onSuccess{_uiState.value=x.copy(world=it,worldError=null,offline=false)}.onFailure{_uiState.value=x.copy(worldError=it.message?:"Unable to load world")}}}
- fun refreshCorporation(corporationId:UUID){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;viewModelScope.launch(Dispatchers.IO){runCatching{api.fetchCorporationOverview(corporationId,x.session.token)}.onSuccess{_uiState.value=x.copy(corporation=it,socialError=null)}.onFailure{_uiState.value=x.copy(socialError=it.message?:"Unable to load corporation")}}}
- fun refreshCorporateWallet(corporationId:UUID){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;viewModelScope.launch(Dispatchers.IO){runCatching{api.fetchCorporateWallet(corporationId,x.session.token)}.onSuccess{_uiState.value=x.copy(socialWalletBalance=it,socialError=null)}.onFailure{_uiState.value=x.copy(socialError=it.message?:"Unable to load corporate wallet")}}}
- fun createCorporation(code:String,name:String,taxBps:Int){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;viewModelScope.launch(Dispatchers.IO){runCatching{api.createCorporation(code.trim(),name.trim(),taxBps,x.session.token)}.onSuccess{refreshCorporation(it);refreshCorporateWallet(it)}.onFailure{_uiState.value=x.copy(socialError=it.message?:"Unable to create corporation")}}}
- fun createManufacturer(brand:String,quality:Int){val x=_uiState.value;if(x !is PlayerUiState.Ready||x.corporation==null)return;viewModelScope.launch(Dispatchers.IO){runCatching{api.createManufacturer(x.corporation.id,brand.trim(),quality,x.session.token)}.onSuccess{_uiState.value=x.copy(socialError="Manufacturer created")} .onFailure{_uiState.value=x.copy(socialError=it.message?:"Unable to create manufacturer")}}}
- fun signIn(handle:String){_uiState.value=PlayerUiState.Loading;viewModelScope.launch(Dispatchers.IO){runCatching{repository.createSession(handle.trim())}.onSuccess{s->runCatching{repository.refresh(s)}.onSuccess{p->drainQueuedCommands(s);val state=runCatching{repository.refresh(s)}.getOrDefault(p);val settlement=runCatching{repository.refreshSettlement(s)}.getOrNull();val economy=runCatching{repository.refreshEconomy(s)}.getOrNull();val territory=runCatching{api.fetchTerritory(s.token)}.getOrNull();val world=runCatching{worldRepository.fetch(s.token)}.getOrNull();_uiState.value=PlayerUiState.Ready(state,s,settlement,economy,territory=territory,world=world,settlementError=if(settlement==null)"Settlement unavailable"else null,economyError=if(economy==null)"Economy unavailable"else null,territoryError=if(territory==null)"Territory unavailable"else null,worldError=if(world==null)"World unavailable"else null)}.onFailure{_uiState.value=PlayerUiState.Error(it.message?:"Unable to load player state")}}.onFailure{_uiState.value=PlayerUiState.Error(it.message?:"Unable to create session")}}}
- fun bootstrap(characterName:String){val x=_uiState.value;if(x !is PlayerUiState.Ready)return;_uiState.value=PlayerUiState.Loading;viewModelScope.launch(Dispatchers.IO){runCatching{api.bootstrap(x.session.playerId,characterName,x.session.token)}.onSuccess{p->_uiState.value=PlayerUiState.Ready(p,x.session,runCatching{repository.refreshSettlement(x.session)}.getOrNull()?:x.settlement,runCatching{repository.refreshEconomy(x.session)}.getOrNull()?:x.economy,territory=runCatching{api.fetchTerritory(x.session.token)}.getOrNull()?:x.territory,world=runCatching{worldRepository.fetch(x.session.token)}.getOrNull()?:x.world)}.onFailure{_uiState.value=PlayerUiState.Error(it.message?:"Unable to bootstrap player")}}}
+
+class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+    private val api: MadWorldApiClient = MadWorldApi(BuildConfig.MADWORLD_API_URL)
+    private val worldApi: WorldApiClient = WorldRepository(BuildConfig.MADWORLD_API_URL)
+    private val repository = PlayerRepository(application, api)
+    private val offlineQueue = OfflineCommandQueue(application)
+    private val notifications = NotificationCenter(application)
+    private val coordinator = PlayerSessionCoordinator(
+        api, worldApi, repository,
+        OfflineQueueDrainer(offlineQueue, AuthoritativeOfflineDispatcher(api)),
+        notifications,
+    )
+    private val _uiState = MutableStateFlow<PlayerUiState>(PlayerUiState.Loading)
+    val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
+
+    private fun Snapshot.toReady(previous: PlayerUiState.Ready? = null) = PlayerUiState.Ready(
+        state, session, settlement, economy,
+        corporation = previous?.corporation, socialWalletBalance = previous?.socialWalletBalance,
+        territory = territory, world = world, offline = false,
+        settlementError = settlementError, economyError = economyError, territoryError = territoryError, worldError = worldError,
+    )
+
+    fun enqueueOfflineCommand(name: String, payload: JSONObject, idempotencyKey: String = UUID.randomUUID().toString()) {
+        offlineQueue.enqueue(OfflineCommandQueue.Command(name, payload.toString(), idempotencyKey))
+        notifications.publish("Command queued", "$name will be synchronized after reconnect.", "info")
+    }
+
+    fun load() {
+        val session = repository.session()
+        if (session == null) { _uiState.value = PlayerUiState.SignedOut; return }
+        val cached = repository.cached(session.playerId)
+        val cachedSettlement = repository.cachedSettlement(session.playerId)
+        if (cached != null) _uiState.value = PlayerUiState.Ready(cached, session, cachedSettlement, offline = true)
+        viewModelScope.launch(Dispatchers.IO) {
+            when (val outcome = coordinator.loadLive(session, cachedSettlement, hadCache = cached != null)) {
+                is LoadOutcome.Live -> _uiState.value = outcome.snapshot.toReady()
+                is LoadOutcome.Failed -> if (!outcome.hadCache) _uiState.value = PlayerUiState.Error(outcome.message)
+                else -> Unit
+            }
+        }
+    }
+
+    fun signIn(handle: String) {
+        _uiState.value = PlayerUiState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            when (val outcome = coordinator.signIn(handle)) {
+                is LoadOutcome.Live -> _uiState.value = outcome.snapshot.toReady()
+                is LoadOutcome.Failed -> _uiState.value = PlayerUiState.Error(outcome.message)
+                else -> Unit
+            }
+        }
+    }
+
+    fun bootstrap(characterName: String) {
+        val x = _uiState.value as? PlayerUiState.Ready ?: return
+        _uiState.value = PlayerUiState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            val previous = Snapshot(x.state, x.session, x.settlement, x.economy, x.territory, x.world)
+            when (val outcome = coordinator.bootstrap(x.session, characterName, previous)) {
+                is LoadOutcome.Live -> _uiState.value = outcome.snapshot.toReady(x)
+                is LoadOutcome.Failed -> _uiState.value = PlayerUiState.Error(outcome.message)
+                else -> Unit
+            }
+        }
+    }
+
+    private inline fun updateReady(crossinline block: suspend (PlayerUiState.Ready) -> PlayerUiState.Ready) {
+        val x = _uiState.value as? PlayerUiState.Ready ?: return
+        viewModelScope.launch(Dispatchers.IO) { _uiState.value = block(x) }
+    }
+
+    fun refreshSettlement() = updateReady { x ->
+        runCatching { repository.refreshSettlement(x.session) }.fold(
+            { x.copy(settlement = coordinator.acceptSettlement(x.settlement, it), settlementError = null, offline = false) },
+            { x.copy(settlementError = it.message ?: "Unable to load settlement") },
+        )
+    }
+
+    fun refreshEconomy() = updateReady { x ->
+        runCatching { repository.refreshEconomy(x.session) }.fold(
+            { x.copy(economy = it, economyError = null, offline = false) },
+            { x.copy(economyError = it.message ?: "Unable to load economy") },
+        )
+    }
+
+    fun refreshTerritory() = updateReady { x ->
+        runCatching { api.fetchTerritory(x.session.token) }.fold(
+            { x.copy(territory = it, territoryError = null, offline = false) },
+            { x.copy(territoryError = it.message ?: "Unable to load territory") },
+        )
+    }
+
+    fun refreshWorld() = updateReady { x ->
+        runCatching { worldApi.fetch(x.session.token) }.fold(
+            { x.copy(world = it, worldError = null, offline = false) },
+            { x.copy(worldError = it.message ?: "Unable to load world") },
+        )
+    }
+
+    fun refreshCorporation(corporationId: UUID) = updateReady { x ->
+        runCatching { api.fetchCorporationOverview(corporationId, x.session.token) }.fold(
+            { x.copy(corporation = it, socialError = null) },
+            { x.copy(socialError = it.message ?: "Unable to load corporation") },
+        )
+    }
+
+    fun refreshCorporateWallet(corporationId: UUID) = updateReady { x ->
+        runCatching { api.fetchCorporateWallet(corporationId, x.session.token) }.fold(
+            { x.copy(socialWalletBalance = it, socialError = null) },
+            { x.copy(socialError = it.message ?: "Unable to load corporate wallet") },
+        )
+    }
+
+    fun createCorporation(code: String, name: String, taxBps: Int) {
+        val x = _uiState.value as? PlayerUiState.Ready ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            coordinator.createCorporation(x.session, code, name, taxBps).fold(
+                { refreshCorporation(it); refreshCorporateWallet(it) },
+                { _uiState.value = x.copy(socialError = it.message ?: "Unable to create corporation") },
+            )
+        }
+    }
+
+    fun createManufacturer(brand: String, quality: Int) {
+        val x = _uiState.value as? PlayerUiState.Ready ?: return
+        val corporation = x.corporation ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.value = runCatching { api.createManufacturer(corporation.id, brand.trim(), quality, x.session.token) }.fold(
+                { x.copy(socialError = "Manufacturer created") },
+                { x.copy(socialError = it.message ?: "Unable to create manufacturer") },
+            )
+        }
+    }
 }

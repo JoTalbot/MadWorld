@@ -1,6 +1,9 @@
 from uuid import uuid4
+
 import pytest
-from app.api.phase4_completion_routes import EscrowContractCreate, ContractSettle, ManufacturerCreate
+
+from app.api.phase4_completion_routes import ContractSettle, EscrowContractCreate, ManufacturerCreate
+
 
 def test_escrow_contract_model_accepts_runtime_counterparty_validation():
     payload = EscrowContractCreate(issuer_corporation_id=uuid4(), contract_type="ESCORT", amount=100)

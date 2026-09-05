@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
+
 
 class DomainError(ValueError): pass
 class InsufficientFunds(DomainError): pass
@@ -49,7 +50,7 @@ class VehicleComponent:
 def default_vehicle_components() -> dict[str, VehicleComponent]:
     return {"engine": VehicleComponent(armor=10), "hull": VehicleComponent(armor=25), "wheels": VehicleComponent(armor=5), "fuel_system": VehicleComponent(armor=15)}
 
-def utc_now() -> datetime: return datetime.now(timezone.utc)
+def utc_now() -> datetime: return datetime.now(UTC)
 
 @dataclass(frozen=True, slots=True)
 class LedgerEntry:
@@ -91,7 +92,7 @@ class Job:
     version: int = 0
     metadata: dict = field(default_factory=dict)
     @classmethod
-    def create(cls, owner_id: UUID, job_type: str, started_at: datetime, completes_at: datetime, metadata: dict | None = None) -> "Job":
+    def create(cls, owner_id: UUID, job_type: str, started_at: datetime, completes_at: datetime, metadata: dict | None = None) -> Job:
         if completes_at <= started_at: raise InvalidTransition("job completion must be after start")
         return cls(uuid4(), owner_id, job_type, started_at, completes_at, metadata=dict(metadata or {}))
     def start(self) -> None:
@@ -112,7 +113,7 @@ class Character:
     level: int = 1
     version: int = 0
     @classmethod
-    def create(cls, player_id: UUID, name: str) -> "Character":
+    def create(cls, player_id: UUID, name: str) -> Character:
         if not name.strip(): raise ValueError("character name must not be blank")
         return cls(uuid4(), player_id, name.strip())
 @dataclass(slots=True)
@@ -127,7 +128,7 @@ class Vehicle:
     version: int = 0
     components: dict[str, VehicleComponent] = field(default_factory=default_vehicle_components)
     @classmethod
-    def create(cls, owner_id: UUID, code: str, chassis_code: str, fuel: int = 0) -> "Vehicle":
+    def create(cls, owner_id: UUID, code: str, chassis_code: str, fuel: int = 0) -> Vehicle:
         if not code.strip() or not chassis_code.strip(): raise ValueError("vehicle code and chassis code must not be blank")
         if fuel < 0: raise InvalidQuantity("vehicle fuel must not be negative")
         return cls(uuid4(), owner_id, code.strip(), chassis_code.strip(), 100, fuel)

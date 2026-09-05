@@ -120,6 +120,15 @@ Each workflow run publishes an artifact named `remote-operator-result` containin
 
 The server-side executor additionally stores state and results under `.github/remote-operator/state/` and `.github/remote-operator/results/`.
 
+### Result retention
+
+Result and state directories are an audit trail and grow with every executed command. Retention policy:
+
+- Results referenced from release evidence (`ops/B10_*`, `docs/*STATUS*`) are kept indefinitely.
+- Rehearsal / stress / regression results (`*stress*`, `*reg-*`, `*locktest*`, `*dyn-*`, `*live-*`) may be pruned once the corresponding command is older than 30 days and is not referenced from any evidence document.
+- Pruning is done by a dedicated commit that only deletes files under `results/` and `state/`; it must never touch `COMMANDS.txt`.
+- Never rewrite history to remove results; if a result accidentally contains sensitive output, rotate the secret and redact in a follow-up commit.
+
 Runtime state/results are published to the dedicated `remote-operator-results` branch and are intentionally excluded from normal deployment triggers. They must not be pushed into `main` as runtime-result commits.
 
 ## Command queue

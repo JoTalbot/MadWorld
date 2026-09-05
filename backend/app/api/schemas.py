@@ -1,8 +1,11 @@
 """Stable request/response DTOs for the v1 API."""
 from __future__ import annotations
+
 from datetime import datetime
 from uuid import UUID
+
 from pydantic import BaseModel, Field, model_validator
+
 
 class WalletEntryRequest(BaseModel):
     wallet_id: UUID; amount: int; reason: str = Field(min_length=1,max_length=200); actor_id: UUID|None=None

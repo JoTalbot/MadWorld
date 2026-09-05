@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -12,7 +12,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
 from app.application.errors import ConcurrencyConflict, IdempotencyConflict
-from app.application.ports import IdempotencyRecord, OutboxEvent, UnitOfWork
+from app.application.ports import IdempotencyRecord, InventoryStackSnapshot, OutboxEvent, PlayerStateSnapshot
 from app.domain.primitives import Character, InventoryStack, Job, JobState, LedgerEntry, Vehicle, VehicleState, Wallet
 from app.infrastructure.errors import map_integrity_error
 
@@ -130,7 +130,7 @@ class PostgresOutboxRepository:
     def __init__(self, conn: Connection) -> None: self.conn = conn
     def enqueue(self, event_type: str, aggregate_type: str, aggregate_id: UUID, payload: dict) -> None: self.conn.execute(text("INSERT INTO outbox_events (aggregate_type, aggregate_id, event_type, payload) VALUES (:aggregate_type, :aggregate_id, :event_type, CAST(:payload AS JSONB))"), {"event_type": event_type, "aggregate_type": aggregate_type, "aggregate_id": aggregate_id, "payload": json.dumps(payload)})
     def claim(self, owner: str, limit: int = 50, lease_seconds: int = 60, max_attempts: int = 10) -> list[OutboxEvent]:
-        now = datetime.now(timezone.utc); until = now + timedelta(seconds=lease_seconds)
+        now = datetime.now(UTC); until = now + timedelta(seconds=lease_seconds)
         rows = self.conn.execute(text("""WITH candidates AS (SELECT id FROM outbox_events WHERE published_at IS NULL AND dead_lettered = FALSE AND attempts < :max_attempts AND (lease_until IS NULL OR lease_until <= :now) ORDER BY created_at LIMIT :limit FOR UPDATE SKIP LOCKED) UPDATE outbox_events o SET attempts = o.attempts + 1, lease_owner = :owner, lease_until = :until FROM candidates c WHERE o.id = c.id RETURNING o.id, o.event_type, o.aggregate_type, o.aggregate_id, o.payload, o.attempts, o.lease_owner, o.lease_until"""), {"max_attempts": max_attempts, "now": now, "limit": limit, "owner": owner, "until": until}).mappings().all()
         return [OutboxEvent(UUID(str(r["id"])), str(r["event_type"]), str(r["aggregate_type"]), UUID(str(r["aggregate_id"])), dict(r["payload"]), int(r["attempts"]), r["lease_owner"], r["lease_until"]) for r in rows]
     def mark_published(self, event_id: UUID, owner: str) -> None:
@@ -144,11 +144,30 @@ class PostgresOutboxRepository:
 def _json(value: object) -> str: return json.dumps(value)
 
 
+class PostgresPlayerStateRepository:
+    """Deterministic read model of one account's wallet, inventory and active jobs."""
+    def __init__(self, conn: Connection) -> None: self.conn = conn
+    def snapshot(self, player_id: UUID) -> PlayerStateSnapshot:
+        wallet_row = self.conn.execute(text("""
+            SELECT id, version, COALESCE((SELECT SUM(amount) FROM ledger_entries le WHERE le.wallet_id = w.id), 0) AS balance
+            FROM wallets w WHERE owner_id = :player_id"""), {"player_id": player_id}).mappings().first()
+        wallet = Wallet(UUID(str(wallet_row["id"])), int(wallet_row["balance"]), int(wallet_row["version"])) if wallet_row else None
+        inventory_rows = self.conn.execute(text("""
+            SELECT i.id AS inventory_id, ii.item_definition_id, ii.quantity, ii.condition, ii.version
+            FROM inventories i JOIN inventory_items ii ON ii.inventory_id = i.id
+            WHERE i.owner_id = :player_id ORDER BY i.id, ii.item_definition_id"""), {"player_id": player_id}).mappings().all()
+        inventory = [InventoryStackSnapshot(UUID(str(r["inventory_id"])), UUID(str(r["item_definition_id"])), int(r["quantity"]), int(r["condition"]), int(r["version"])) for r in inventory_rows]
+        job_rows = self.conn.execute(text("""
+            SELECT id, owner_id, job_type, started_at, completes_at, state, version, metadata
+            FROM jobs WHERE owner_id = :player_id AND state IN ('queued', 'running') ORDER BY completes_at, id"""), {"player_id": player_id}).mappings().all()
+        return PlayerStateSnapshot(wallet, inventory, [PostgresJobRepository._map(r) for r in job_rows])
+
+
 class PostgresUnitOfWork:
     def __init__(self, engine: Engine) -> None: self.engine = engine
-    def __enter__(self) -> "PostgresUnitOfWork":
+    def __enter__(self) -> PostgresUnitOfWork:
         self.conn = self.engine.connect(); self.tx = self.conn.begin()
-        self.wallets = PostgresWalletRepository(self.conn); self.inventories = PostgresInventoryRepository(self.conn); self.jobs = PostgresJobRepository(self.conn); self.characters = PostgresCharacterRepository(self.conn); self.vehicles = PostgresVehicleRepository(self.conn); self.idempotency = PostgresIdempotencyRepository(self.conn); self.audit = PostgresAuditRepository(self.conn); self.outbox = PostgresOutboxRepository(self.conn); return self
+        self.wallets = PostgresWalletRepository(self.conn); self.inventories = PostgresInventoryRepository(self.conn); self.jobs = PostgresJobRepository(self.conn); self.characters = PostgresCharacterRepository(self.conn); self.vehicles = PostgresVehicleRepository(self.conn); self.player_state = PostgresPlayerStateRepository(self.conn); self.idempotency = PostgresIdempotencyRepository(self.conn); self.audit = PostgresAuditRepository(self.conn); self.outbox = PostgresOutboxRepository(self.conn); return self
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         if exc_type is None: self.commit()
         else: self.rollback()

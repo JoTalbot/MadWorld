@@ -1,3 +1,4 @@
+from datetime import UTC
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -48,3 +49,26 @@ def test_player_bootstrap_rolls_back_when_vehicle_creation_fails() -> None:
         except RuntimeError: pass
     finally: uow.vehicles.save = original_save
     assert uow.characters.characters == {} and uow.vehicles.vehicles == {}
+
+
+def test_player_state_snapshot_includes_wallet_inventory_and_active_jobs() -> None:
+    from datetime import datetime, timedelta, timezone
+
+    from app.domain.primitives import InventoryStack, Job, JobState, Wallet
+    player_id = uuid4(); wallet_id = uuid4(); inventory_id = uuid4(); item_id = uuid4(); uow = InMemoryUnitOfWork()
+    uow.wallets.wallets[wallet_id] = Wallet(wallet_id, 40, 3); uow.player_state.wallet_owners[player_id] = wallet_id
+    uow.inventories.stacks[(inventory_id, item_id)] = InventoryStack(item_id, 7, 90, 2); uow.player_state.inventory_owners[inventory_id] = player_id
+    now = datetime.now(UTC)
+    uow.jobs.jobs[uuid4()] = Job(uuid4(), player_id, "craft", now, now + timedelta(minutes=5), JobState.RUNNING, 1)
+    uow.jobs.jobs[uuid4()] = Job(uuid4(), player_id, "old", now, now + timedelta(minutes=1), JobState.COMPLETED, 1)
+    uow.jobs.jobs[uuid4()] = Job(uuid4(), uuid4(), "other", now, now + timedelta(minutes=1), JobState.QUEUED, 1)
+    def override_uow(): yield uow
+    def override_auth(): return player_id
+    app.dependency_overrides[get_uow] = override_uow
+    app.dependency_overrides[get_authenticated_player] = override_auth
+    try:
+        body = TestClient(app).get(f"/api/v1/players/{player_id}/state").json()
+        assert body["wallet"] == {"id": str(wallet_id), "balance": 40, "version": 3}
+        assert body["inventory"] == [{"inventory_id": str(inventory_id), "item_definition_id": str(item_id), "quantity": 7, "condition": 90, "version": 2}]
+        assert [j["job_type"] for j in body["active_jobs"]] == ["craft"] and body["active_jobs"][0]["state"] == "running"
+    finally: app.dependency_overrides.clear()

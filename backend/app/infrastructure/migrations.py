@@ -16,8 +16,38 @@ class Migration:
     sql: str
 
 
+# Historical migrations that share a numeric prefix. Their relative order is
+# fixed by full-filename sort and already recorded in production
+# ``schema_migrations`` history, so they are grandfathered. New migrations must
+# use a unique, monotonically increasing prefix (see ``check_migration_prefixes``).
+LEGACY_DUPLICATE_PREFIXES: frozenset[str] = frozenset({"003", "009", "010", "011", "012"})
+
+
+def migration_prefix(name: str) -> str:
+    return name.split("_", 1)[0]
+
+
+def check_migration_prefixes(names: list[str]) -> list[str]:
+    """Return human-readable violations of the migration naming contract."""
+    problems: list[str] = []
+    by_prefix: dict[str, list[str]] = {}
+    for name in names:
+        prefix = migration_prefix(name)
+        if not prefix.isdigit():
+            problems.append(f"{name}: migration name must start with a numeric prefix")
+            continue
+        by_prefix.setdefault(prefix, []).append(name)
+    for prefix, group in sorted(by_prefix.items()):
+        if len(group) > 1 and prefix not in LEGACY_DUPLICATE_PREFIXES:
+            problems.append(f"duplicate migration prefix {prefix}: {', '.join(group)}")
+    return problems
+
+
 def discover_migrations(directory: Path) -> list[Migration]:
     files = sorted(directory.glob("*.sql"))
+    problems = check_migration_prefixes([path.name for path in files])
+    if problems:
+        raise RuntimeError("invalid migration set: " + "; ".join(problems))
     migrations: list[Migration] = []
     for path in files:
         sql = path.read_text(encoding="utf-8")

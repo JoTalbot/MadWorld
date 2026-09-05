@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -24,7 +24,7 @@ def require_key(value: str | None) -> str:
     return value.strip()
 
 
-def replay_or_none(uow: UnitOfWork, command_name: str, key: str, payload: object):
+def replay_or_none(uow: UnitOfWork, command_name: str, key: str, payload: object) -> dict | None:
     record = uow.idempotency.get(command_name, key)
     if record is None:
         return None
@@ -50,6 +50,6 @@ def store_response(
             response_status=status_code,
             response_payload=response_payload,
             actor_id=actor_id,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
     )

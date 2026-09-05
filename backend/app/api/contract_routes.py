@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from uuid import UUID
-from fastapi import APIRouter, Depends, Header, HTTPException
+
+from fastapi import APIRouter, Depends, Header
+
 from app.api.dependencies import get_authenticated_player, get_uow
 from app.api.idempotency import replay_or_none, require_key, store_response
 from app.api.schemas import ContractResponse

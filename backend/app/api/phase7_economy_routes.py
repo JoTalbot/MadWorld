@@ -1,10 +1,12 @@
 """B3 Advanced Economy API surface."""
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_engine
-from app.application.phase7_economy import regional_state, market_metrics
+from app.application.phase7_economy import market_metrics, regional_state
 from app.application.phase7_economy_tx import complete_production, create_facility, create_logistics, create_warehouse, deliver_logistics, start_production
 
 router = APIRouter(prefix="/api/v1/economy", tags=["economy"])

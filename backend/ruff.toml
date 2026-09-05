@@ -1,0 +1,16 @@
+# Lint baseline for the MadWorld backend. Deliberately narrow: correctness and
+# import hygiene only, so the historically dense one-line style is not rewritten
+# wholesale. Formatting (ruff format) is not enforced yet.
+target-version = "py312"
+line-length = 200
+extend-exclude = ["migrations", ".venv"]
+
+[lint]
+select = ["E9", "F", "B006", "B008", "B904", "I", "UP", "W6"]
+ignore = ["B008", "E731", "UP007", "UP035"]
+
+[lint.per-file-ignores]
+"tests/*" = ["F401", "F811"]
+
+[lint.isort]
+known-first-party = ["app"]

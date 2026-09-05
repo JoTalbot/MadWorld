@@ -1,0 +1,21 @@
+{
+  "capabilities": {
+    "contracts": true,
+    "garage": true,
+    "market": true,
+    "warehouse": true,
+    "workshop": true
+  },
+  "id": "065e1a0c-85be-4e67-8733-f07594061395",
+  "level": 1,
+  "modules": {
+    "contracts": 1,
+    "garage": 1,
+    "market": 1,
+    "warehouse": 1,
+    "workshop": 1
+  },
+  "owner_id": "d93ef317-1cc0-4cee-ab30-90ccc4015363",
+  "region": "dust_basin",
+  "version": 1
+}

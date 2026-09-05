@@ -8,6 +8,7 @@ import time
 from sqlalchemy import text
 
 from app.application.world_tick_pipeline_v2 import run_world_tick
+from app.infrastructure.abuse_controls import prune_expired
 from app.infrastructure.db import create_engine_from_env
 
 LOG = logging.getLogger("madworld.world_tick")
@@ -35,6 +36,12 @@ def main() -> None:
                 if result is None:
                     LOG.info("world tick skipped: another worker owns the lock")
                 else:
+                    # Housekeeping piggybacks on tick ownership so only one worker prunes.
+                    try:
+                        pruned = prune_expired(engine)
+                        if any(pruned.values()): LOG.info("abuse-control prune hits=%s replays=%s scores=%s", pruned["hits"], pruned["replays"], pruned["scores"])
+                    except Exception:
+                        LOG.exception("abuse-control prune failed")
                     LOG.info("world tick=%s events=%s missions=%s duration_ms=%s lag_ms=%s",
                              result["tick"], result.get("generated_events", 0), result.get("generated_missions", 0),
                              result.get("tick_duration_ms", 0), result.get("lag_ms", 0))

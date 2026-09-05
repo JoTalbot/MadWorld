@@ -6,9 +6,11 @@ It does not create a second source of truth.
 from __future__ import annotations
 
 from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_engine
 
 router = APIRouter(prefix="/api/v1/economy", tags=["economy-loop"])
@@ -59,7 +61,9 @@ def economy_overview(authenticated_player: UUID = Depends(get_authenticated_play
         level = int(settlement["level"])
         capacity = 1000 + (level - 1) * 500
         facilities = conn.execute(text("SELECT code,level,efficiency_bps FROM economy_facilities WHERE settlement_id=:settlement ORDER BY code"), {"settlement": settlement_id}).mappings().all()
-        jobs = conn.execute(text("SELECT id,kind,recipe_id,settlement_id,state,completes_at FROM economy_jobs WHERE owner_id=:owner AND state='running' ORDER BY completes_at"), {"owner": authenticated_player}).mappings().all()
+        jobs = conn.execute(text("""SELECT j.id, r.kind, j.recipe_id, j.settlement_id, j.state, j.completes_at
+                                        FROM economy_jobs j JOIN economy_recipes r ON r.id = j.recipe_id
+                                        WHERE j.owner_id=:owner AND j.state='running' ORDER BY j.completes_at"""), {"owner": authenticated_player}).mappings().all()
         contract_count = int(conn.execute(text("SELECT COUNT(*) FROM contracts WHERE player_id=:player AND state IN ('available','accepted','in_progress')"), {"player": authenticated_player}).scalar() or 0)
         ready_vehicles = int(conn.execute(text("SELECT COUNT(*) FROM vehicles WHERE owner_id=:owner AND state='active' AND durability >= 50 AND fuel > 0"), {"owner": authenticated_player}).scalar() or 0)
         market_points = int(conn.execute(text("SELECT COUNT(*) FROM market_price_history WHERE recorded_at >= NOW() - INTERVAL '7 days'")).scalar() or 0)

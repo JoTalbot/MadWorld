@@ -5,11 +5,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.api.dependencies import get_authenticated_player
 from app.api import market_routes
-from app.main import app
+from app.api.dependencies import get_authenticated_player
 from app.infrastructure.db import create_engine_from_env
-
+from app.main import app
 
 pytestmark = pytest.mark.integration
 

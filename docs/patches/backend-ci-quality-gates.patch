@@ -1,0 +1,29 @@
+diff --git a/.github/workflows/backend-ci.yml b/.github/workflows/backend-ci.yml
+index f84ea82..1288541 100644
+--- a/.github/workflows/backend-ci.yml
++++ b/.github/workflows/backend-ci.yml
+@@ -33,15 +33,21 @@ jobs:
+       PYTHONPATH: ${{ github.workspace }}/backend
+     steps:
+       - name: Checkout
+-        uses: actions/checkout@v7
++        uses: actions/checkout@v4
+       - name: Set up Python
+-        uses: actions/setup-python@v7
++        uses: actions/setup-python@v5
+         with:
+           python-version: "3.12"
+           cache: pip
+           cache-dependency-path: backend/requirements.txt
+       - name: Install dependencies
+-        run: python -m pip install -r requirements.txt pytest
++        run: python -m pip install -r requirements.txt pytest ruff mypy
++      - name: Lint (ruff)
++        run: python -m ruff check .
++      - name: Type check (mypy, scoped)
++        run: python -m mypy
++      - name: OpenAPI contract is current
++        run: python scripts/export_openapi.py --check
+       - name: Apply database migrations
+         run: python scripts/migrate.py
+       - name: Verify application module resolution

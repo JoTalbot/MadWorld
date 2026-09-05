@@ -10,9 +10,21 @@ from app.api.dependencies import get_authenticated_player, get_uow
 from app.api.idempotency import replay_or_none, require_key, store_response
 from app.api.player_state import load_player_state
 from app.api.schemas import (
-    CharacterCreateRequest, CharacterResponse, InventoryAddRequest, InventoryRemoveRequest, InventoryResponse,
-    JobCreateRequest, JobResponse, PlayerBootstrapRequest, PlayerBootstrapResponse, PlayerStateResponse,
-    VehicleCreateRequest, VehicleMutationRequest, VehicleResponse, WalletEntryRequest, WalletEntryResponse,
+    CharacterCreateRequest,
+    CharacterResponse,
+    InventoryAddRequest,
+    InventoryRemoveRequest,
+    InventoryResponse,
+    JobCreateRequest,
+    JobResponse,
+    PlayerBootstrapRequest,
+    PlayerBootstrapResponse,
+    PlayerStateResponse,
+    VehicleCreateRequest,
+    VehicleMutationRequest,
+    VehicleResponse,
+    WalletEntryRequest,
+    WalletEntryResponse,
 )
 from app.application.ports import UnitOfWork
 from app.application.services import CharacterService, InventoryService, JobService, PlayerBootstrapService, VehicleService, WalletService
@@ -209,4 +221,4 @@ def player_state(player_id: UUID, uow: UnitOfWork = Depends(get_uow), authentica
     _assert_owner(authenticated_player, player_id)
     character = uow.characters.get_by_player_id(player_id)
     vehicles = [_vehicle_response(v) for v in VehicleService(uow).list_for_owner(player_id)]
-    return load_player_state(player_id, _character_response(character) if character else None, vehicles)
+    return load_player_state(uow, player_id, _character_response(character) if character else None, vehicles)

@@ -1,6 +1,8 @@
 """Deterministic bounded NPC faction decision engine."""
 from __future__ import annotations
+
 from uuid import UUID, uuid4
+
 from sqlalchemy import text
 
 ACTIONS = ("ATTACK","DEFEND","EXPAND","RETREAT","TRADE","RAID","ESCORT","SCOUT","EXPLOIT","BLOCKADE")

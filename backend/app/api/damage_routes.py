@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, status

@@ -1,0 +1,162 @@
+{
+  "authoritative": true,
+  "disasters": [],
+  "discoveries": [],
+  "events": [
+    {
+      "created_at": "2026-09-05T09:14:54.352615+00:00",
+      "event_type": "DISASTER",
+      "faction_id": null,
+      "id": "7e59f403-b230-41e5-acd8-53bc85177314",
+      "payload": {
+        "severity": 5
+      },
+      "region_id": "iron_ruins",
+      "severity": 5,
+      "state": "ACTIVE",
+      "tick": 3
+    },
+    {
+      "created_at": "2026-09-05T09:14:54.348630+00:00",
+      "event_type": "DISASTER",
+      "faction_id": null,
+      "id": "a2ca8449-988a-467f-8f09-5aac48e232b0",
+      "payload": {
+        "severity": 3
+      },
+      "region_id": "dust_basin",
+      "severity": 3,
+      "state": "ACTIVE",
+      "tick": 2
+    },
+    {
+      "created_at": "2026-09-05T09:14:54.341580+00:00",
+      "event_type": "DISASTER",
+      "faction_id": null,
+      "id": "d2eb8d83-b1a8-459f-b492-dcc9f772c364",
+      "payload": {
+        "severity": 5
+      },
+      "region_id": "dust_basin",
+      "severity": 5,
+      "state": "ACTIVE",
+      "tick": 1
+    }
+  ],
+  "factions": [
+    {
+      "aggression_bps": 3500,
+      "doctrine": "merchant",
+      "id": "dust_collective",
+      "logistics_bps": 8000,
+      "name": "Dust Collective",
+      "version": 0
+    },
+    {
+      "aggression_bps": 5500,
+      "doctrine": "survivalist",
+      "id": "free_scavengers",
+      "logistics_bps": 5500,
+      "name": "Free Scavengers",
+      "version": 0
+    },
+    {
+      "aggression_bps": 8000,
+      "doctrine": "raider",
+      "id": "rust_legion",
+      "logistics_bps": 3500,
+      "name": "Rust Legion",
+      "version": 0
+    }
+  ],
+  "missions": [],
+  "pressures": [
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "dust_basin",
+      "resource_type": "fuel",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "dust_basin",
+      "resource_type": "scrap",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "dust_basin",
+      "resource_type": "water",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "iron_ruins",
+      "resource_type": "fuel",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "iron_ruins",
+      "resource_type": "scrap",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "iron_ruins",
+      "resource_type": "water",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "salt_coast",
+      "resource_type": "fuel",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "salt_coast",
+      "resource_type": "scrap",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    },
+    {
+      "available_quantity": 1000,
+      "pressure_bps": 0,
+      "region_id": "salt_coast",
+      "resource_type": "water",
+      "target_quantity": 1000,
+      "trend_bps": 0,
+      "version": 0
+    }
+  ],
+  "simulation": {
+    "last_tick_at": "2026-09-05T09:14:52.352818+00:00",
+    "season": 1,
+    "tick": 0,
+    "version": 0
+  }
+}

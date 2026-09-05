@@ -9,8 +9,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from app.api.dependencies import get_authenticated_player, get_engine
-from app.application.errors import IdempotencyConflict
 from app.api.idempotency import request_hash
+from app.application.errors import IdempotencyConflict
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 

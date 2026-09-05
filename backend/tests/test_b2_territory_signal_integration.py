@@ -61,7 +61,7 @@ def _insert_disaster(conn, *, region_id: str, tick: int, severity: int = 5):
             "tick": tick,
             "region": region_id,
             "severity": severity,
-            "payload": '{"severity": %d}' % severity,
+            "payload": f'{{"severity": {severity}}}',
         },
     )
     return event_id

@@ -1,9 +1,12 @@
 """Phase 3 authoritative vehicle fitting, combat, salvage and recovery primitives."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
+
 from app.domain.primitives import DamageType, InvalidQuantity, InvalidTransition, Vehicle, VehicleState
+
 
 @dataclass(frozen=True, slots=True)
 class Module:
@@ -32,11 +35,14 @@ class CombatResult:
     target_durability: int
 
 class VehicleFittingService:
+    def __init__(self) -> None:
+        self.fittings: dict[UUID, dict[str, str]] = {}
     def fit(self, vehicle: Vehicle, slot: int, module: Module, slots: int = 4) -> None:
         if slot < 0 or slot >= slots: raise InvalidQuantity("invalid fitting slot")
         if module.mass <= 0: raise InvalidQuantity("module mass must be positive")
-        vehicle.metadata = getattr(vehicle, "metadata", {})
-        vehicle.metadata[f"module:{slot}"] = module.code
+        # Vehicle is a slots dataclass without a metadata field; fittings are tracked
+        # on the service so the domain aggregate is not mutated with ad-hoc attributes.
+        self.fittings.setdefault(vehicle.id, {})[f"module:{slot}"] = module.code
 
 class CombatService:
     def attack(self, attacker: Vehicle, target: Vehicle, weapon: Weapon, component: str, distance_m: int, idempotency_key: str) -> CombatResult:

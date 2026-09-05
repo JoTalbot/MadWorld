@@ -2,7 +2,7 @@
 
 ## Production topology
 
-- `api`: stateless FastAPI instances behind the deployment's load balancer.
+- `api`: stateless FastAPI instances behind the deployment's reverse proxy. Abuse controls (rate limit, replay guard, abuse score) are shared through PostgreSQL (`MADWORLD_ABUSE_CONTROL_BACKEND=postgres`, the default when a database URL is set), so multiple processes/replicas enforce one policy. Readiness: `GET /health/ready`.
 - `world-tick-worker`: authoritative world clock worker. Multiple replicas are safe because PostgreSQL advisory locking permits one tick owner per transaction.
 - `migrator`: one-shot schema migration job, run before API/worker rollout.
 - PostgreSQL remains the authoritative persistent store.

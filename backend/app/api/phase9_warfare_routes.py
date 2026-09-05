@@ -1,10 +1,13 @@
 """B5 territory warfare API."""
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel, Field
 from sqlalchemy import text
-from app.api.dependencies import get_authenticated_player,get_uow
-from app.application.territory_warfare import member,damage_infrastructure,repair_infrastructure,create_operation,resolve_operation
+
+from app.api.dependencies import get_authenticated_player, get_uow
+from app.application.territory_warfare import create_operation, damage_infrastructure, member, repair_infrastructure, resolve_operation
+
 router=APIRouter(prefix='/api/v1/territory/warfare',tags=['territory-warfare'])
 class OperationRequest(BaseModel):
  region_id:str=Field(min_length=1,max_length=64); objective_id:UUID|None=None; attacker_corporation_id:UUID; defender_corporation_id:UUID|None=None; operation_type:str=Field(min_length=1,max_length=24)

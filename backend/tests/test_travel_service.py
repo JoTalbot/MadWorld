@@ -5,7 +5,6 @@ import pytest
 
 from app.application.travel_service import plan_travel
 
-
 TRAVEL_SERVICE = Path(__file__).parents[1] / "app" / "application" / "travel_service.py"
 
 

@@ -1,12 +1,16 @@
 """Remaining authoritative alliance read/decline operations."""
 from __future__ import annotations
+
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
+
 from app.api.dependencies import get_authenticated_player, get_uow
-from app.application.ports import UnitOfWork
 from app.api.phase4_alliance_routes import _require_manager
+from app.application.ports import UnitOfWork
+
 router = APIRouter(prefix="/api/v1/social", tags=["social-alliance"])
 class InvitationDecision(BaseModel): invitation_id: UUID
 @router.post("/alliances/invitations/decline")
