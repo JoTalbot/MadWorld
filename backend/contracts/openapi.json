@@ -11428,6 +11428,7 @@
     },
     "/api/v1/world": {
       "get": {
+        "description": "Authoritative world summary read from PostgreSQL (season/tick/regions).\nFalls back to the static seed regions with authoritative=false when no database is configured.",
         "operationId": "world_api_v1_world_get",
         "responses": {
           "200": {

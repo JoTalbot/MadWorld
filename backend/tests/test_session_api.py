@@ -87,3 +87,15 @@ def test_logout_everywhere_revokes_all_active_sessions() -> None:
         for t in tokens: assert client.delete("/api/v1/sessions/current", headers={"Authorization": f"Bearer {t}"}).status_code == 401
         assert client.get(f"/api/v1/players/{other['player_id']}/state", headers={"Authorization": f"Bearer {other['token']}"}).status_code == 200
     finally: app.dependency_overrides.clear()
+
+
+def test_active_sessions_per_player_are_capped_oldest_first() -> None:
+    from app.infrastructure.sessions import MAX_ACTIVE_SESSIONS
+    store = InMemorySessionStore()
+    try:
+        client = _client(store)
+        tokens = [client.post("/api/v1/sessions", json={"handle": "capped_01"}).json()["token"] for _ in range(MAX_ACTIVE_SESSIONS + 2)]
+        pid = client.post("/api/v1/sessions", json={"handle": "capped_01"}).json()["player_id"]  # one more -> total cap+3
+        alive = [client.get(f"/api/v1/players/{pid}/state", headers={"Authorization": f"Bearer {t}"}).status_code == 200 for t in tokens]
+        assert alive == [False, False, False] + [True] * (MAX_ACTIVE_SESSIONS - 1)
+    finally: app.dependency_overrides.clear()

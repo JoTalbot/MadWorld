@@ -66,13 +66,28 @@ admitted and the failure is logged, so a control-plane outage does not turn into
 API outage; `/health/ready` reports the database problem separately. Hot-path writes prune
 expired rows for their own key; `prune_expired()` performs bulk cleanup for operators.
 
-Tuning: `MADWORLD_RATE_LIMIT` (requests per 60 s per client, default 120).
+Rate-limit keys: every request is budgeted twice – per **network origin** and, when a bearer
+token is present, per **session** (hashed token). Behind a reverse proxy set
+`MADWORLD_TRUSTED_PROXIES` (comma-separated IPs/CIDRs) so `X-Forwarded-For` from that proxy is
+honoured; from any other peer the header is ignored. Invalid entries are logged and skipped.
+
+Tuning: `MADWORLD_RATE_LIMIT` (requests per 60 s per key, default 120). Active sessions per
+player are capped at `MAX_ACTIVE_SESSIONS` (5); creating a new one revokes the oldest.
+The world tick worker runs `prune_expired()` after each owned tick.
 
 ## Sessions
 
 - `POST /api/v1/sessions` – create/refresh a session for a handle (30-day TTL).
 - `DELETE /api/v1/sessions/current` – log out the presented bearer token (204).
 - `DELETE /api/v1/sessions` – log out everywhere; returns the number of revoked sessions.
+
+## Metrics
+
+`GET /metrics` – Prometheus text format, no external dependency:
+`madworld_http_requests_total{method,route,status}`, `madworld_http_request_duration_seconds`
+(histogram), `madworld_abuse_events_total{kind}`, plus DB-backed gauges
+`madworld_world_tick`, `madworld_world_tick_lag_seconds`, `madworld_abuse_control_rows{table}`.
+Counters are per process; scrape every replica.
 
 ## Health probes
 
@@ -90,6 +105,8 @@ Tuning: `MADWORLD_RATE_LIMIT` (requests per 60 s per client, default 120).
   new infrastructure modules. Legacy application modules are listed with
   `disallow_incomplete_defs = False`; real type errors are still reported there.
   Remove a module from that list once its signatures are complete.
+- `python scripts/export_android_golden.py` (needs PostgreSQL) regenerates the golden JSON
+  under `android/app/src/test/resources/golden/` consumed by Android `GoldenParserTest`.
 - `python scripts/export_openapi.py --check` – `contracts/openapi.json` is the committed
   Android-facing API contract. After an intentional API change run the script without
   `--check` and review the JSON diff in the PR.

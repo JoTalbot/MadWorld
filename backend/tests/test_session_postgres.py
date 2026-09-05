@@ -30,3 +30,9 @@ def test_postgres_session_create_resolve_revoke_and_idempotent_provisioning(engi
     assert store.revoke("tok-1", now) and not store.revoke("tok-1", now) and store.resolve("tok-1", now) is None
     store.create(handle, "tok-3", now, exp)
     assert store.revoke_all(p1.player_id, now) == 2 and store.resolve("tok-2", now) is None and store.resolve("tok-3", now) is None
+
+
+def test_postgres_caps_active_sessions(engine) -> None:
+    store = PostgresSessionStore(engine, max_active=2); handle = f"cap_{uuid4().hex[:10]}"; now = utc_now(); exp = now + timedelta(days=1)
+    for i in range(4): store.create(handle, f"c-{i}", now + timedelta(seconds=i), exp)
+    assert [store.resolve(f"c-{i}", now + timedelta(seconds=10)) is not None for i in range(4)] == [False, False, True, True]

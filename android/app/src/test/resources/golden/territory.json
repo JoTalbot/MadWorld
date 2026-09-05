@@ -1,0 +1,27 @@
+{
+  "authoritative": true,
+  "claims": [],
+  "control": [],
+  "regions": [
+    {
+      "id": "dust_basin",
+      "name": "Dust Basin",
+      "security": "lawless",
+      "version": 0
+    },
+    {
+      "id": "iron_ruins",
+      "name": "Iron Ruins",
+      "security": "contested",
+      "version": 0
+    },
+    {
+      "id": "salt_coast",
+      "name": "Salt Coast",
+      "security": "frontier",
+      "version": 0
+    }
+  ],
+  "resource_sites": [],
+  "roads": []
+}

@@ -1,0 +1,19 @@
+{
+  "character": {
+    "id": "209b1f55-497f-4d22-af91-c9e2c3600dc3",
+    "level": 1,
+    "name": "Golden",
+    "player_id": "d93ef317-1cc0-4cee-ab30-90ccc4015363",
+    "version": 1
+  },
+  "vehicle": {
+    "chassis_code": "light_runner",
+    "code": "starter-d93ef3171cc0",
+    "durability": 100,
+    "fuel": 25,
+    "id": "47ffbbd5-2002-4d12-a481-a5c98a45321f",
+    "owner_id": "d93ef317-1cc0-4cee-ab30-90ccc4015363",
+    "state": "active",
+    "version": 1
+  }
+}

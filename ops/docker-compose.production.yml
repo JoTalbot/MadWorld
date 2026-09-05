@@ -11,6 +11,8 @@ services:
       MADWORLD_ABUSE_CONTROL_BACKEND: ${MADWORLD_ABUSE_CONTROL_BACKEND:-postgres}
       MADWORLD_RATE_LIMIT: ${MADWORLD_RATE_LIMIT:-120}
       MADWORLD_READY_MAX_TICK_LAG_SECONDS: ${MADWORLD_READY_MAX_TICK_LAG_SECONDS:-900}
+      # IPs/CIDRs of the reverse proxy allowed to set X-Forwarded-For (empty = header ignored).
+      MADWORLD_TRUSTED_PROXIES: ${MADWORLD_TRUSTED_PROXIES:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
