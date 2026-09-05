@@ -3,6 +3,8 @@ name: Backup and DR Verification
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - 'ops/backup_daily.sh'
       - 'ops/backup_restore.sh'
@@ -46,6 +48,7 @@ jobs:
         env:
           PGPASSWORD: madworld
         run: |
+          set -euo pipefail
           psql -h 127.0.0.1 -p 55432 -U postgres -d madworld_source -v ON_ERROR_STOP=1 <<'SQL'
           CREATE TABLE schema_migrations (version text PRIMARY KEY);
           INSERT INTO schema_migrations VALUES ('001'), ('002'), ('003');
@@ -62,20 +65,15 @@ jobs:
         run: |
           set -euo pipefail
           START_NS=$(date +%s%N)
+          export START_NS
           ./ops/backup_restore.sh
           psql "$RESTORE_DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT COUNT(*) = 3 AS migrations_ok FROM schema_migrations;"
           psql "$RESTORE_DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT value = 'madworld-dr-verification' AS invariant_ok FROM dr_probe WHERE id = 1;"
           END_NS=$(date +%s%N)
+          export END_NS
           python3 - <<'PY'
           import os
-          start=int(os.environ['START_NS'])
-          end=int(os.environ['END_NS'])
+          start = int(os.environ['START_NS'])
+          end = int(os.environ['END_NS'])
           print(f"measured_backup_restore_rto_seconds={(end-start)/1_000_000_000:.3f}")
           PY
-        env:
-          PGPASSWORD: madworld
-          MADWORLD_DATABASE_URL: postgresql://postgres:madworld@127.0.0.1:55432/madworld_source
-          RESTORE_DATABASE_URL: postgresql://postgres:madworld@127.0.0.1:55433/madworld_restore
-          BACKUP_FILE: ${{ runner.temp }}/madworld-dr.dump
-          START_NS: ''
-          END_NS: ''
