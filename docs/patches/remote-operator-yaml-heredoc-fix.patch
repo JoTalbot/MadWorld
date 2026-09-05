@@ -1,0 +1,86 @@
+diff --git a/.github/workflows/remote-operator-reusable.yml b/.github/workflows/remote-operator-reusable.yml
+index dc91242..7fa42cf 100644
+--- a/.github/workflows/remote-operator-reusable.yml
++++ b/.github/workflows/remote-operator-reusable.yml
+@@ -107,23 +107,23 @@ jobs:
+           finished_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+           duration=$(( $(date +%s) - start_epoch ))
+           python3 - "$local_tmp/result.json" "$status" "$rc" "$started_at" "$finished_at" "$duration" "$SSH_HOST" "$workdir" <<'PY'
+-import json, sys
+-path, status, rc, started, finished, duration, server, workdir = sys.argv[1:]
+-d = {
+-  'status': status,
+-  'operation': 'command',
+-  'mode': 'sync',
+-  'server': server,
+-  'workdir': workdir,
+-  'run_as': 'root',
+-  'started_at': started,
+-  'finished_at': finished,
+-  'duration_seconds': int(duration),
+-  'exit_code': int(rc),
+-}
+-json.dump(d, open(path, 'w', encoding='utf-8'), indent=2)
+-print(json.dumps(d, indent=2))
+-PY
++          import json, sys
++          path, status, rc, started, finished, duration, server, workdir = sys.argv[1:]
++          d = {
++            'status': status,
++            'operation': 'command',
++            'mode': 'sync',
++            'server': server,
++            'workdir': workdir,
++            'run_as': 'root',
++            'started_at': started,
++            'finished_at': finished,
++            'duration_seconds': int(duration),
++            'exit_code': int(rc),
++          }
++          json.dump(d, open(path, 'w', encoding='utf-8'), indent=2)
++          print(json.dumps(d, indent=2))
++          PY
+ 
+           cp "$local_tmp/result.json" result.json
+           cp "$local_tmp/stdout.log" stdout.log
+diff --git a/.github/workflows/remote-operator.yml b/.github/workflows/remote-operator.yml
+index 264909c..f28178e 100644
+--- a/.github/workflows/remote-operator.yml
++++ b/.github/workflows/remote-operator.yml
+@@ -124,21 +124,21 @@ jobs:
+ 
+           if [[ "$INPUT_OPERATION" == diagnostics ]]; then
+             command_text='set -u
+-printf "=== REMOTE_OPERATOR_DIAGNOSTICS ===\\n"
+-printf "OS: "; ( . /etc/os-release 2>/dev/null && printf "%s %s\\n" "${NAME:-unknown}" "${VERSION_ID:-unknown}" ) || true
+-printf "HOSTNAME: "; hostname || true
+-printf "USER: "; id || true
+-printf "EUID: "; id -u || true
+-printf "PWD: "; pwd || true
+-printf "CPU: "; (nproc 2>/dev/null || true)
+-printf "RAM: "; (free -h 2>/dev/null || true)
+-printf "DISK: "; (df -h . 2>/dev/null || true)
+-printf "UPTIME: "; (uptime 2>/dev/null || true)
+-printf "GIT: "; (git rev-parse --show-toplevel 2>/dev/null || true)
+-printf "TOOLS:\\n"
+-for c in git docker systemctl python python3 node npm pnpm yarn java gradle go rustc cargo kubectl terraform make adb; do
+-  if command -v "$c" >/dev/null 2>&1; then printf "  %s: %s\\n" "$c" "$(command -v "$c")"; else printf "  %s: NOT_FOUND\\n" "$c"; fi
+-done'
++          printf "=== REMOTE_OPERATOR_DIAGNOSTICS ===\\n"
++          printf "OS: "; ( . /etc/os-release 2>/dev/null && printf "%s %s\\n" "${NAME:-unknown}" "${VERSION_ID:-unknown}" ) || true
++          printf "HOSTNAME: "; hostname || true
++          printf "USER: "; id || true
++          printf "EUID: "; id -u || true
++          printf "PWD: "; pwd || true
++          printf "CPU: "; (nproc 2>/dev/null || true)
++          printf "RAM: "; (free -h 2>/dev/null || true)
++          printf "DISK: "; (df -h . 2>/dev/null || true)
++          printf "UPTIME: "; (uptime 2>/dev/null || true)
++          printf "GIT: "; (git rev-parse --show-toplevel 2>/dev/null || true)
++          printf "TOOLS:\\n"
++          for c in git docker systemctl python python3 node npm pnpm yarn java gradle go rustc cargo kubectl terraform make adb; do
++            if command -v "$c" >/dev/null 2>&1; then printf "  %s: %s\\n" "$c" "$(command -v "$c")"; else printf "  %s: NOT_FOUND\\n" "$c"; fi
++          done'
+           else
+             command_text="$INPUT_COMMAND"
+           fi
