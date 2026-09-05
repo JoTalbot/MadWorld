@@ -12,27 +12,30 @@ android {
         applicationId = "com.jotalbot.madworld"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
 
-        // Dev/emulator fallback remains available, but production must inject a real HTTPS URL.
-        val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
-            .orElse(providers.environmentVariable("MADWORLD_API_URL"))
-            .orElse("http://10.0.2.2:8000")
-            .get()
-        buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
-
-        // Android 9+ blocks cleartext HTTP by default. Keep it enabled only for
-        // explicitly configured debug builds so a physical phone can reach a
-        // development server on the local network without weakening production.
         manifestPlaceholders["madworldAllowCleartext"] = false
     }
 
     buildTypes {
         debug {
+            val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
+                .orElse(providers.environmentVariable("MADWORLD_API_URL"))
+                .orElse("http://10.0.2.2:8000")
+                .get()
+            buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = true
         }
         release {
+            val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
+                .orElse(providers.environmentVariable("MADWORLD_API_URL"))
+                .orNull
+                ?: throw GradleException("MADWORLD_API_URL is required for release builds")
+            require(apiUrl.startsWith("https://")) {
+                "MADWORLD_API_URL must use HTTPS for release builds"
+            }
+            buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = false
         }
     }
