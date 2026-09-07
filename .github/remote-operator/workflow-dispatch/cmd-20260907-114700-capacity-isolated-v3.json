@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-114700-capacity-isolated-v3",
+  "duration_seconds": 0,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:10:02Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "bash /opt/madworld/ops/isolated_capacity_rehearsal.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 0.564,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 127,
+    "finished_at": "2026-09-07T12:10:02Z",
+    "job_id": "cmd-20260907-114700-capacity-isolated-v3",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:10:02Z",
+    "status": "FAILED",
+    "stderr": "bash: /opt/madworld/ops/isolated_capacity_rehearsal.sh: No such file or directory\n",
+    "stdout": "",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-capacity-isolated-v3.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:10:02Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
