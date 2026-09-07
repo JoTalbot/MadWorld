@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-121500-capacity-isolated-v4",
+  "duration_seconds": 5,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:13:02Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/e58651994a3d47cec159410c394169c7d5a97c4b/ops/isolated_capacity_rehearsal.sh -o /opt/madworld/ops/isolated_capacity_rehearsal.sh && chmod 700 /opt/madworld/ops/isolated_capacity_rehearsal.sh && bash /opt/madworld/ops/isolated_capacity_rehearsal.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 5.675,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-07T12:13:02Z",
+    "job_id": "cmd-20260907-121500-capacity-isolated-v4",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:12:56Z",
+    "status": "FAILED",
+    "stderr": "WARNING: current commit information was not captured by the build: failed to read current commit information with git rev-parse --is-inside-work-tree\nTraceback (most recent call last):\n  File \"/app/backend/scripts/migrate.py\", line 5, in <module>\n    from app.infrastructure.db import create_engine_from_env\nModuleNotFoundError: No module named 'app'\n",
+    "stdout": "",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-capacity-isolated-v4.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:12:56Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
