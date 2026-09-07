@@ -6,13 +6,17 @@ on:
     - cron: '17 * * * *'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   reconcile:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Run reconciliation unit test
+        run: |
+          chmod +x ops/remote-operator/test-reconcile-stale-pending.sh
+          ./ops/remote-operator/test-reconcile-stale-pending.sh
       - name: Audit stale PENDING entries
         run: |
           chmod +x ops/remote-operator/reconcile-stale-pending.sh
