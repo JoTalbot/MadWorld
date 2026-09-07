@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-142700-economy-overview-500-fix-deploy
+STATUS: PENDING
+AGENT: chatgpt-economy-overview-500-fix-deploy
+CREATED_AT: 2026-09-07T14:27:00Z
+TIMEOUT_MINUTES: 15
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; echo '=== PRECHECK ==='; git -c safe.directory=/opt/madworld status --short; git -c safe.directory=/opt/madworld rev-parse HEAD; git -c safe.directory=/opt/madworld fetch origin main; test -z \"$(git -c safe.directory=/opt/madworld status --porcelain)\"; git -c safe.directory=/opt/madworld reset --hard origin/main; echo '=== SOURCE FIX ==='; grep -n -A8 -B3 'SELECT j.id, r.kind' backend/app/api/economy_loop_routes.py; echo '=== TEST ==='; docker compose run --rm --no-deps -e PYTHONPATH=/app/backend api pytest backend/tests/test_economy_overview_postgres.py -q; echo '=== BUILD/RESTART API ==='; docker compose build api; docker compose up -d api; echo '=== HEALTH ==='; for i in $(seq 1 30); do if curl -fsS https://api.autosklo.org.ua/health/ready; then break; fi; sleep 2; done; echo; echo '=== CONTAINER ==='; docker compose ps api; echo '=== ECONOMY SMOKE ==='; docker logs --since 2m madworld-api-1 2>&1 | grep -E 'economy/overview.*500|economy_jobs.*kind|Traceback' || true; echo 'DEPLOYED_HEAD='$(git -c safe.directory=/opt/madworld rev-parse HEAD); echo 'DEPLOYED_API_IMAGE='$(docker inspect madworld-api-1 --format '{{.Image}}'); echo 'DEPLOYED_API_STATUS='$(docker inspect madworld-api-1 --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}')","timeout_minutes":"15","workdir":"/opt/madworld","cleanup":"true"}
+---
