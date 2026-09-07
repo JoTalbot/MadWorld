@@ -1,14 +1,16 @@
 # B10 Current Release Audit
 
 Date: 2026-09-07
-Current HEAD: `1996d3ea5681bb97009244a6594a55096050057e`
+Current HEAD: `898be6db1aa29e558e2f03b4eb7c8326dde62c48`
 
 ## Repository state
 
 - B1-B9 production program: COMPLETE.
 - B10 repository-side implementation: COMPLETE.
 - Governance/autonomy contract: VERIFIED; core invariants 19/19 and advanced invariants 19/19.
-- Remote Operator stale-PENDING reconciliation: VERIFIED; workflow run `34140299253`, job `101800549294`, success, artifact `stale-pending-reconciliation`.
+- Remote Operator stale-PENDING reconciliation: VERIFIED; current scheduled workflow run `34150905205`, job `101832799274`, success.
+- Remote Operator Workflow Dispatch: VERIFIED; run `34150615289`, job `101831954565`, success.
+- Current HEAD CI/deployment checks: VERIFIED; backend, android, gate, repository-to-server sync and Remote Operator dispatch checks completed successfully.
 - Production HTTPS/reverse-proxy evidence: VERIFIED by prior target-environment audit.
 - Production scheduled backup/RPO baseline: VERIFIED by prior target-environment audit.
 - Fresh isolated DR rehearsal: VERIFIED; measured RTO `1.015s`; production DB untouched.
