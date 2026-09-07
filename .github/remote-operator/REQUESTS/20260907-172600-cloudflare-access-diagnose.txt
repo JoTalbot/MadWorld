@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-172600-cloudflare-access-diagnose
+STATUS: PENDING
+AGENT: chatgpt-cloudflare-access-diagnose
+CREATED_AT: 2026-09-07T17:26:00Z
+TIMEOUT_MINUTES: 5
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; echo '=== ENV NAMES ==='; (env | cut -d= -f1 | grep -Ei 'CLOUDFLARE|CF_|ZERO|ACCESS' | sort -u) || true; echo '=== MADWORLD ENV NAMES ==='; for f in /opt/madworld/.env /opt/madworld/.env.*; do [ -f \"$f\" ] && { echo \"$f\"; grep -E '^[A-Za-z_][A-Za-z0-9_]*=' \"$f\" | sed 's/=.*$/=REDACTED/' | grep -Ei 'CLOUDFLARE|CF_|ZERO|ACCESS' || true; }; done; echo '=== CLOUDFLARED ==='; command -v cloudflared || true; systemctl is-active cloudflared 2>/dev/null || true; echo '=== ACCESS CONFIG FILES ==='; find /etc /opt/madworld -maxdepth 4 -type f \( -iname '*cloudflare*' -o -iname '*cloudflared*' -o -iname '*access*' \) -print 2>/dev/null | head -100","timeout_minutes":"5","workdir":"/opt/madworld","cleanup":"true"}
+---
