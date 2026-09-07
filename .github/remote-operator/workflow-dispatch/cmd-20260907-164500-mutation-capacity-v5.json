@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-164500-mutation-capacity-v5",
+  "duration_seconds": 25,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:38:22Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/c5a3a5d0168bcb28e869a28759c8fa5127ce12c6/ops/isolated_mutation_capacity_rehearsal_v4.sh -o /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v4.sh && chmod 700 /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v4.sh && bash /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v4.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 24.41,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-07T12:38:22Z",
+    "job_id": "cmd-20260907-164500-mutation-capacity-v5",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:37:58Z",
+    "status": "SUCCESS",
+    "stderr": "WARNING: current commit information was not captured by the build: failed to read current commit information with git rev-parse --is-inside-work-tree\n",
+    "stdout": "MUTATION_WORKLOAD=POST /api/v1/sessions, 20 concurrent clients, 15s bounded synthetic-account writes\nAPI_READY=true\nMUTATION_SUCCESS=2496\nMUTATION_ERRORS=0\nMUTATION_TOTAL=2496\nMUTATION_RPS=166.400\nMUTATION_ERROR_RATE=0.000000\nMUTATION_P50_MS=115.976\nMUTATION_P95_MS=156.161\nMUTATION_P99_MS=196.668\nAUTH_NO_TOKEN_HTTP=401\nREPLAY_FIRST_HTTP=201\nREPLAY_SECOND_HTTP=409\nREPLAY_CONTAINMENT_PASS=true\nMUTATION_DB_SESSIONS=2497\nMUTATION_ENVIRONMENT=isolated_postgres16_api_container\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-mutation-capacity-v5.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:37:57Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
