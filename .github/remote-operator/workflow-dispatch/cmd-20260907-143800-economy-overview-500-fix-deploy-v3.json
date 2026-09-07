@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-143800-economy-overview-500-fix-deploy-v3",
+  "duration_seconds": 6,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T17:50:43Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "set -euo pipefail; cd /opt/madworld; F=ops/docker-compose.production.yml; test -f \"$F\"; echo '=== SOURCE FIX ==='; grep -n -A5 -B3 'SELECT j.id, r.kind' backend/app/api/economy_loop_routes.py; echo '=== BUILD ==='; docker compose -f \"$F\" build api; echo '=== RESTART ==='; docker compose -f \"$F\" up -d api; echo '=== HEALTH ==='; for i in $(seq 1 30); do if curl -fsS https://api.autosklo.org.ua/health/ready; then break; fi; sleep 2; done; echo; echo '=== CONTAINER ==='; docker compose -f \"$F\" ps api; echo '=== API IMAGE ==='; docker inspect madworld-api-1 --format '{{.Image}}'; echo '=== RECENT ERRORS ==='; docker logs --since 2m madworld-api-1 2>&1 | grep -E 'economy/overview.*500|economy_jobs.*kind|Traceback' || true; echo '=== DEPLOYED HEAD ==='; git -c safe.directory=/opt/madworld rev-parse HEAD; echo '=== STATUS ==='; docker inspect madworld-api-1 --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}'",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 6.014,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-07T17:50:43Z",
+    "job_id": "cmd-20260907-143800-economy-overview-500-fix-deploy-v3",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T17:50:37Z",
+    "status": "FAILED",
+    "stderr": "error while interpolating services.api.environment.MADWORLD_DATABASE_URL: required variable MADWORLD_DATABASE_URL is missing a value: required\nerror while interpolating services.migrator.environment.MADWORLD_DATABASE_URL: required variable MADWORLD_DATABASE_URL is missing a value: required\nerror while interpolating services.world-tick-worker.environment.MADWORLD_DATABASE_URL: required variable MADWORLD_DATABASE_URL is missing a value: required\n",
+    "stdout": "=== SOURCE FIX ===\n61-        level = int(settlement[\"level\"])\n62-        capacity = 1000 + (level - 1) * 500\n63-        facilities = conn.execute(text(\"SELECT code,level,efficiency_bps FROM economy_facilities WHERE settlement_id=:settlement ORDER BY code\"), {\"settlement\": settlement_id}).mappings().all()\n64:        jobs = conn.execute(text(\"\"\"SELECT j.id, r.kind, j.recipe_id, j.settlement_id, j.state, j.completes_at\n65-                                        FROM economy_jobs j JOIN economy_recipes r ON r.id = j.recipe_id\n66-                                        WHERE j.owner_id=:owner AND j.state='running' ORDER BY j.completes_at\"\"\"), {\"owner\": authenticated_player}).mappings().all()\n67-        contract_count = int(conn.execute(text(\"SELECT COUNT(*) FROM contracts WHERE player_id=:player AND state IN ('available','accepted','in_progress')\"), {\"player\": authenticated_player}).scalar() or 0)\n68-        ready_vehicles = int(conn.execute(text(\"SELECT COUNT(*) FROM vehicles WHERE owner_id=:owner AND state='active' AND durability >= 50 AND fuel > 0\"), {\"owner\": authenticated_player}).scalar() or 0)\n69-        market_points = int(conn.execute(text(\"SELECT COUNT(*) FROM market_price_history WHERE recorded_at >= NOW() - INTERVAL '7 days'\")).scalar() or 0)\n=== BUILD ===\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-143800-economy-overview-500-fix-deploy-v3.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-07T17:50:37Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
