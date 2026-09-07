@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-172200-android-public-api-diagnose
+STATUS: PENDING
+AGENT: chatgpt-android-public-api-diagnose
+CREATED_AT: 2026-09-07T17:22:00Z
+TIMEOUT_MINUTES: 5
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -o pipefail; echo '=== HEALTH ==='; curl -sS -D /tmp/mw_health_headers -o /tmp/mw_health_body -w 'HTTP=%{http_code} FINAL_URL=%{url_effective} CT=%{content_type} REDIRECTS=%{num_redirects}\\n' https://api.autosklo.org.ua/health/ready; cat /tmp/mw_health_headers; echo '---BODY---'; head -c 2000 /tmp/mw_health_body; echo; echo '=== SESSION ==='; h=android_diag_$(date +%s); curl -sS -D /tmp/mw_session_headers -o /tmp/mw_session_body -w 'HTTP=%{http_code} FINAL_URL=%{url_effective} CT=%{content_type} REDIRECTS=%{num_redirects}\\n' -X POST https://api.autosklo.org.ua/api/v1/sessions -H 'Content-Type: application/json' -H 'Accept: application/json' --data-raw \"{\\\"handle\\\":\\\"$h\\\"}\"; cat /tmp/mw_session_headers; echo '---BODY---'; head -c 2000 /tmp/mw_session_body; echo; echo '=== LOCAL PROXY ==='; docker ps --format '{{.Names}}\\t{{.Ports}}' | grep -E 'madworld|nginx|caddy|traefik' || true; echo '=== NGINX CONFIG ==='; nginx -T 2>&1 | grep -n -A8 -B4 'api.autosklo.org.ua' | head -120 || true","timeout_minutes":"5","workdir":"/opt/madworld","cleanup":"true"}
+---
