@@ -22,10 +22,10 @@ android {
         debug {
             val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
                 .orElse(providers.environmentVariable("MADWORLD_API_URL"))
-                .orElse("http://10.0.2.2:8000")
+                .orElse("https://api.autosklo.org.ua")
                 .get()
             buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
-            manifestPlaceholders["madworldAllowCleartext"] = true
+            manifestPlaceholders["madworldAllowCleartext"] = apiUrl.startsWith("http://")
         }
         release {
             // Resolved lazily: evaluating the release build type must not fail
