@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-170000-full-capacity-v5",
+  "duration_seconds": 26,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:39:57Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/e91132ab772f87bec565870d702f771046396076/ops/isolated_full_capacity_rehearsal_v5.sh -o /opt/madworld/ops/isolated_full_capacity_rehearsal_v5.sh && chmod 700 /opt/madworld/ops/isolated_full_capacity_rehearsal_v5.sh && bash /opt/madworld/ops/isolated_full_capacity_rehearsal_v5.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 26.387,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-07T12:39:57Z",
+    "job_id": "cmd-20260907-170000-full-capacity-v5",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:39:30Z",
+    "status": "SUCCESS",
+    "stderr": "WARNING: current commit information was not captured by the build: failed to read current commit information with git rev-parse --is-inside-work-tree\n",
+    "stdout": "API_READY=true\nIDEMPOTENCY_FIRST_HTTP=201\nIDEMPOTENCY_SECOND_HTTP=201\nIDEMPOTENCY_REPLAY_PASS=true\nMUTATION_SUCCESS=2515\nMUTATION_ERRORS=0\nMUTATION_TOTAL=2515\nMUTATION_RPS=167.667\nMUTATION_ERROR_RATE=0.000000\nMUTATION_P50_MS=116.065\nMUTATION_P95_MS=154.022\nMUTATION_P99_MS=181.860\nAUTH_NO_TOKEN_HTTP=401\nREPLAY_FIRST_HTTP=201\nREPLAY_SECOND_HTTP=409\nREPLAY_CONTAINMENT_PASS=true\nMUTATION_DB_SESSIONS=2517\nDB_CONNECTIONS=12\nWORLD_TICK=4\nWORLD_TICK_LOG_TAIL=\nINFO:madworld.world_tick:world tick worker started interval=5s\nINFO:madworld.world_tick:world tick=1 events=3 missions=0 duration_ms=51 lag_ms=0\nINFO:madworld.world_tick:world tick=2 events=2 missions=0 duration_ms=32 lag_ms=0\nINFO:madworld.world_tick:world tick=3 events=2 missions=0 duration_ms=33 lag_ms=0\nINFO:madworld.world_tick:world tick=4 events=2 missions=0 duration_ms=27 lag_ms=0\nAPI_CPU=0.12% API_MEM=66.82MiB / 23.41GiB\nWORKER_CPU=0.00% WORKER_MEM=35.59MiB / 23.41GiB\nCAPACITY_ENVIRONMENT=isolated_postgres16_api_worker_containers\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-full-capacity-v5.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:39:30Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
