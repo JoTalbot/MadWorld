@@ -12,8 +12,10 @@ Before modifying the repository, every new worker MUST read and apply:
 3. `docs/REMOTE_OPERATOR.md`
 4. `.github/remote-operator/QUEUE.md`
 5. `docs/skills/MADWORLD_AGENT_SKILL.md`
+6. `docs/skills/PLUS_AUTONOMY_RULE.md`
+7. `docs/skills/AUTONOMY_ADVANCED_RULES.md`
 
-A worker that has not loaded the skill is NOT READY TO MODIFY THE REPOSITORY.
+A worker that has not loaded the skill and its autonomy companions is NOT READY TO MODIFY THE REPOSITORY.
 
 ## Autonomous one-batch operation
 Treat `+` as the user's established signal that the current logically connected operation must continue automatically. This interaction pattern must be generalized by agents: once a logically connected batch has been authorized, agents MUST continue through all required intermediate stages without forcing the user to send another `+` after each stage.
@@ -113,6 +115,31 @@ Before reporting completion, perform one final sweep of the locked goal: require
 **AGENT OWNS THE WORKFLOW, NOT JUST THE COMMAND.**
 
 Once a logically connected operation is authorized, the agent owns the whole chain to the acceptance criteria within the defined safety boundaries. It must wait, inspect, recover, verify, and continue without requiring repeated user confirmations.
+
+## Advanced autonomy safeguards
+
+The complete advanced safeguard layer is defined in `docs/skills/AUTONOMY_ADVANCED_RULES.md` and is mandatory. It adds:
+
+1. **Intent Preservation**: preserve the original goal while allowing only verified re-locking when requirements materially change.
+2. **Authority Boundary**: distinguish autonomous technical actions, required human/owner/legal decisions, and forbidden actions.
+3. **Human Interrupt / Stop**: an explicit current stop/cancel instruction overrides autonomous continuation while safely containing in-flight side effects.
+4. **Side-Effect Ledger**: track consequential mutations as planned, started, applied, verified or compensated/rolled back.
+5. **Compensation / Recovery Plan**: recover partial mutations from actual state instead of blindly rerunning them.
+6. **Concurrency Locking**: serialize overlapping mutations or use explicit concurrency/idempotency controls.
+7. **Lease / Ownership TTL**: bound locks and claims and provide stale-owner recovery.
+8. **Context Recovery**: restore goal, decisions, commands, evidence, blockers and checkpoints after interruption.
+9. **Change Budget**: bound expected change scope and re-evaluate unexpected architectural expansion.
+10. **Risk Escalation Ladder**: increase verification rigor from read-only work through irreversible/data-destructive operations.
+11. **Invariant Before Side Effect**: verify critical preconditions before consequential mutation.
+12. **Postcondition Verification**: verify actual resulting state, not merely command success.
+13. **Decision Journal**: preserve concise evidence-backed records for consequential autonomous decisions without secrets.
+14. **Negative Knowledge**: retain verified failed approaches and known limitations to prevent repeating invalid paths.
+15. **Cost Awareness**: bound time, compute, API usage, retries and operational risk.
+16. **Priority Arbitration**: resolve competing goals using intent, safety, dependency criticality and deadlines.
+17. **Stale Intent Detection**: detect when a long-running goal or its assumptions are obsolete before continuing.
+18. **Autonomous End-State**: prove goal satisfaction, terminal dependencies, verified postconditions, accounted side effects, reconciled evidence and absence of remaining in-scope work.
+
+Governing principle: **AUTONOMY IS CONTINUOUS, BUT SCOPE IS LOCKED.**
 
 ## Core operating rules
 - Work from verified repository state, never assumptions.
