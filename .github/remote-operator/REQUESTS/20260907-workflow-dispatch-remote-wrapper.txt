@@ -3,6 +3,7 @@ COMMAND_ID: cmd-20260907-141200-workflow-dispatch-remote-wrapper
 STATUS: PENDING
 AGENT: remote-operator-workflow-dispatch
 CREATED_AT: 2026-09-07T11:40:00Z
+TOUCH_AT: 2026-09-07T11:45:00Z
 TIMEOUT_MINUTES: 10
 MODE: workflow_dispatch
 TYPE: WORKFLOW_DISPATCH
