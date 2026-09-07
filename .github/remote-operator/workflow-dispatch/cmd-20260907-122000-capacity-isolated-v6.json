@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-122000-capacity-isolated-v6",
+  "duration_seconds": 43,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:16:43Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/8492538739f8d103d6976ca49c0e334f6a069e56/ops/isolated_capacity_rehearsal.sh -o /opt/madworld/ops/isolated_capacity_rehearsal.sh && curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/136061ecadc92cf6be5ba65881c41636c8be2d57/ops/isolated_capacity_client.py -o /opt/madworld/ops/isolated_capacity_client.py && chmod 700 /opt/madworld/ops/isolated_capacity_rehearsal.sh && bash /opt/madworld/ops/isolated_capacity_rehearsal.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 40.66,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-07T12:16:43Z",
+    "job_id": "cmd-20260907-122000-capacity-isolated-v6",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:16:03Z",
+    "status": "SUCCESS",
+    "stderr": "WARNING: current commit information was not captured by the build: failed to read current commit information with git rev-parse --is-inside-work-tree\nUnable to find image 'python:3.12-slim' locally\n3.12-slim: Pulling from library/python\nDigest: sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea\nStatus: Downloaded newer image for python:3.12-slim\n",
+    "stdout": "CAPACITY_WORKLOAD=GET /health/ready, 20 concurrent clients, 30s bounded read-only\nCAPACITY_REQUESTS=6620\nCAPACITY_SUCCESS=120\nCAPACITY_ERRORS=6500\nCAPACITY_RPS=220.667\nLATENCY_P50_MS=92.082\nLATENCY_P95_MS=158.388\nLATENCY_P99_MS=161.873\nERROR_RATE=0.981873\nDB_CONNECTIONS=11\nAPI_CPU=0.11% API_MEM=62.59MiB / 23.41GiB\nCAPACITY_ENVIRONMENT=isolated_postgres16_api_container\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-capacity-isolated-v6.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:16:00Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
