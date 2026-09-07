@@ -1,3 +1,4 @@
+TYPE: WORKFLOW_DISPATCH
 COMMAND_ID: cmd-20260908-151500-server-runtime-current
 STATUS: PENDING
 AGENT: chatgpt-current-runtime
