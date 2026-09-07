@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-123000-capacity-isolated-v8",
+  "duration_seconds": 41,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:19:10Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/c5c25b679cedae0fb941d5c5b6fe826f88f8dd93/ops/isolated_capacity_rehearsal.sh -o /opt/madworld/ops/isolated_capacity_rehearsal.sh && curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/136061ecadc92cf6be5ba65881c41636c8be2d57/ops/isolated_capacity_client.py -o /opt/madworld/ops/isolated_capacity_client.py && chmod 700 /opt/madworld/ops/isolated_capacity_rehearsal.sh && bash /opt/madworld/ops/isolated_capacity_rehearsal.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 41.714,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-07T12:19:10Z",
+    "job_id": "cmd-20260907-123000-capacity-isolated-v8",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:18:29Z",
+    "status": "SUCCESS",
+    "stderr": "WARNING: current commit information was not captured by the build: failed to read current commit information with git rev-parse --is-inside-work-tree\n",
+    "stdout": "CAPACITY_WORKLOAD=GET /health/ready, 20 concurrent clients, 30s bounded read-only, isolated rate limit 10000/min\nCAPACITY_REQUESTS=5060\nCAPACITY_SUCCESS=5060\nCAPACITY_ERRORS=0\nCAPACITY_RPS=168.667\nLATENCY_P50_MS=90.835\nLATENCY_P95_MS=126.978\nLATENCY_P99_MS=219.084\nERROR_RATE=0.000000\nDB_CONNECTIONS=12\nWORLD_TICK=7\nAPI_CPU=0.11% API_MEM=63.77MiB / 23.41GiB\nWORKER_CPU=0.00% WORKER_MEM=35.3MiB / 23.41GiB\nWORKER_LOG_TAIL=\nINFO:madworld.world_tick:world tick worker started interval=5s\nINFO:madworld.world_tick:world tick=1 events=3 missions=0 duration_ms=46 lag_ms=0\nINFO:madworld.world_tick:world tick=2 events=2 missions=0 duration_ms=28 lag_ms=0\nINFO:madworld.world_tick:world tick=3 events=2 missions=0 duration_ms=28 lag_ms=0\nINFO:madworld.world_tick:world tick=4 events=2 missions=0 duration_ms=31 lag_ms=0\nINFO:madworld.world_tick:world tick=5 events=3 missions=0 duration_ms=29 lag_ms=0\nINFO:madworld.world_tick:world tick=6 events=2 missions=0 duration_ms=34 lag_ms=0\nINFO:madworld.world_tick:world tick=7 events=2 missions=0 duration_ms=29 lag_ms=0\nCAPACITY_ENVIRONMENT=isolated_postgres16_api_worker_containers\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-capacity-isolated-v8.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:18:28Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
