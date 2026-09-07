@@ -1,0 +1,26 @@
+{
+  "artifacts": [],
+  "command_id": "cmd-20260907-153000-governance-final",
+  "duration_seconds": 15,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T15:27:47Z",
+  "inputs": {},
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101794639101,
+      "name": "governance",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260907-governance-final-153000.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34138412534",
+  "started_at": "2026-09-07T15:27:32Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "agent-governance.yml",
+  "workflow_run_id": 34138412534
+}
