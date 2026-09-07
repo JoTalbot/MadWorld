@@ -21,16 +21,19 @@ done
 
 grep -Fq 'docs/skills/MADWORLD_AGENT_SKILL.md' AGENTS.md
 grep -Fq 'docs/skills/MADWORLD_AGENT_SKILL.md' docs/CHATGPT_AGENT_RULES.md
-grep -Fq 'DECISION_LOG.md' docs/skills/MADWORLD_AGENT_SKILL.md
-grep -Fq 'RELEASE_EVIDENCE_MATRIX.md' docs/skills/MADWORLD_AGENT_SKILL.md
-grep -Fq 'CHANGE_IMPACT_TEMPLATE.md' docs/skills/MADWORLD_AGENT_SKILL.md
 
-grep -Fq 'Every failure must produce' docs/skills/MADWORLD_AGENT_SKILL.md
-grep -Fq 'Before inventing a solution' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Decision Log' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Evidence Matrix' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Change Impact Map' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Rollback knowledge' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Operational invariants' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Agent handoff' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Skill freshness' docs/skills/MADWORLD_AGENT_SKILL.md
+grep -Fq 'Skill integrity' docs/skills/MADWORLD_AGENT_SKILL.md
 grep -Fq 'stop and classify the blocker' docs/skills/MADWORLD_AGENT_SKILL.md
 
 echo 'agent_governance_integrity=PASS'
 echo 'required_files=PASS'
 echo 'onboarding_references=PASS'
-echo 'learning_rules=PASS'
+echo 'governance_rules=PASS'
 echo 'safety_stop_rule=PASS'
