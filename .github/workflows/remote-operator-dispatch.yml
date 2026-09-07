@@ -1,0 +1,37 @@
+name: Remote Operator Dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: Arbitrary shell command or multiline Bash script
+        required: true
+        type: string
+      timeout_minutes:
+        description: Maximum execution time in minutes
+        required: false
+        default: '30'
+        type: string
+      workdir:
+        description: Remote working directory
+        required: false
+        default: ''
+        type: string
+      cleanup:
+        description: Cleanup completed async job directory
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  execute:
+    uses: ./.github/workflows/remote-operator-reusable.yml
+    with:
+      command: ${{ inputs.command }}
+      timeout_minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+      workdir: ${{ inputs.workdir }}
+      cleanup: ${{ inputs.cleanup }}
+    secrets: inherit
