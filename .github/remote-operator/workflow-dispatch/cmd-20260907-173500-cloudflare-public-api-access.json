@@ -1,0 +1,26 @@
+{
+  "artifacts": [],
+  "command_id": "cmd-20260907-173500-cloudflare-public-api-access",
+  "duration_seconds": 15,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T17:36:51Z",
+  "inputs": {},
+  "jobs": [
+    {
+      "conclusion": "failure",
+      "id": 101825019005,
+      "name": "configure",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260907-173500-cloudflare-public-api-access.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34148317743",
+  "started_at": "2026-09-07T17:36:35Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "cloudflare-public-api-access.yml",
+  "workflow_run_id": 34148317743
+}
