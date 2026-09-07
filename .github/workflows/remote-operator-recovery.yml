@@ -1,0 +1,56 @@
+name: Remote Operator Recovery
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Cancel stale Remote Operator broker runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          now=$(date -u +%s)
+          threshold=$((now - 900))
+          gh api \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2026-03-10' \
+            "/repos/${REPOSITORY}/actions/workflows/remote-operator-workflow-dispatch.yml/runs?status=in_progress&per_page=100" \
+            > /tmp/broker-runs.json
+          python3 - /tmp/broker-runs.json "$threshold" "$REPOSITORY" <<'PY'
+          import json, subprocess, sys, time
+          data = json.load(open(sys.argv[1], encoding='utf-8'))
+          threshold = int(sys.argv[2])
+          repo = sys.argv[3]
+          for run in data.get('workflow_runs', []):
+              created = run.get('created_at', '')
+              try:
+                  ts = int(time.mktime(time.strptime(created, '%Y-%m-%dT%H:%M:%SZ')))
+              except Exception:
+                  continue
+              if ts >= threshold:
+                  continue
+              run_id = run['id']
+              print(f'Cancelling stale broker run {run_id} created_at={created}')
+              p = subprocess.run([
+                  'gh','api','--method','POST',
+                  '-H','Accept: application/vnd.github+json',
+                  '-H','X-GitHub-Api-Version: 2026-03-10',
+                  f'/repos/{repo}/actions/runs/{run_id}/cancel'
+              ], text=True, capture_output=True, env={**__import__('os').environ, 'GH_TOKEN': __import__('os').environ['GH_TOKEN']})
+              if p.returncode:
+                  print(p.stderr, file=sys.stderr)
+                  raise SystemExit(p.returncode)
+          print('Remote Operator stale-run recovery complete.')
+          PY
