@@ -1,0 +1,38 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10016581731,
+      "name": "remote-operator-result",
+      "size_in_bytes": 577
+    }
+  ],
+  "command_id": "cmd-20260907-142000-workflow-dispatch-remote-wrapper-v3",
+  "duration_seconds": 16,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T11:29:01Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "id -un; id -u; hostname -s",
+    "timeout_minutes": "2",
+    "workdir": ""
+  },
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101725492274,
+      "name": "execute / Execute remote command as root",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260907-workflow-dispatch-remote-wrapper-v3.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34116823670",
+  "started_at": "2026-09-07T11:28:44Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml",
+  "workflow_run_id": 34116823670
+}
