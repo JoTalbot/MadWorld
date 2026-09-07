@@ -15,10 +15,30 @@ Required startup checks:
 3. Identify stack, tests, CI/CD, deployment and operational tooling.
 4. Identify the existing Remote Operator and its queue/result mechanisms.
 5. Read this document together with `AGENTS.md` and `docs/REMOTE_OPERATOR.md`.
+6. Read `docs/skills/MADWORLD_AGENT_SKILL.md` before making any repository modification.
 
 GitHub is the source of truth for repository code, workflows and documentation. Server state is verified through Remote Operator evidence.
 
-## 2. Autonomous continuous execution
+## 2. Mandatory evolving project skill
+
+`docs/skills/MADWORLD_AGENT_SKILL.md` is a required, living skill for every AI agent, coding agent, reviewer, operator and automated worker working on MadWorld.
+
+- A new worker MUST load and apply the skill before modifying the repository.
+- The skill is part of the repository operating contract, not optional onboarding material.
+- During each non-trivial task, the agent must identify reusable new knowledge.
+- Verified new experience MUST be recorded in the skill during the same logically connected work batch whenever practical.
+- Existing lessons must be corrected when verified evidence shows they are obsolete or incomplete.
+- Do not record guesses as facts.
+- Never store secrets or sensitive credentials in the skill.
+- The repository must contain enough durable knowledge for the next agent to continue without private chat history.
+
+The learning loop is:
+
+`ANALYZE -> IMPLEMENT -> TEST -> VERIFY -> LEARN -> DOCUMENT -> RE-TEST -> REPORT`
+
+If no reusable new knowledge appeared, `LEARN/DOCUMENT` may result in a documented "no new lesson" decision rather than a meaningless edit.
+
+## 3. Autonomous continuous execution
 
 The default mode for technical work is continuous execution through the current logically connected stage.
 
@@ -33,7 +53,7 @@ When the user requests `+`, `do everything`, `one batch`, `until the end`, or eq
 
 Do not ask for intermediate confirmation when the next action is technically necessary and authorized by the existing task.
 
-## 3. Wait for results
+## 4. Wait for results
 
 Submitting an operation is never the same as completing it.
 
@@ -50,7 +70,7 @@ Terminal states include `DONE`, `FAILED`, `TIMEOUT`, `CANCELLED`, `INTERRUPTED` 
 
 If the result is missing after the defined timeout, use `TIMEOUT` or `UNKNOWN`. Never convert a missing result into success.
 
-## 4. Fix-and-repeat loop
+## 5. Fix-and-repeat loop
 
 For audits, fixes, release preparation and requests containing `+`, use:
 
@@ -60,7 +80,7 @@ Continue the loop until all actionable defects in the current stage are resolved
 
 A failed test is an input to the next repair cycle, not a reason to stop prematurely.
 
-## 5. Remote Operator is the server channel
+## 6. Remote Operator is the server channel
 
 All server-side technical actions must use the repository's Remote Operator mechanism.
 
@@ -76,7 +96,7 @@ Do not bypass Remote Operator with ad-hoc SSH when the operation is intended for
 
 Short commands use `sync`. Long commands use `async` with polling and a bounded timeout.
 
-## 6. Root execution
+## 7. Root execution
 
 Remote Operator server commands are expected to execute as root according to the repository's configured operator implementation.
 
@@ -93,11 +113,11 @@ Never expose or persist SSH credentials. Secrets belong only in GitHub Secrets:
 
 Never put secrets, private keys, passwords, tokens or cookies into repository files, queue entries, logs, artifacts, issues or reports.
 
-## 7. No allowlist requirement
+## 8. No allowlist requirement
 
 Remote Operator may execute arbitrary shell commands as required by the task. Do not add a command allowlist merely to restrict the operator. Security is provided by the SSH account, GitHub Secrets, strict host-key verification and Linux permissions.
 
-## 8. Evidence and status discipline
+## 9. Evidence and status discipline
 
 Never claim an action was performed merely because a workflow was queued or started.
 
@@ -122,7 +142,7 @@ Use these statuses accurately:
 - `FAILED`
 - `UNKNOWN`
 
-## 9. Safety and production
+## 10. Safety and production
 
 Do not perform production load/stress testing without the required maintenance window, rollback plan and evidence.
 
@@ -146,7 +166,7 @@ Do not touch unrelated infrastructure, databases, Docker networks/volumes or hos
 
 Do not use force push unless explicitly required.
 
-## 10. Release gates
+## 11. Release gates
 
 Unknown external gates are not treated as passed.
 
@@ -154,7 +174,7 @@ Technical evidence may establish a technical gate, but owner/legal/product decis
 
 For release work, inspect and update the repository's release evidence documents using measured facts only. Never invent thresholds, capacity, device coverage, provider readiness or legal approval.
 
-## 11. Queue and audit trail
+## 12. Queue and audit trail
 
 The canonical queue is append-only. New entries receive a unique immutable `COMMAND_ID` and begin with `STATUS: PENDING`.
 
@@ -162,7 +182,7 @@ Do not rewrite, sort or delete historical queue entries. Completed execution rec
 
 Runtime results belong on the dedicated `remote-operator-results` branch and must not be copied into `main` as runtime-result commits unless repository documentation explicitly requires it.
 
-## 12. Human action minimization
+## 13. Human action minimization
 
 If a technical action would normally require a manual human step, automate it through Remote Operator whenever technically possible.
 
@@ -173,7 +193,7 @@ Manual action is acceptable only when:
 
 If a missing GitHub connector capability blocks an action, do not pretend it was executed. Route the action through Remote Operator or improve the operator path first when that is technically possible.
 
-## 13. Documentation requirement
+## 14. Documentation requirement
 
 When operational behavior changes, update the relevant repository documentation in the same logically connected work cycle.
 
@@ -183,9 +203,10 @@ At minimum keep these aligned:
 - `docs/CHATGPT_AGENT_RULES.md`
 - `docs/REMOTE_OPERATOR.md`
 - `.github/remote-operator/QUEUE.md`
+- `docs/skills/MADWORLD_AGENT_SKILL.md`
 - relevant release/operations documents.
 
-## 14. Final report
+## 15. Final report
 
 For serious operational tasks, report:
 
@@ -202,6 +223,6 @@ For serious operational tasks, report:
 
 Keep large logs in GitHub artifacts and provide concise evidence references in the final report.
 
-## 15. Core principle
+## 16. Core principle
 
-**Do not stop merely because a step is waiting, failed, or inconvenient. Wait, inspect, fix, retry, verify, and continue until the current logically connected stage is complete or a genuine external blocker remains.**
+**Do not stop merely because a step is waiting, failed, or inconvenient. Wait, inspect, fix, retry, verify, learn, document, and continue until the current logically connected stage is complete or a genuine external blocker remains.**
