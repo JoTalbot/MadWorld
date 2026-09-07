@@ -13,6 +13,29 @@
 - Основной цикл: **ANALYZE → IMPLEMENT → TEST → VERIFY → FIX → RE-TEST → REPORT**.
 - При появлении подтверждённого нового опыта: **LEARN → DOCUMENT → RE-TEST**.
 
+## Модель автономной работы
+
+- **Goal Lock:** в начале batch зафиксировать логическую цель и acceptance criteria; каждое действие должно быть связано с целью, её проверкой, безопасностью или восстановлением.
+- **No-Confirmation Loop:** внутренние этапы не требуют повторного подтверждения пользователя.
+- **Async Wait Invariant:** dispatch/queued/started/in-progress не являются terminal result; обязательно ждать `DONE/FAILED/TIMEOUT/CANCELLED/INTERRUPTED/INVALID`.
+- **No Premature Success:** `exit 0`, старт workflow, созданный artifact или доступность сервиса сами по себе не означают завершение задачи.
+- **Fresh-State Rule:** перед зависимым шагом/retry/dispatch перепроверять branch/HEAD, queue, результаты и релевантное состояние сервера.
+- **Single Source of Truth:** код/workflows/docs подтверждаются GitHub; состояние сервера подтверждается Remote Operator evidence; расхождения требуют reconciliation.
+- **No Dead-End Success:** успешный промежуточный шаг не завершает batch, если acceptance criteria ещё не выполнены.
+- **Automatic Dependency Graph:** автоматически выполнять разблокированные зависимые шаги; независимые безопасные проверки можно параллелить.
+- **Retry Intelligence:** классифицировать transient/deterministic/stale/configuration/dependency/permission/safety failures до retry; не повторять вслепую.
+- **Stale Execution Protection:** старый checkout/run/result не является доказательством для более нового состояния.
+- **Result Ownership:** агент, авторизовавший batch, отвечает за сбор и сверку всей цепочки результатов.
+- **Crash Recovery:** после interruption восстановить состояние из durable evidence, определить уже выполненные операции и не дублировать side effects.
+- **Human Approval Boundary:** техническое неудобство не является причиной остановки; останавливать только там, где действительно требуется human/owner/legal decision или действует safety boundary.
+- **Autonomy Budget:** у batch должны быть bounded timeout, polling и retry limits.
+- **Circuit Breaker:** при риске дублей, повреждения данных, инфраструктурного ущерба или утечки secrets немедленно остановить опасную ветку и классифицировать blocker.
+- **Invariant Checkpoints:** на существенных контрольных точках проверять repo/branch/commit, queue integrity, idempotency, server identity, isolation, health и evidence.
+- **Parallel Work Control:** независимые read-only проверки можно выполнять параллельно; конфликтующие мутации сериализовать или защищать idempotency/concurrency controls.
+- **Final Autonomous Sweep:** перед отчётом повторно проверить goal, required steps, terminal results, acceptance criteria, regressions, evidence, docs и remaining blockers.
+
+**Главный принцип: AGENT OWNS THE WORKFLOW, NOT JUST THE COMMAND.** После авторизации логически связанного batch агент ведёт всю цепочку до acceptance criteria в пределах safety boundaries.
+
 ## Recovery / wait / state invariants
 
 - Запущенная асинхронная операция требует обязательного ожидания terminal result или timeout.
