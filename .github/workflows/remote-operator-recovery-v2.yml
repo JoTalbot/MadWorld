@@ -1,0 +1,46 @@
+name: Remote Operator Recovery v2
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: remote-operator-recovery-v2
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Cancel stale Remote Operator broker runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "/repos/${REPOSITORY}/actions/workflows/remote-operator-workflow-dispatch.yml/runs?per_page=50&status=in_progress" > /tmp/runs.json
+          python3 - <<'PY'
+          import json, os, subprocess, time
+          from datetime import datetime
+          data=json.load(open('/tmp/runs.json', encoding='utf-8'))
+          now=time.time()
+          repo=os.environ['REPOSITORY']
+          token=os.environ['GH_TOKEN']
+          for r in data.get('workflow_runs', []):
+              created=r.get('created_at')
+              if not created: continue
+              ts=datetime.fromisoformat(created.replace('Z','+00:00')).timestamp()
+              age=int(now-ts)
+              if age > 900:
+                  rid=str(r['id'])
+                  print(f'CANCEL_STALE_RUN={rid} AGE_SECONDS={age}', flush=True)
+                  subprocess.run(['gh','api','--method','POST',f'/repos/{repo}/actions/runs/{rid}/cancel'],check=True,env={**os.environ,'GH_TOKEN':token})
+          PY
+          echo 'Remote Operator stale-run recovery completed.'
