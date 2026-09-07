@@ -1,0 +1,19 @@
+{
+  "command_id": "cmd-20260907-144500-dr-isolated-rehearsal-workflow",
+  "duration_seconds": 0,
+  "error": "gh: Provided value 'True' for input 'cleanup' not in the list of allowed values (HTTP 422)",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T11:44:39Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail\ncd /opt/madworld\nNAME=\"madworld-dr-verify-$$\"\nNET=\"${NAME}-net\"\nSRC=\"${NAME}-src\"\nDST=\"${NAME}-dst\"\ncleanup() { docker rm -f \"$SRC\" \"$DST\" >/dev/null 2>&1 || true; docker network rm \"$NET\" >/dev/null 2>&1 || true; }\ntrap cleanup EXIT\ndocker network create \"$NET\" >/dev/null\ndocker run -d --name \"$SRC\" --network \"$NET\" -e POSTGRES_PASSWORD=madworld -e POSTGRES_DB=madworld_source postgres:16 >/dev/null\ndocker run -d --name \"$DST\" --network \"$NET\" -e POSTGRES_PASSWORD=madworld -e POSTGRES_DB=madworld_restore postgres:16 >/dev/null\nfor i in $(seq 1 30); do docker exec \"$SRC\" pg_isready -U postgres -d madworld_source >/dev/null 2>&1 && docker exec \"$DST\" pg_isready -U postgres -d madworld_restore >/dev/null 2>&1 && break; sleep 1; done\ndocker exec \"$SRC\" psql -U postgres -d madworld_source -v ON_ERROR_STOP=1 -c \"CREATE TABLE schema_migrations (version text PRIMARY KEY); INSERT INTO schema_migrations VALUES ('001'),('002'),('003'); CREATE TABLE dr_probe (id integer PRIMARY KEY, value text NOT NULL); INSERT INTO dr_probe VALUES (1,'madworld-dr-verification');\" >/dev/null\nSTART_NS=$(date +%s%N)\ndocker run --rm --network \"$NET\" -v /opt/madworld/ops/backup_restore.sh:/work/backup_restore.sh:ro -v /tmp:/tmp postgres:16 bash -lc 'set -euo pipefail; chmod +x /work/backup_restore.sh; MADWORLD_DATABASE_URL=postgresql://postgres:madworld@'\"$SRC\"':5432/madworld_source RESTORE_DATABASE_URL=postgresql://postgres:madworld@'\"$DST\"':5432/madworld_restore BACKUP_FILE=/tmp/'\"$NAME\"'.dump /work/backup_restore.sh; PGPASSWORD=madworld psql postgresql://postgres:madworld@'\"$DST\"':5432/madworld_restore -v ON_ERROR_STOP=1 -c \"SELECT COUNT(*) = 3 AS migrations_ok FROM schema_migrations;\" -c \"SELECT value = '\\''madworld-dr-verification'\\'' AS invariant_ok FROM dr_probe WHERE id = 1;\"'\nEND_NS=$(date +%s%N)\nRTO=$(python3 -c \"print(f'{($END_NS-$START_NS)/1_000_000_000:.3f}')\")\nrm -f \"/tmp/$NAME.dump\"\nprintf 'DR_ISOLATED_REHEARSAL=PASS\\n'\nprintf 'MEASURED_RTO_SECONDS=%s\\n' \"$RTO\"\nprintf 'ENVIRONMENT=ephemeral_postgres16_containers\\n'\nprintf 'PRODUCTION_DATABASE_TOUCHED=false\\n'",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "request_file": "20260907-dr-isolated-rehearsal-workflow-dispatch.txt",
+  "started_at": "2026-09-07T11:44:38Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
