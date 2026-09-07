@@ -174,3 +174,5 @@ PY
             stderr.log
           if-no-files-found: error
           retention-days: 14
+
+# Explicitly retained as a dedicated workflow_dispatch target for Remote Operator.
