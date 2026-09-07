@@ -30,4 +30,4 @@ chmod +x "$TMP/reconcile.sh"
 out=$(REMOTE_OPERATOR_PROJECT_ROOT="$TMP" REMOTE_OPERATOR_ROOT="$TMP" "$TMP/reconcile.sh")
 grep -q 'ORPHAN_PENDING_WITHOUT_CREATED_AT=cmd-20200101-000000-legacy' <<<"$out"
 grep -q 'PENDING_SCANNED=2' <<<"$out"
-gngrep -q 'STALE_PENDING_CANDIDATES=0' <<<"$out"
+grep -q 'STALE_PENDING_CANDIDATES=0' <<<"$out"
