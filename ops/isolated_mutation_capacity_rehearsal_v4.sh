@@ -35,19 +35,21 @@ def one(_):
         code,data=call('/api/v1/sessions','POST',body,{'Content-Type':'application/json'}); lat.append(time.perf_counter()-t)
         if code==201:
             try:
-                p=json.loads(data); ok+=int(bool(p.get('player_id') and p.get('token') and p.get('handle')==h))
-                err+=int(not bool(p.get('player_id') and p.get('token') and p.get('handle')==h))
+                p=json.loads(data); valid=bool(p.get('player_id') and p.get('token') and p.get('handle')==h); ok+=int(valid); err+=int(not valid)
             except Exception:err+=1
         else:err+=1
     return ok,err,lat
 s=e=0; ls=[]
 with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
     for ok,err,lat in ex.map(one,range(20)):s+=ok;e+=err;ls.extend(lat)
-t=s+e; ls.sort()
+t=s+e;ls.sort()
 def pct(p): return ls[min(len(ls)-1,max(0,int(len(ls)*p)-1))]*1000 if ls else 0
 print(f'MUTATION_SUCCESS={s}',flush=True);print(f'MUTATION_ERRORS={e}',flush=True);print(f'MUTATION_TOTAL={t}',flush=True);print(f'MUTATION_RPS={t/15:.3f}',flush=True);print(f'MUTATION_ERROR_RATE={(e/t if t else 1):.6f}',flush=True);print(f'MUTATION_P50_MS={pct(.50):.3f}',flush=True);print(f'MUTATION_P95_MS={pct(.95):.3f}',flush=True);print(f'MUTATION_P99_MS={pct(.99):.3f}',flush=True)
-code,_=call('/api/v1/capabilities');print(f'AUTH_NO_TOKEN_HTTP={code}',flush=True)
-rid='mutation-replay-'+uuid.uuid4().hex; h={'Content-Type':'application/json','X-Request-ID':rid}
+# A real protected endpoint with a syntactically valid body. Auth dependency must reject before resource ownership is evaluated.
+auth_body=json.dumps({'player_id':str(uuid.uuid4()),'name':'auth_probe'}).encode()
+auth,_=call('/api/v1/characters','POST',auth_body,{'Content-Type':'application/json','Idempotency-Key':'auth-probe-'+uuid.uuid4().hex})
+print(f'AUTH_NO_TOKEN_HTTP={auth}',flush=True)
+rid='mutation-replay-'+uuid.uuid4().hex;h={'Content-Type':'application/json','X-Request-ID':rid}
 r1,_=call('/api/v1/sessions','POST',json.dumps({'handle':'replay_probe_a'}).encode(),h);r2,_=call('/api/v1/sessions','POST',json.dumps({'handle':'replay_probe_b'}).encode(),h)
 print(f'REPLAY_FIRST_HTTP={r1}',flush=True);print(f'REPLAY_SECOND_HTTP={r2}',flush=True);print(f'REPLAY_CONTAINMENT_PASS={str(r1==201 and r2==409).lower()}',flush=True)
 PY
