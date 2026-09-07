@@ -1,0 +1,45 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10026396516,
+      "name": "madworld-android-release-gate",
+      "size_in_bytes": 15375641
+    }
+  ],
+  "command_id": "cmd-20260907-161500-release-gate-exact-head",
+  "duration_seconds": 169,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T16:16:44Z",
+  "inputs": {},
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101806660486,
+      "name": "android",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 101806660680,
+      "name": "backend",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 101807288762,
+      "name": "gate",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260907-161500-release-gate-exact-head.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34142275042",
+  "started_at": "2026-09-07T16:13:54Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "release-gate.yml",
+  "workflow_run_id": 34142275042
+}
