@@ -1,0 +1,11 @@
+COMMAND_ID: cmd-20260907-173500-cloudflare-public-api-access
+STATUS: PENDING
+AGENT: madworld-autonomous-operator
+CREATED_AT: 2026-09-07T17:35:00Z
+TIMEOUT_MINUTES: 10
+MODE: WORKFLOW_DISPATCH
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: cloudflare-public-api-access.yml
+REF: main
+INPUTS_JSON: {}
+DESCRIPTION: Configure the narrow Cloudflare Access bypass for api.autosklo.org.ua/api/v1/* using CLOUDFLARE_API_TOKEN from GitHub Secrets, then verify health and that POST /api/v1/sessions returns JSON rather than Cloudflare Access HTML/302.
