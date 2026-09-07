@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-163000-mutation-capacity-v4
+STATUS: PENDING
+AGENT: chatgpt-release-batch
+CREATED_AT: 2026-09-07T16:30:00+03:00
+TIMEOUT_MINUTES: 20
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/a02a2a4edc6a7eeb3f4dda5f3b064f7a1d92b58e/ops/isolated_mutation_capacity_rehearsal_v4.sh -o /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v4.sh && chmod 700 /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v4.sh && bash /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v4.sh","timeout_minutes":"15","workdir":"/opt/madworld","cleanup":"true"}
+---
