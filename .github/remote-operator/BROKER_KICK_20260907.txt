@@ -1,1 +1,3 @@
 Operational broker kick: trigger the Remote Operator workflow-dispatch broker from the current main HEAD so pending requests are consumed on the current queue state.
+
+Autonomous continuation kick: consume pending exact-head B10 release-gate verification request.
