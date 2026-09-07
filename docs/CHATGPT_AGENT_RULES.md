@@ -45,35 +45,47 @@ A missing subsequent `+` is not a stop signal for an already authorized logical 
 
 Stop only for completion, a genuine technical blocker, inherently required human/owner/legal approval, a safety boundary, or an unrecoverable defined timeout/failure.
 
-## 4. State checkpoint invariant
+## 4. Goal Lock and dependency ownership
 
-Before every substantial dependent step or retry, verify:
+At batch start, define one logical goal and explicit acceptance criteria. Every action must be justified as required to reach, verify, recover, or safely support that goal.
+
+Treat the batch as a dependency graph, not a list of isolated commands. When a step completes, automatically execute newly unblocked steps required by the goal. Parallelize independent safe read-only checks where useful, but serialize conflicting mutations.
+
+**AGENT OWNS THE WORKFLOW, NOT JUST THE COMMAND.** Delegating execution to a workflow, server, or another agent does not transfer responsibility for collecting terminal evidence and proving the final acceptance criteria.
+
+Do not allow a successful intermediate step to become a dead-end success. Continue until the logical goal is complete or a valid stop condition applies.
+
+## 5. State checkpoint and fresh-state invariant
+
+Before every substantial dependent step, retry, dispatch, or recovery action, verify:
 
 - current branch and HEAD;
 - current queue state;
 - whether a newer commit/request supersedes the previous state;
 - existing terminal results/evidence;
-- whether the operation has already been completed;
+- whether the operation has already completed;
+- relevant deployment/server state;
 - whether the next action is still inside the authorized goal.
 
-Never rely on a stale workflow checkout when current queue state is required. If an old run cannot observe the current state, route execution through a mechanism that starts from the current HEAD.
+Never rely on stale workflow checkout, stale queue snapshot, stale deployment version, or stale result as evidence for newer state.
 
-## 5. Idempotency and duplicate protection
+## 6. Idempotency and duplicate protection
 
-Before retrying or dispatching an operation, check for existing execution/result evidence using its immutable operation/command identity.
+Before retrying or dispatching an operation, check for existing execution/result evidence using its immutable operation identity.
 
-- Reuse verified terminal evidence when a duplicate execution is unnecessary.
-- Do not execute the same command twice merely because an earlier result is inconvenient to retrieve.
-- If re-execution is required, create a new immutable command identity unless the executor explicitly supports safe idempotent retry semantics.
-- Never manually manufacture a terminal result.
+- Reuse verified terminal evidence when safe.
+- Do not repeat side effects merely because earlier evidence is inconvenient to retrieve.
+- If re-execution is required, use a new immutable command identity unless the executor explicitly provides safe idempotent retry semantics.
+- Detect already-completed work after interruption before starting a replacement operation.
+- Never manufacture a terminal result manually.
 
-## 6. Mandatory wait invariant
+## 7. Mandatory wait invariant
 
 Submitting or dispatching an operation is never the same as completing it.
 
-If a terminal result is required:
+If a terminal result matters:
 1. Wait for the actual result.
-2. Poll asynchronous operations until terminal state or timeout.
+2. Poll asynchronous operations until terminal state or bounded timeout.
 3. Inspect workflow status and job status.
 4. Inspect exit code, stdout and stderr.
 5. Inspect `result.json`, artifacts and result records when available.
@@ -83,23 +95,29 @@ Terminal states include `DONE`, `FAILED`, `TIMEOUT`, `CANCELLED`, `INTERRUPTED` 
 
 A queued/started/in-progress/dispatch-accepted state is never sufficient evidence of successful execution.
 
-## 7. Fix-and-repeat / recovery budget
+## 8. Retry intelligence and bounded recovery
 
-For audits, fixes, release preparation and `+` batches use:
+When a failure appears, classify it before retrying:
+- transient;
+- deterministic/code defect;
+- stale state;
+- configuration;
+- dependency/tooling;
+- permission/authentication;
+- concurrency/idempotency;
+- safety or infrastructure risk.
 
-`ANALYZE -> IMPLEMENT -> TEST -> VERIFY -> FIX -> RE-TEST -> REPORT`
-
-When a failure appears:
+Then use:
 
 `FAIL -> DIAGNOSE -> FIX -> TEST -> VERIFY`
 
-Do not stop at the first defect. Use a reasonable bounded recovery effort. If the defect remains unresolved, classify it explicitly as `FAILED` or `BLOCKED`, provide evidence and explain the actual reason continuation is impossible.
+Use a bounded autonomy budget with defined timeout, polling and retry limits. Never blindly loop.
 
-A fix is not completion. All dependent checks must run again.
+If repeated failure indicates risk of duplicate side effects, data corruption, infrastructure damage, or secret exposure, activate a circuit breaker for the affected path and preserve evidence.
 
-## 8. Goal completion gate
+## 9. No premature success / goal completion gate
 
-Do not declare the logical task complete solely because the last command returned `exit 0`.
+Do not declare success because a workflow was accepted, a job started, one command returned `exit 0`, one test passed, a service is reachable, or an artifact exists.
 
 Before finalizing, verify:
 
@@ -107,20 +125,26 @@ Before finalizing, verify:
 
 If acceptance criteria are not satisfied, continue the authorized work or classify the genuine blocker.
 
-## 9. Automatic escalation
+## 10. Crash recovery and result ownership
 
-When blocked, do not ask the user to blindly repeat `+`.
+After interruption, reconstruct state from durable evidence before continuing. Identify completed operations, current HEAD, queue state and outstanding dependencies. Resume from the latest verified checkpoint without duplicating side effects.
 
-Report:
-- exact blocker;
-- what was checked;
-- evidence;
-- why automated continuation is impossible or unsafe;
-- the one concrete human/owner/legal action required, if any.
+The initiating agent owns the result chain until the final report. Every delegated operation must have a terminal outcome reconciled into the batch result.
 
-Human/owner/legal approval remains mandatory where inherently required.
+## 11. Human approval boundary and escalation
 
-## 10. Remote Operator is the server channel
+Technical inconvenience, missing convenience tooling, or a preference for manual clicking is not by itself a stop reason.
+
+Autonomy stops only for:
+- completed logical goal;
+- genuine technical blocker;
+- inherently required human/owner/legal approval;
+- safety boundary;
+- unrecoverable defined timeout/failure.
+
+Before escalating, complete all independent safe work. Then report the exact blocker, checks performed, evidence, why automation is impossible or unsafe, and the one concrete human/owner/legal action required.
+
+## 12. Remote Operator is the server channel
 
 All server-side technical actions must use the repository's Remote Operator mechanism.
 
@@ -132,7 +156,7 @@ If GitHub API/connector cannot perform a required action, use Remote Operator wh
 
 Short commands use `sync`. Long commands use `async` with polling and bounded timeout. Server execution is expected to run as root according to the configured operator implementation, and root must be verified from terminal evidence.
 
-## 11. Queue discipline
+## 13. Queue discipline
 
 The canonical queue is append-oriented. Do not silently rewrite history or manually mark requests DONE.
 
@@ -140,37 +164,57 @@ Every new command has a unique immutable identity and starts `PENDING`. Historic
 
 Before dispatching through a workflow broker, ensure the broker observes the current queue HEAD. Do not repeatedly rerun an old checkout that cannot see a newer request.
 
-## 12. Evidence discipline
+## 14. Parallel work control
 
-Accepted evidence includes terminal `result.json`, stdout/stderr, exit code, workflow/job status and conclusion, artifacts, executor/server identity, timestamps/duration, result-branch records and relevant server logs.
+Independent read-only checks may run in parallel. Mutating operations that can conflict must be serialized or protected by explicit idempotency/concurrency controls.
 
-Use statuses accurately:
-- `VERIFIED`
-- `PARTIALLY VERIFIED`
-- `NOT VERIFIED`
-- `NOT EXECUTED`
-- `FAILED`
-- `UNKNOWN`
+Parallel work must preserve evidence ordering, clear result ownership, and safe resource limits. When a dependency becomes invalid, stop only the affected branches and continue independent safe branches.
 
-Unknown external conditions never PASS. Workflow launch success is not command success. Command success is not automatically a release PASS.
+## 15. Invariant checkpoints
 
-## 13. Human action minimization
+At major milestones verify the invariants required by the goal:
+- repository/branch/commit identity;
+- queue integrity;
+- command identity/idempotency;
+- server identity and root execution where applicable;
+- isolation boundaries;
+- service health;
+- expected artifacts and result records;
+- required CI/deployment state.
+
+A broken invariant blocks dependent work until repaired or explicitly classified.
+
+## 16. Human action minimization
 
 If a technical action would normally require a manual human step, automate it through Remote Operator whenever technically possible.
 
 If a missing GitHub connector capability blocks an action, route it through Remote Operator or improve the operator path first. Do not pretend it was executed.
 
-## 14. Production safety
+## 17. Production safety
 
 Before production: verify branch/HEAD, git state, health, backup/rollback and required approvals. After production: health, smoke test, migrations/status, logs and CI/deployment result.
 
 Do not perform production load/stress without an approved maintenance window and rollback plan. Do not touch unrelated infrastructure, databases, Docker networks/volumes or host services. Never expose secrets. Do not force-push unless explicitly required.
 
-## 15. Release gates
+## 18. Release gates
 
 Technical evidence may establish technical gates, but owner/legal/product decisions remain human decisions. Do not invent thresholds, device coverage, provider readiness or legal approval.
 
-## 16. Learning and documentation
+Unknown external conditions never PASS.
+
+## 19. Final autonomous sweep
+
+Before reporting completion, perform one final sweep of the locked goal:
+- all required steps reached terminal state;
+- all acceptance criteria checked;
+- regressions/relevant tests re-run after fixes;
+- evidence reconciled;
+- documentation/learning updated when reusable knowledge appeared;
+- remaining blockers classified.
+
+If the sweep finds unfinished work inside scope, continue it automatically. Do not stop simply because a previous milestone was successful.
+
+## 20. Learning and documentation
 
 For every non-trivial logical batch:
 
@@ -178,7 +222,7 @@ For every non-trivial logical batch:
 
 When verified reusable experience appears, update the appropriate skill/documentation before final completion when practical. Keep `AGENTS.md`, this document, `docs/REMOTE_OPERATOR.md`, `.github/remote-operator/QUEUE.md`, `docs/skills/MADWORLD_AGENT_SKILL.md` and related operational/release documents aligned.
 
-## 17. Final report
+## 21. Final report
 
 For serious operational tasks report:
 
@@ -195,6 +239,6 @@ For serious operational tasks report:
 
 Keep large logs in artifacts.
 
-## 18. Core principle
+## 22. Core principle
 
 **Once a logically connected operation is authorized, the agent owns the continuation of that operation until completion or a genuine blocker. It must wait, inspect, fix, retry, verify, learn, document and continue without requiring repeated `+` confirmations.**
