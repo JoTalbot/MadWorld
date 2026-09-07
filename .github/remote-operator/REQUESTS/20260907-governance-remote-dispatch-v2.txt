@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-134800-remote-governance-dispatch
+STATUS: PENDING
+AGENT: governance-remote-dispatch-v2
+CREATED_AT: 2026-09-07T13:48:00Z
+TIMEOUT_MINUTES: 10
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; gh workflow run agent-governance.yml --ref main; echo WORKFLOW_DISPATCH_REQUESTED; sleep 5; gh run list --workflow agent-governance.yml --branch main --limit 5 --json databaseId,status,conclusion,headSha,createdAt --jq '.[] | @json'","timeout_minutes":10,"workdir":"/opt/madworld","cleanup":"true"}
+---
