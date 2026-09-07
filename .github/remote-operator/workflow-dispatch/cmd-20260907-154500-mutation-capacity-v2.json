@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-154500-mutation-capacity-v2",
+  "duration_seconds": 9,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:31:31Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/344b04d4b10754e32635065b8eb2f0b9d44ab0ab/ops/isolated_mutation_capacity_rehearsal.sh -o /opt/madworld/ops/isolated_mutation_capacity_rehearsal.sh && chmod 700 /opt/madworld/ops/isolated_mutation_capacity_rehearsal.sh && bash /opt/madworld/ops/isolated_mutation_capacity_rehearsal.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 8.988,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-07T12:31:31Z",
+    "job_id": "cmd-20260907-154500-mutation-capacity-v2",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:31:22Z",
+    "status": "SUCCESS",
+    "stderr": "WARNING: current commit information was not captured by the build: failed to read current commit information with git rev-parse --is-inside-work-tree\ncurl: (6) Could not resolve host: madworld-mutation-3878335-api\ncurl: (6) Could not resolve host: madworld-mutation-3878335-api\ncurl: (6) Could not resolve host: madworld-mutation-3878335-api\n",
+    "stdout": "MUTATION_WORKLOAD=POST /api/v1/sessions, 20 concurrent clients, 15s bounded synthetic-account writes\nMUTATION_DB_SESSIONS=0\nAUTH_NO_TOKEN_HTTP=000\nREPLAY_FIRST_HTTP=000\nREPLAY_SECOND_HTTP=000\nREPLAY_CONTAINMENT_PASS=false\nAPI_CPU=0.11% API_MEM=60.53MiB / 23.41GiB\nMUTATION_ENVIRONMENT=isolated_postgres16_api_container\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-mutation-capacity-v2.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:31:22Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
