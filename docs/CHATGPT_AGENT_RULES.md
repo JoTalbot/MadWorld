@@ -10,18 +10,18 @@ At the beginning of work, inspect the actual repository state. Do not rely on as
 
 Required startup checks:
 1. Determine owner/repository, current branch and HEAD.
-2. Read `README.md`, `AGENTS.md`, `docs/`, `.github/` and relevant project structure.
+2. Read `README.md`, `AGENTS.md`, `docs/` and `.github/` and relevant project structure.
 3. Identify stack, tests, CI/CD, deployment and operational tooling.
 4. Identify the existing Remote Operator and queue/result mechanisms.
-5. Read this document, `AGENTS.md`, `docs/REMOTE_OPERATOR.md`, `.github/remote-operator/QUEUE.md` and `docs/skills/MADWORLD_AGENT_SKILL.md`.
+5. Read this document, `AGENTS.md`, `docs/REMOTE_OPERATOR.md`, `.github/remote-operator/QUEUE.md`, `docs/skills/MADWORLD_AGENT_SKILL.md`, `docs/skills/PLUS_AUTONOMY_RULE.md` and `docs/skills/AUTONOMY_ADVANCED_RULES.md`.
 
 GitHub is the source of truth for repository code, workflows and documentation. Server state is verified through Remote Operator evidence.
 
 ## 2. Mandatory evolving project skill
 
-`docs/skills/MADWORLD_AGENT_SKILL.md` is required, living project memory for every AI agent, coding agent, reviewer, operator and automated worker.
+`docs/skills/MADWORLD_AGENT_SKILL.md` is required, living project memory for every AI agent, coding agent, reviewer, operator and automated worker. Its advanced companion `docs/skills/AUTONOMY_ADVANCED_RULES.md` is also mandatory.
 
-- Load and apply it before modification.
+- Load and apply both before modification.
 - Record verified reusable knowledge during the same logical batch when practical.
 - Correct obsolete lessons when evidence changes.
 - Never record guesses as facts or secrets in the skill.
@@ -131,7 +131,32 @@ After interruption, reconstruct state from durable evidence before continuing. I
 
 The initiating agent owns the result chain until the final report. Every delegated operation must have a terminal outcome reconciled into the batch result.
 
-## 11. Human approval boundary and escalation
+## 11. Advanced autonomy safeguards
+
+`docs/skills/AUTONOMY_ADVANCED_RULES.md` is mandatory and governs the advanced layer:
+
+- Intent Preservation
+- Authority Boundary
+- Human Interrupt / Stop
+- Side-Effect Ledger
+- Compensation / Recovery Plan
+- Concurrency Locking
+- Lease / Ownership TTL
+- Context Recovery
+- Change Budget
+- Risk Escalation Ladder
+- Invariant Before Side Effect
+- Postcondition Verification
+- Decision Journal
+- Negative Knowledge
+- Cost Awareness
+- Priority Arbitration
+- Stale Intent Detection
+- Autonomous End-State
+
+Governing principle: **AUTONOMY IS CONTINUOUS, BUT SCOPE IS LOCKED.**
+
+## 12. Human approval boundary and escalation
 
 Technical inconvenience, missing convenience tooling, or a preference for manual clicking is not by itself a stop reason.
 
@@ -144,7 +169,7 @@ Autonomy stops only for:
 
 Before escalating, complete all independent safe work. Then report the exact blocker, checks performed, evidence, why automation is impossible or unsafe, and the one concrete human/owner/legal action required.
 
-## 12. Remote Operator is the server channel
+## 13. Remote Operator is the server channel
 
 All server-side technical actions must use the repository's Remote Operator mechanism.
 
@@ -156,7 +181,7 @@ If GitHub API/connector cannot perform a required action, use Remote Operator wh
 
 Short commands use `sync`. Long commands use `async` with polling and bounded timeout. Server execution is expected to run as root according to the configured operator implementation, and root must be verified from terminal evidence.
 
-## 13. Queue discipline
+## 14. Queue discipline
 
 The canonical queue is append-oriented. Do not silently rewrite history or manually mark requests DONE.
 
@@ -164,13 +189,13 @@ Every new command has a unique immutable identity and starts `PENDING`. Historic
 
 Before dispatching through a workflow broker, ensure the broker observes the current queue HEAD. Do not repeatedly rerun an old checkout that cannot see a newer request.
 
-## 14. Parallel work control
+## 15. Parallel work control
 
 Independent read-only checks may run in parallel. Mutating operations that can conflict must be serialized or protected by explicit idempotency/concurrency controls.
 
 Parallel work must preserve evidence ordering, clear result ownership, and safe resource limits. When a dependency becomes invalid, stop only the affected branches and continue independent safe branches.
 
-## 15. Invariant checkpoints
+## 16. Invariant checkpoints
 
 At major milestones verify the invariants required by the goal:
 - repository/branch/commit identity;
@@ -184,25 +209,25 @@ At major milestones verify the invariants required by the goal:
 
 A broken invariant blocks dependent work until repaired or explicitly classified.
 
-## 16. Human action minimization
+## 17. Human action minimization
 
 If a technical action would normally require a manual human step, automate it through Remote Operator whenever technically possible.
 
 If a missing GitHub connector capability blocks an action, route it through Remote Operator or improve the operator path first. Do not pretend it was executed.
 
-## 17. Production safety
+## 18. Production safety
 
 Before production: verify branch/HEAD, git state, health, backup/rollback and required approvals. After production: health, smoke test, migrations/status, logs and CI/deployment result.
 
 Do not perform production load/stress without an approved maintenance window and rollback plan. Do not touch unrelated infrastructure, databases, Docker networks/volumes or host services. Never expose secrets. Do not force-push unless explicitly required.
 
-## 18. Release gates
+## 19. Release gates
 
 Technical evidence may establish technical gates, but owner/legal/product decisions remain human decisions. Do not invent thresholds, device coverage, provider readiness or legal approval.
 
 Unknown external conditions never PASS.
 
-## 19. Final autonomous sweep
+## 20. Final autonomous sweep
 
 Before reporting completion, perform one final sweep of the locked goal:
 - all required steps reached terminal state;
@@ -214,15 +239,15 @@ Before reporting completion, perform one final sweep of the locked goal:
 
 If the sweep finds unfinished work inside scope, continue it automatically. Do not stop simply because a previous milestone was successful.
 
-## 20. Learning and documentation
+## 21. Learning and documentation
 
 For every non-trivial logical batch:
 
 `ANALYZE -> IMPLEMENT -> TEST -> VERIFY -> LEARN -> DOCUMENT -> RE-TEST -> REPORT`
 
-When verified reusable experience appears, update the appropriate skill/documentation before final completion when practical. Keep `AGENTS.md`, this document, `docs/REMOTE_OPERATOR.md`, `.github/remote-operator/QUEUE.md`, `docs/skills/MADWORLD_AGENT_SKILL.md` and related operational/release documents aligned.
+When verified reusable experience appears, update the appropriate skill/documentation before final completion when practical. Keep `AGENTS.md`, this document, `docs/REMOTE_OPERATOR.md`, `.github/remote-operator/QUEUE.md`, `docs/skills/MADWORLD_AGENT_SKILL.md`, `docs/skills/PLUS_AUTONOMY_RULE.md`, `docs/skills/AUTONOMY_ADVANCED_RULES.md` and related operational/release documents aligned.
 
-## 21. Final report
+## 22. Final report
 
 For serious operational tasks report:
 
@@ -239,6 +264,6 @@ For serious operational tasks report:
 
 Keep large logs in artifacts.
 
-## 22. Core principle
+## 23. Core principle
 
 **Once a logically connected operation is authorized, the agent owns the continuation of that operation until completion or a genuine blocker. It must wait, inspect, fix, retry, verify, learn, document and continue without requiring repeated `+` confirmations.**
