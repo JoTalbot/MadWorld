@@ -1,0 +1,19 @@
+{
+  "command_id": "cmd-20260907-141600-workflow-dispatch-remote-wrapper-v2",
+  "duration_seconds": 1,
+  "error": "gh: Invalid Argument - failed to parse workflow: error parsing called workflow\n\"\"\n-> \"./.github/workflows/remote-operator-reusable.yml\" (source branch with sha:96352aa8780e40940c651b1e5e75ebed217d3eaa)\n: You have an error in your yaml syntax on line 104 (HTTP 422)",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T11:27:57Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "printf 'REMOTE_OPERATOR_DISPATCH_WRAPPER_OK\\n'; printf 'USER=%s\\n' \"$(id -un)\"; printf 'UID=%s\\n' \"$(id -u)\"; printf 'HOST=%s\\n' \"$(hostname -s)\"",
+    "timeout_minutes": "2",
+    "workdir": ""
+  },
+  "ref": "main",
+  "request_file": "20260907-workflow-dispatch-remote-wrapper-v2.txt",
+  "started_at": "2026-09-07T11:27:55Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
