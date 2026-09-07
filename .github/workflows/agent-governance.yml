@@ -17,3 +17,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify agent governance
         run: bash ops/verify-agent-governance.sh
+      - name: Verify autonomy contract
+        run: bash ops/verify-autonomy-contract.sh
