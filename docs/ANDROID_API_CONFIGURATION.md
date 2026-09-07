@@ -2,34 +2,46 @@
 
 `MADWORLD_API_URL` is supplied at build time through a Gradle property or environment variable.
 
-## Emulator
+## Physical Android phone / public test build
 
-- Default debug fallback: `http://10.0.2.2:8000`.
-- `10.0.2.2` is the Android Emulator alias for the host machine. It does **not** point to your PC from a physical phone.
+The default debug endpoint is the public production API:
 
-## Physical Android phone for local development
+```text
+https://api.autosklo.org.ua
+```
 
-The phone and the development server must be on the same reachable network.
+The public server is currently reached through the external address `129.213.177.56`; the application should use the HTTPS hostname rather than the raw IP because the production TLS certificate is issued for the hostname.
 
-1. Find the development server's LAN address, for example `192.168.1.50`.
-2. Make sure the backend listens on `0.0.0.0:8000` and that the host firewall permits TCP/8000 from the local network.
-3. Build the debug APK with the LAN address:
+Therefore a physical phone must **not** use the Android Emulator-only address `10.0.2.2`. That address points to the emulator host and is not the public server.
+
+For a production-like/public debug build, the endpoint can be made explicit:
+
+```bash
+cd android
+./gradlew assembleDebug -PMADWORLD_API_URL=https://api.autosklo.org.ua
+```
+
+## Local emulator / LAN development
+
+For an Android Emulator connected to a backend running on the development host, `10.0.2.2` is the special emulator alias for the host machine. It must not be used on a physical phone.
+
+For a physical phone connected to a local development server, use the server's reachable LAN address and HTTP only for local development, for example:
 
 ```bash
 cd android
 ./gradlew assembleDebug -PMADWORLD_API_URL=http://192.168.1.50:8000
 ```
 
-Replace `192.168.1.50` with the actual server address. Do not use `10.0.2.2` on a physical phone.
+Replace `192.168.1.50` with the actual development-server address. The backend must listen on the reachable interface and the host firewall must permit the development port.
 
-Debug builds allow cleartext HTTP specifically for local development. Release builds keep cleartext HTTP disabled, so production must use HTTPS.
+Debug builds allow cleartext HTTP only when the selected debug URL starts with `http://`. Release builds keep cleartext HTTP disabled and require HTTPS.
 
 ## Production
 
-Pass a fully qualified HTTPS API URL through Gradle property `MADWORLD_API_URL` or environment variable `MADWORLD_API_URL`. The requirement is enforced only when a release task is scheduled (`gradle.taskGraph.whenReady`), so `testDebugUnitTest` and `assembleDebug` run without it.
+Pass a fully qualified HTTPS API URL through Gradle property `MADWORLD_API_URL` or environment variable `MADWORLD_API_URL`. The requirement is enforced only when a release task is scheduled (`gradle.taskGraph.whenReady`), so `testDebugUnitTest` and `assembleDebug` run without an explicit property.
 
 ```bash
-./gradlew assembleRelease -PMADWORLD_API_URL=https://api.example.invalid
+./gradlew assembleRelease -PMADWORLD_API_URL=https://api.autosklo.org.ua
 ```
 
 Never commit production URLs containing credentials or secrets. CI should provide the production URL through repository/environment configuration when a release build is enabled.
