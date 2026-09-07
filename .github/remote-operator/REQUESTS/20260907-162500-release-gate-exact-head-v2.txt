@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-162500-release-gate-exact-head-v2
+STATUS: PENDING
+AGENT: autonomy-b10-release-verifier-v2
+CREATED_AT: 2026-09-07T16:25:00Z
+TIMEOUT_MINUTES: 20
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: release-gate.yml
+REF: main
+INPUTS_JSON: {}
+---
