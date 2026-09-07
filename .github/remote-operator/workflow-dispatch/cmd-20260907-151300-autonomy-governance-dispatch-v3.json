@@ -1,0 +1,26 @@
+{
+  "artifacts": [],
+  "command_id": "cmd-20260907-151300-autonomy-governance-dispatch-v3",
+  "duration_seconds": 15,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T15:14:05Z",
+  "inputs": {},
+  "jobs": [
+    {
+      "conclusion": "failure",
+      "id": 101790864398,
+      "name": "governance",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260907-autonomy-governance-dispatch-v3.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34137213030",
+  "started_at": "2026-09-07T15:13:50Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "agent-governance.yml",
+  "workflow_run_id": 34137213030
+}
