@@ -1,0 +1,23 @@
+name: Remote Operator Dispatch Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      marker:
+        description: Smoke marker
+        required: true
+        type: string
+        default: remote-operator-dispatch-smoke
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Emit marker
+        run: |
+          set -euo pipefail
+          echo "REMOTE_OPERATOR_WORKFLOW_DISPATCH_OK"
+          echo "MARKER=${{ inputs.marker }}"
