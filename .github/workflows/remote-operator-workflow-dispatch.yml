@@ -40,38 +40,27 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import base64
-          import json
-          import os
-          import re
-          import subprocess
-          import sys
-          import time
+          import json, os, re, subprocess, sys, time
           from pathlib import Path
 
           repo = os.environ['REPOSITORY']
           token = os.environ['GH_TOKEN']
           root = Path('.github/remote-operator/REQUESTS')
           result_ref = 'refs/remotes/origin/remote-operator-results'
-          work = Path('.workflow-dispatch-state')
-          work.mkdir(exist_ok=True)
-          (work / 'results').mkdir(exist_ok=True)
+          work = Path('.workflow-dispatch-state/results')
+          work.mkdir(parents=True, exist_ok=True)
 
           def gh_api(args):
-              env = os.environ.copy()
-              env['GH_TOKEN'] = token
-              p = subprocess.run(['gh', 'api', *args], text=True, capture_output=True, env=env)
+              p = subprocess.run(['gh', 'api', *args], text=True, capture_output=True,
+                                 env={**os.environ, 'GH_TOKEN': token})
               if p.returncode:
                   raise RuntimeError(p.stderr.strip() or f'gh api failed: {p.returncode}')
               return json.loads(p.stdout) if p.stdout.strip() else {}
 
           def state_exists(cid):
-              p = subprocess.run(['git','cat-file','-e',f'{result_ref}:.github/remote-operator/workflow-dispatch/{cid}.json'],capture_output=True)
-              return p.returncode == 0
-
-          def write_state(cid, data):
-              path = work / 'results' / f'{cid}.json'
-              path.write_text(json.dumps(data, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+              return subprocess.run(
+                  ['git', 'cat-file', '-e', f'{result_ref}:.github/remote-operator/workflow-dispatch/{cid}.json'],
+                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
           requests = []
           if root.exists():
@@ -86,9 +75,7 @@ jobs:
                       ref = re.search(r'(?m)^REF:\s*(\S+)', block)
                       tm = re.search(r'(?m)^TIMEOUT_MINUTES:\s*(\d+)', block)
                       inp = re.search(r'(?m)^INPUTS_JSON:\s*(\{.*\})\s*$', block)
-                      if not (m and st and wf and ref):
-                          continue
-                      if st.group(1) != 'PENDING':
+                      if not (m and st and wf and ref) or st.group(1) != 'PENDING':
                           continue
                       cid = m.group(1)
                       if not re.fullmatch(r'cmd-[0-9]{8}-[0-9]{6}-[A-Za-z0-9._-]+', cid):
@@ -96,7 +83,8 @@ jobs:
                       if state_exists(cid):
                           continue
                       inputs = json.loads(inp.group(1)) if inp else {}
-                      requests.append((cid, wf.group(1), ref.group(1), inputs, int(tm.group(1)) if tm else 30, path.name))
+                      requests.append((cid, wf.group(1), ref.group(1), inputs,
+                                       int(tm.group(1)) if tm else 30, path.name))
 
           if not requests:
               print('No pending workflow-dispatch requests.')
@@ -104,6 +92,7 @@ jobs:
 
           for cid, workflow, ref, inputs, timeout_minutes, source in requests:
               started = time.time()
+              started_at = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(started))
               record = {
                   'command_id': cid,
                   'type': 'WORKFLOW_DISPATCH',
@@ -113,36 +102,24 @@ jobs:
                   'request_file': source,
                   'status': 'DISPATCHING',
                   'executor': 'github-actions-remote-operator',
-                  'started_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                  'started_at': started_at,
               }
-              print(f'Dispatching {cid}: {workflow}@{ref}')
               try:
-                  out = gh_api([
-                      '--method','POST',
-                      '-H','Accept: application/vnd.github+json',
-                      '-H','X-GitHub-Api-Version: 2026-03-10',
-                      f'/repos/{repo}/actions/workflows/{workflow}/dispatches',
-                      '-f', f'ref={ref}',
-                      '--input','-'
-                  ]) if False else None
-
-                  payload = json.dumps({'ref': ref, 'inputs': {str(k): str(v) for k,v in inputs.items()}})
+                  payload = json.dumps({'ref': ref, 'inputs': {str(k): str(v) for k, v in inputs.items()}})
                   p = subprocess.run([
-                      'gh','api',
-                      '--method','POST',
-                      '-H','Accept: application/vnd.github+json',
-                      '-H','X-GitHub-Api-Version: 2026-03-10',
+                      'gh', 'api', '--method', 'POST',
+                      '-H', 'Accept: application/vnd.github+json',
+                      '-H', 'X-GitHub-Api-Version: 2026-03-10',
                       f'/repos/{repo}/actions/workflows/{workflow}/dispatches',
-                      '--input','-'
-                  ], input=payload, text=True, capture_output=True, env={**os.environ,'GH_TOKEN':token})
+                      '--input', '-'
+                  ], input=payload, text=True, capture_output=True,
+                  env={**os.environ, 'GH_TOKEN': token})
                   if p.returncode:
                       raise RuntimeError(p.stderr.strip() or 'workflow dispatch failed')
 
-                  # The dispatch endpoint may return a run id, but GitHub also permits
-                  # a 204 response. Find the newest matching run on the requested ref.
                   time.sleep(3)
                   runs = gh_api([f'/repos/{repo}/actions/workflows/{workflow}/runs?branch={ref}&event=workflow_dispatch&per_page=20'])
-                  candidates = [r for r in runs.get('workflow_runs', []) if r.get('created_at','') >= record['started_at']]
+                  candidates = [r for r in runs.get('workflow_runs', []) if r.get('created_at', '') >= started_at]
                   candidates.sort(key=lambda r: r.get('id', 0), reverse=True)
                   if not candidates:
                       raise RuntimeError('dispatch accepted but workflow run could not be located')
@@ -150,20 +127,21 @@ jobs:
                   run_id = run['id']
                   record['workflow_run_id'] = run_id
                   record['run_url'] = run.get('html_url')
+
                   deadline = time.time() + timeout_minutes * 60
-                  terminal = False
-                  while time.time() < deadline:
+                  while True:
                       run = gh_api([f'/repos/{repo}/actions/runs/{run_id}'])
                       record['run_status'] = run.get('status')
                       record['run_conclusion'] = run.get('conclusion')
                       if run.get('status') == 'completed':
-                          terminal = True
+                          break
+                      if time.time() >= deadline:
+                          record['status'] = 'TIMEOUT'
+                          record['error'] = f'workflow run did not reach terminal state within {timeout_minutes} minutes'
                           break
                       time.sleep(10)
-                  if not terminal:
-                      record['status'] = 'TIMEOUT'
-                      record['error'] = f'workflow run did not reach terminal state within {timeout_minutes} minutes'
-                  else:
+
+                  if run.get('status') == 'completed':
                       record['status'] = 'DONE' if run.get('conclusion') == 'success' else 'FAILED'
                       jobs = gh_api([f'/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100'])
                       record['jobs'] = [
@@ -175,28 +153,25 @@ jobs:
                           {'id': a.get('id'), 'name': a.get('name'), 'size_in_bytes': a.get('size_in_bytes'), 'expired': a.get('expired')}
                           for a in arts.get('artifacts', [])
                       ]
-                  record['finished_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-                  record['duration_seconds'] = int(time.time() - started)
               except Exception as exc:
                   record['status'] = 'FAILED'
                   record['error'] = str(exc)
-                  record['finished_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-                  record['duration_seconds'] = int(time.time() - started)
-              write_state(cid, record)
+              record['finished_at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+              record['duration_seconds'] = int(time.time() - started)
+              path = work / f'{cid}.json'
+              path.write_text(json.dumps(record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
               print(json.dumps(record, indent=2, sort_keys=True))
 
-          # Publish immutable dispatch evidence to the dedicated result branch.
-          subprocess.run(['git','checkout','--orphan','workflow-dispatch-publish'], check=True, stdout=subprocess.DEVNULL)
-          subprocess.run(['git','rm','-rf','.'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-          subprocess.run(['git','checkout',result_ref,'--','.github/remote-operator'], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+          # Publish evidence on the dedicated result branch without touching main.
+          subprocess.run(['git', 'checkout', '-B', 'workflow-dispatch-publish', result_ref], check=True)
           target = Path('.github/remote-operator/workflow-dispatch')
           target.mkdir(parents=True, exist_ok=True)
-          for p in (work / 'results').glob('*.json'):
+          for p in work.glob('*.json'):
               (target / p.name).write_text(p.read_text(encoding='utf-8'), encoding='utf-8')
-          subprocess.run(['git','add','.github/remote-operator/workflow-dispatch'], check=True)
-          if subprocess.run(['git','diff','--cached','--quiet']).returncode != 0:
-              subprocess.run(['git','commit','-m','ops: publish workflow dispatch results'], check=True)
-              subprocess.run(['git','push','origin','HEAD:remote-operator-results'], check=True)
+          subprocess.run(['git', 'add', str(target)], check=True)
+          if subprocess.run(['git', 'diff', '--cached', '--quiet']).returncode != 0:
+              subprocess.run(['git', 'commit', '-m', 'ops: publish workflow dispatch results'], check=True)
+              subprocess.run(['git', 'push', 'origin', 'HEAD:remote-operator-results'], check=True)
           else:
               print('No new workflow-dispatch evidence to publish.')
           PY
@@ -204,5 +179,4 @@ jobs:
       - name: Summary
         if: always()
         shell: bash
-        run: |
-          echo 'Remote Operator workflow-dispatch broker completed.' >> "$GITHUB_STEP_SUMMARY"
+        run: echo 'Remote Operator workflow-dispatch broker completed.' >> "$GITHUB_STEP_SUMMARY"
