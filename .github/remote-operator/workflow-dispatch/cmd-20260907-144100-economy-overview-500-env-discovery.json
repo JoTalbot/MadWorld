@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-144100-economy-overview-500-env-discovery",
+  "duration_seconds": 8,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T17:51:26Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "set -euo pipefail; echo '=== ENV FILE LOCATIONS ONLY ==='; find /opt/madworld -maxdepth 3 -type f \\( -name '.env' -o -name '.env.*' \\) -printf '%p\\n' 2>/dev/null | sort; echo '=== COMPOSE FILES ==='; find /opt/madworld -maxdepth 3 -type f \\( -name 'compose.yaml' -o -name 'compose.yml' -o -name 'docker-compose.yml' -o -name 'docker-compose.*.yml' \\) -printf '%p\\n' 2>/dev/null | sort; echo '=== API ENV SOURCE METADATA ==='; docker inspect madworld-api-1 --format '{{range .Config.Env}}{{if or (eq . \"MADWORLD_DATABASE_URL=\") (hasPrefix . \"MADWORLD_DATABASE_URL=\")}}{{if eq (index (split . \"=\") 0) \"MADWORLD_DATABASE_URL\"}}SET{{end}}{{end}}{{end}}'",
+    "timeout_minutes": "5",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 8.168,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 64,
+    "finished_at": "2026-09-07T17:51:26Z",
+    "job_id": "cmd-20260907-144100-economy-overview-500-env-discovery",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T17:51:18Z",
+    "status": "FAILED",
+    "stderr": "template parsing error: template: :1: function \"hasPrefix\" not defined\n",
+    "stdout": "=== ENV FILE LOCATIONS ONLY ===\n/opt/madworld/.env\n=== COMPOSE FILES ===\n/opt/madworld/ops/docker-compose.deploy.yml\n/opt/madworld/ops/docker-compose.production.yml\n=== API ENV SOURCE METADATA ===\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-144100-economy-overview-500-env-discovery.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-07T17:51:18Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
