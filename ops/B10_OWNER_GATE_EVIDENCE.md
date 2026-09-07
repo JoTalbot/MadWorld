@@ -4,6 +4,21 @@ Date: 2026-09-07
 
 This is the conservative evidence register for the remaining environment/owner gates. Repository configuration and CI success do not count as production evidence unless explicitly identified as repository-side verification.
 
+## Owner decision record
+
+Owner: `jo.talbot@gmail.com`
+
+The product owner explicitly authorizes the following release decisions:
+
+- Push notifications: **REQUIRED**. Implement and verify the production push provider/delivery path before public launch.
+- Crash reporting: **NOT REQUIRED** for this release; owner waiver granted.
+- Analytics: **NOT REQUIRED** for this release; owner waiver granted.
+- Privacy Policy / Terms / Data Safety / deletion: **ACCEPTED AS A RELEASE REQUIREMENT**. Product owner accepts the documented requirements and authorizes their completion before public launch; this owner decision does not itself constitute legal advice or external legal review.
+- Incident ownership/on-call: **OWNER ACCEPTED**. Product owner `jo.talbot@gmail.com` is responsible for incident ownership and on-call for this release.
+- Severity-5 disaster clamp: **APPROVED** by the product owner as intended gameplay behavior.
+
+These owner decisions do not substitute for technical evidence that must still be executed, especially physical-device validation, push delivery verification, rollback rehearsal, and publication/implementation of required legal disclosures.
+
 ## Evidence status
 
 - [x] Production domain/DNS/TLS/reverse proxy verified on the real host. Evidence: `ops/PROD_HARDENING_EVIDENCE_2026-09-03.md`.
@@ -17,16 +32,16 @@ This is the conservative evidence register for the remaining environment/owner g
 - [ ] Android API 33-35 validation.
 - [ ] Physical Android device verification completed.
 - [ ] Physical-device offline queue, reconnect/resume, stale-state and network-loss validation completed.
-- [ ] Push provider integration and delivery path verified, or explicitly waived by product owner.
-- [ ] Crash reporting integration verified, or explicitly waived by product owner.
-- [ ] Analytics event path verified, or explicitly waived by product owner.
-- [ ] Privacy Policy, Terms, Data Safety and deletion disclosures approved.
-- [ ] Incident ownership/on-call path assigned and rehearsal completed.
+- [ ] Push provider integration and delivery path verified. **OWNER DECISION: REQUIRED.**
+- [x] Crash reporting explicitly waived by product owner for this release.
+- [x] Analytics explicitly waived by product owner for this release.
+- [ ] Privacy Policy, Terms, Data Safety and deletion disclosures implemented/published. **OWNER DECISION: ACCEPTED AS REQUIRED RELEASE WORK.**
+- [x] Incident ownership/on-call owner assigned: `jo.talbot@gmail.com`. Rehearsal remains required.
 - [ ] Rollback rehearsal completed.
 - [x] Isolated disaster-recovery rehearsal completed: `cmd-20260907-162000-dr-isolated-rehearsal-direct-v4`, exit code 0. This is repository/server isolated evidence and does not substitute for target recovery-environment approval.
-- [ ] Severity-5 disaster clamp behavior explicitly approved by the product owner.
+- [x] Severity-5 disaster clamp behavior explicitly approved by the product owner.
 - [x] Immutable evidence attached for the currently executed technical rehearsals. External/owner evidence remains open where applicable.
-- [ ] Final production artifact/tag decision approved after all mandatory gates above.
+- [ ] Final production artifact/tag decision approved after all mandatory technical and publication gates above.
 
 ## Repository-side verification that does NOT close owner gates
 
@@ -57,7 +72,7 @@ This is the conservative evidence register for the remaining environment/owner g
 
 **B10: GO AFTER OWNER ACTIONS**
 
-Do not mark B10 production GREEN, create the final production tag, or publish the production release until the unchecked environment/owner evidence is attached to the release candidate.
+Do not mark B10 production GREEN, create the final production tag, or publish the production release until the unchecked technical/publication evidence is attached to the release candidate.
 
 ## Safety boundary
 
