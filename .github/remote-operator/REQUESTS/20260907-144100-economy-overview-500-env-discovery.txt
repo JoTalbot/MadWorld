@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-144100-economy-overview-500-env-discovery
+STATUS: PENDING
+AGENT: chatgpt-economy-overview-500-env-discovery
+CREATED_AT: 2026-09-07T14:41:00Z
+TIMEOUT_MINUTES: 5
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; echo '=== ENV FILE LOCATIONS ONLY ==='; find /opt/madworld -maxdepth 3 -type f \( -name '.env' -o -name '.env.*' \) -printf '%p\\n' 2>/dev/null | sort; echo '=== COMPOSE FILES ==='; find /opt/madworld -maxdepth 3 -type f \( -name 'compose.yaml' -o -name 'compose.yml' -o -name 'docker-compose.yml' -o -name 'docker-compose.*.yml' \) -printf '%p\\n' 2>/dev/null | sort; echo '=== API ENV SOURCE METADATA ==='; docker inspect madworld-api-1 --format '{{range .Config.Env}}{{if or (eq . \"MADWORLD_DATABASE_URL=\") (hasPrefix . \"MADWORLD_DATABASE_URL=\")}}{{if eq (index (split . \"=\") 0) \"MADWORLD_DATABASE_URL\"}}SET{{end}}{{end}}{{end}}'","timeout_minutes":"5","workdir":"/opt/madworld","cleanup":"true"}
+---
