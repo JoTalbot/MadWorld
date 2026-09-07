@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-152500-autonomy-governance-dispatch-v5
+STATUS: PENDING
+AGENT: autonomy-runtime-verification-v5
+CREATED_AT: 2026-09-07T15:25:00Z
+TIMEOUT_MINUTES: 15
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: agent-governance.yml
+REF: main
+INPUTS_JSON: {}
+---
