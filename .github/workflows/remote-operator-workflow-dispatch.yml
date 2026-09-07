@@ -70,9 +70,7 @@ jobs:
               try:
                   value = json.loads(raw)
               except json.JSONDecodeError:
-                  # Request files are human-editable. Repair only invalid backslash
-                  # escapes inside the JSON representation, preserving valid JSON
-                  # escapes such as \\n, \\t, \\uXXXX and escaped quotes.
+                  # Repair invalid backslash escapes in human-authored request JSON.
                   repaired = re.sub(r'\\\\(?!["\\\\/bfnrtu])', r'\\\\\\\\', raw)
                   try:
                       value = json.loads(repaired)
