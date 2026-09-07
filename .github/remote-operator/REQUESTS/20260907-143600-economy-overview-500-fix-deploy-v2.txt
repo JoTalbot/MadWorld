@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-143600-economy-overview-500-fix-deploy-v2
+STATUS: PENDING
+AGENT: chatgpt-economy-overview-500-fix-deploy-v2
+CREATED_AT: 2026-09-07T14:36:00Z
+TIMEOUT_MINUTES: 15
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; echo '=== SERVER SOURCE ==='; grep -n -A5 -B3 'SELECT j.id, r.kind' backend/app/api/economy_loop_routes.py; echo '=== PRECHECK NOTE ==='; git -c safe.directory=/opt/madworld rev-parse HEAD || true; echo '=== REGRESSION TEST ==='; docker compose run --rm --no-deps -e PYTHONPATH=/app/backend api pytest backend/tests/test_economy_overview_postgres.py -q; echo '=== BUILD API ==='; docker compose build api; echo '=== RESTART API ==='; docker compose up -d api; echo '=== HEALTH ==='; for i in $(seq 1 30); do if curl -fsS https://api.autosklo.org.ua/health/ready; then break; fi; sleep 2; done; echo; echo '=== CONTAINER ==='; docker compose ps api; echo '=== LIVE ECONOMY CHECK ==='; echo 'Authenticated endpoint requires bearer; verify no fresh 500 traceback after direct request path'; docker logs --since 3m madworld-api-1 2>&1 | grep -E 'economy/overview.*500|economy_jobs.*kind|Traceback' || true; echo 'DEPLOYED_HEAD='$(git -c safe.directory=/opt/madworld rev-parse HEAD); echo 'DEPLOYED_API_IMAGE='$(docker inspect madworld-api-1 --format '{{.Image}}'); echo 'DEPLOYED_API_STATUS='$(docker inspect madworld-api-1 --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}')","timeout_minutes":"15","workdir":"/opt/madworld","cleanup":"true"}
+---
