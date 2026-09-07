@@ -190,3 +190,5 @@ jobs:
         if: always()
         shell: bash
         run: echo 'Remote Operator workflow-dispatch broker completed.' >> "$GITHUB_STEP_SUMMARY"
+
+# Force a push-triggered broker run after parser fixes.
