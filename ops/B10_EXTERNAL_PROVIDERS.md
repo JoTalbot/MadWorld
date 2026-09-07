@@ -2,15 +2,19 @@
 
 ## Push
 
-Current repository state does not claim FCM/APNs delivery. `device_push_tokens` and local notification primitives are not proof of end-to-end delivery. Before release, select a provider, configure credentials outside Git, implement token registration/delivery/retry, and verify an offline-device delivery scenario.
+**Provider: Firebase Cloud Messaging (FCM).** The repository now contains the FCM HTTP v1 sender, authenticated Android token registration, token refresh handling, invalid-token detection and bounded transient retries. `device_push_tokens` remains the authoritative token registry. Credentials stay outside Git via `GOOGLE_APPLICATION_CREDENTIALS`; the project is selected with `MADWORLD_FCM_PROJECT_ID`.
+
+Implementation is **NOT VERIFIED for production delivery** until a configured Firebase project is exercised from a physical Android device. Required evidence: token registration, server-side send success, foreground receipt, background receipt, offline-device delivery after reconnect, and invalid/unregistered token disablement. Provider credentials and the Firebase console remain environment evidence and must never be committed.
+
+Android release builds require `MADWORLD_FIREBASE_API_KEY`, `MADWORLD_FIREBASE_APP_ID`, `MADWORLD_FIREBASE_PROJECT_ID`, `MADWORLD_FIREBASE_SENDER_ID` in the build environment. These are configuration values, not proof of delivery.
 
 ## Crash reporting
 
-Current repository state does not claim Crashlytics/Sentry or equivalent. Before release, select a provider, configure the SDK without committing secrets, submit a controlled test crash in a non-production track and verify the event appears with release/version metadata.
+Current repository state does not claim Crashlytics/Sentry or equivalent. The owner waiver remains applicable. Do not add a provider merely to make the checklist green.
 
 ## Analytics
 
-Current repository state does not claim external analytics delivery. Before release, select a provider, define minimum events and privacy basis, configure the SDK/endpoint, verify events arrive, and document retention/deletion behavior.
+Current repository state does not claim external analytics delivery. The owner waiver remains applicable. Do not add a provider merely to make the checklist green.
 
 ## Rule
 
