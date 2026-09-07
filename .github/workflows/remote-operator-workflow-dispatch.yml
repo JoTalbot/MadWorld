@@ -1,6 +1,12 @@
 name: Remote Operator Workflow Dispatch
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/remote-operator/REQUESTS/**'
+      - '.github/remote-operator/COMMANDS.txt'
+      - '.github/workflows/remote-operator-workflow-dispatch.yml'
   workflow_dispatch:
   schedule:
     - cron: '*/5 * * * *'
@@ -162,7 +168,6 @@ jobs:
               path.write_text(json.dumps(record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
               print(json.dumps(record, indent=2, sort_keys=True))
 
-          # Publish evidence on the dedicated result branch without touching main.
           subprocess.run(['git', 'checkout', '-B', 'workflow-dispatch-publish', result_ref], check=True)
           target = Path('.github/remote-operator/workflow-dispatch')
           target.mkdir(parents=True, exist_ok=True)
