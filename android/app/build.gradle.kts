@@ -4,6 +4,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+fun envOrProperty(name: String): String? = providers.gradleProperty(name).orElse(providers.environmentVariable(name)).orNull
+fun escaped(value: String): String = value.replace("\\", "\\\\").replace("\"", "\\\"")
+
 android {
     namespace = "com.jotalbot.madworld"
     compileSdk = 35
@@ -14,41 +17,32 @@ android {
         targetSdk = 35
         versionCode = 2
         versionName = "0.1.1"
-
         manifestPlaceholders["madworldAllowCleartext"] = false
     }
 
     buildTypes {
         debug {
-            val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
-                .orElse(providers.environmentVariable("MADWORLD_API_URL"))
-                .orElse("https://api.autosklo.org.ua")
-                .get()
-            buildConfigField("String", "MADWORLD_API_URL", "\"${apiUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+            val apiUrl = envOrProperty("MADWORLD_API_URL") ?: "https://api.autosklo.org.ua"
+            buildConfigField("String", "MADWORLD_API_URL", "\"${escaped(apiUrl)}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_API_KEY", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_API_KEY") ?: "")}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_APP_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_APP_ID") ?: "")}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_PROJECT_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_PROJECT_ID") ?: "")}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_SENDER_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_SENDER_ID") ?: "")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = apiUrl.startsWith("http://")
         }
         release {
-            // Resolved lazily: evaluating the release build type must not fail
-            // debug-only invocations (unit tests, assembleDebug) that legitimately
-            // run without MADWORLD_API_URL. Validation happens in taskGraph.whenReady.
-            val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
-                .orElse(providers.environmentVariable("MADWORLD_API_URL"))
-                .orNull
-            buildConfigField("String", "MADWORLD_API_URL", "\"${(apiUrl ?: "").replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+            val apiUrl = envOrProperty("MADWORLD_API_URL")
+            buildConfigField("String", "MADWORLD_API_URL", "\"${escaped(apiUrl ?: "")}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_API_KEY", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_API_KEY") ?: "")}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_APP_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_APP_ID") ?: "")}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_PROJECT_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_PROJECT_ID") ?: "")}\"")
+            buildConfigField("String", "MADWORLD_FIREBASE_SENDER_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_SENDER_ID") ?: "")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = false
         }
     }
 
-    buildFeatures {
-        compose = true
-        buildConfig = true
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
+    buildFeatures { compose = true; buildConfig = true }
+    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }
 
@@ -63,21 +57,19 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("com.google.firebase:firebase-messaging:24.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
-    // Real org.json for JVM unit tests (the Android SDK stub throws "not mocked").
     testImplementation("org.json:json:20240303")
 }
 
-// Release builds require an explicit HTTPS API URL. Enforced only when a release
-// task is actually scheduled so debug/test builds stay independent of the setting.
 gradle.taskGraph.whenReady {
     val releaseScheduled = allTasks.any { it.project == project && it.name.contains("Release") && !it.name.contains("UnitTest") }
     if (releaseScheduled) {
-        val apiUrl = providers.gradleProperty("MADWORLD_API_URL")
-            .orElse(providers.environmentVariable("MADWORLD_API_URL"))
-            .orNull
-            ?: throw GradleException("MADWORLD_API_URL is required for release builds")
+        val apiUrl = envOrProperty("MADWORLD_API_URL") ?: throw GradleException("MADWORLD_API_URL is required for release builds")
         require(apiUrl.startsWith("https://")) { "MADWORLD_API_URL must use HTTPS for release builds" }
+        val requiredFirebase = listOf("MADWORLD_FIREBASE_API_KEY", "MADWORLD_FIREBASE_APP_ID", "MADWORLD_FIREBASE_PROJECT_ID", "MADWORLD_FIREBASE_SENDER_ID")
+        val missing = requiredFirebase.filter { envOrProperty(it).isNullOrBlank() }
+        require(missing.isEmpty()) { "Firebase Messaging configuration is required for release builds: ${missing.joinToString()}" }
     }
 }
