@@ -1,0 +1,33 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10025615663,
+      "name": "stale-pending-reconciliation",
+      "size_in_bytes": 532
+    }
+  ],
+  "command_id": "cmd-20260907-160500-reconcile-stale-pending",
+  "duration_seconds": 15,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T15:50:15Z",
+  "inputs": {},
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101800549294,
+      "name": "reconcile",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260907-160500-reconcile-stale-pending.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34140299253",
+  "started_at": "2026-09-07T15:50:00Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "reconcile-stale-pending.yml",
+  "workflow_run_id": 34140299253
+}
