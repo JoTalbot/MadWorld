@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-160000-dr-isolated-rehearsal-direct-v3",
+  "duration_seconds": 4,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T11:59:30Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "set -euo pipefail\ncd /opt/madworld\nNAME=\"madworld-dr-verify-$$\"\nNET=\"${NAME}-net\"\nSRC=\"${NAME}-src\"\nDST=\"${NAME}-dst\"\ncleanup() { docker rm -f \"$SRC\" \"$DST\" >/dev/null 2>&1 || true; docker network rm \"$NET\" >/dev/null 2>&1 || true; rm -f \"/tmp/$NAME.dump\"; }\ntrap cleanup EXIT\ndocker network create \"$NET\" >/dev/null\ndocker run -d --name \"$SRC\" --network \"$NET\" -e POSTGRES_PASSWORD=madworld -e POSTGRES_DB=madworld_source postgres:16 >/dev/null\ndocker run -d --name \"$DST\" --network \"$NET\" -e POSTGRES_PASSWORD=madworld -e POSTGRES_DB=madworld_restore postgres:16 >/dev/null\nfor i in $(seq 1 30); do docker exec \"$SRC\" pg_isready -U postgres -d madworld_source >/dev/null 2>&1 && docker exec \"$DST\" pg_isready -U postgres -d madworld_restore >/dev/null 2>&1 && break; sleep 1; done\ndocker exec \"$SRC\" psql -U postgres -d madworld_source -v ON_ERROR_STOP=1 -c \"CREATE TABLE schema_migrations (version text PRIMARY KEY); INSERT INTO schema_migrations VALUES ('001'),('002'),('003'); CREATE TABLE dr_probe (id integer PRIMARY KEY, value text NOT NULL); INSERT INTO dr_probe VALUES (1,'madworld-dr-verification');\" >/dev/null\nSTART_NS=$(date +%s%N)\ndocker run --rm --network \"$NET\" -v /opt/madworld/ops/backup_restore.sh:/work/backup_restore.sh:ro -v /tmp:/tmp -e MADWORLD_DATABASE_URL=postgresql://postgres:madworld@${SRC}:5432/madworld_source -e RESTORE_DATABASE_URL=postgresql://postgres:madworld@${DST}:5432/madworld_restore -e BACKUP_FILE=/tmp/${NAME}.dump postgres:16 bash -lc 'set -euo pipefail; bash /work/backup_restore.sh'\nPGPASSWORD=madworld psql \"postgresql://postgres:madworld@${DST}:5432/madworld_restore\" -v ON_ERROR_STOP=1 -tAc \"SELECT COUNT(*) = 3 FROM schema_migrations;\" | grep -qx t\nPGPASSWORD=madworld psql \"postgresql://postgres:madworld@${DST}:5432/madworld_restore\" -v ON_ERROR_STOP=1 -tAc \"SELECT value = 'madworld-dr-verification' FROM dr_probe WHERE id = 1;\" | grep -qx t\nEND_NS=$(date +%s%N)\nRTO=$(python3 -c \"print(f'{($END_NS-$START_NS)/1_000_000_000:.3f}')\")\nprintf 'DR_ISOLATED_REHEARSAL=PASS\\n'\nprintf 'MEASURED_RTO_SECONDS=%s\\n' \"$RTO\"\nprintf 'ENVIRONMENT=ephemeral_postgres16_containers\\n'\nprintf 'PRODUCTION_DATABASE_TOUCHED=false\\n'",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 4.154,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-07T11:59:30Z",
+    "job_id": "cmd-20260907-160000-dr-isolated-rehearsal-direct-v3",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T11:59:25Z",
+    "status": "FAILED",
+    "stderr": "psql: error: could not translate host name \"madworld-dr-verify-3708841-dst\" to address: Temporary failure in name resolution\n",
+    "stdout": " restore_verified \n------------------\n                1\n(1 row)\n\n migration_count \n-----------------\n               3\n(1 row)\n\nbackup_restore_verified=true\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-dr-isolated-rehearsal-direct-v3.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-07T11:59:25Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
