@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260907-160000-mutation-capacity-v3",
+  "duration_seconds": 7,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T12:32:04Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "curl -fsSL https://raw.githubusercontent.com/JoTalbot/MadWorld/37dca828fc2a8a56935f4b56a9fa1d8f5b1414be/ops/isolated_mutation_capacity_rehearsal_v3.sh -o /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v3.sh && chmod 700 /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v3.sh && bash /opt/madworld/ops/isolated_mutation_capacity_rehearsal_v3.sh",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 7.772,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-07T12:32:04Z",
+    "job_id": "cmd-20260907-160000-mutation-capacity-v3",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-07T12:31:56Z",
+    "status": "SUCCESS",
+    "stderr": "WARNING: current commit information was not captured by the build: failed to read current commit information with git rev-parse --is-inside-work-tree\n",
+    "stdout": "MUTATION_WORKLOAD=POST /api/v1/sessions, 20 concurrent clients, 15s bounded synthetic-account writes\nMUTATION_DB_SESSIONS=0\nAPI_CPU=100.35% API_MEM=50.53MiB / 23.41GiB\nMUTATION_ENVIRONMENT=isolated_postgres16_api_container\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260907-mutation-capacity-v3.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-07T12:31:56Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
