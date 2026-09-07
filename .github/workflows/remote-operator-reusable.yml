@@ -23,12 +23,18 @@ on:
         default: true
         type: boolean
     secrets:
-      REMOTE_SSH_HOST: { required: true }
-      REMOTE_SSH_PORT: { required: true }
-      REMOTE_SSH_USER: { required: true }
-      REMOTE_SSH_PRIVATE_KEY: { required: true }
-      REMOTE_SSH_HOST_KEY: { required: true }
-      REMOTE_WORKDIR: { required: true }
+      REMOTE_SSH_HOST:
+        required: true
+      REMOTE_SSH_PORT:
+        required: true
+      REMOTE_SSH_USER:
+        required: true
+      REMOTE_SSH_PRIVATE_KEY:
+        required: true
+      REMOTE_SSH_HOST_KEY:
+        required: true
+      REMOTE_WORKDIR:
+        required: true
 
 permissions:
   contents: read
@@ -95,10 +101,24 @@ jobs:
           finished_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           duration=$(( $(date +%s) - start_epoch ))
           python3 - "$local_tmp/result.json" "$status" "$rc" "$started_at" "$finished_at" "$duration" "$SSH_HOST" "$workdir" "$job_id" <<'PY'
-import json,sys
-path,status,rc,started,finished,duration,server,workdir,job_id=sys.argv[1:]
-d={'status':status,'operation':'command','mode':'sync','job_id':job_id,'server':server,'workdir':workdir,'run_as':'root','started_at':started,'finished_at':finished,'duration_seconds':int(duration),'exit_code':int(rc)}
-json.dump(d,open(path,'w',encoding='utf-8'),indent=2)
+import json
+import sys
+path, status, rc, started, finished, duration, server, workdir, job_id = sys.argv[1:]
+result = {
+    'status': status,
+    'operation': 'command',
+    'mode': 'sync',
+    'job_id': job_id,
+    'server': server,
+    'workdir': workdir,
+    'run_as': 'root',
+    'started_at': started,
+    'finished_at': finished,
+    'duration_seconds': int(duration),
+    'exit_code': int(rc),
+}
+with open(path, 'w', encoding='utf-8') as fh:
+    json.dump(result, fh, indent=2)
 PY
           cp "$local_tmp/result.json" result.json
           cp "$local_tmp/stdout.log" stdout.log
@@ -117,3 +137,9 @@ PY
             stderr.log
           if-no-files-found: error
           retention-days: 14
+
+      - name: Cleanup SSH credentials
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/remote_key" "$RUNNER_TEMP/remote_known_hosts"
