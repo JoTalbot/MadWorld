@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-153000-governance-final
+STATUS: PENDING
+AGENT: governance-final-v1
+CREATED_AT: 2026-09-07T15:30:00Z
+TIMEOUT_MINUTES: 10
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: agent-governance.yml
+REF: main
+INPUTS_JSON: {}
+---
