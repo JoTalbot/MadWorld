@@ -12,6 +12,7 @@ DEFAULT_TIMEOUT=${REMOTE_OPERATOR_DEFAULT_TIMEOUT:-30}
 GRACE_SECONDS=${REMOTE_OPERATOR_GRACE_SECONDS:-15}
 EXECUTOR_ID=${REMOTE_OPERATOR_EXECUTOR_ID:-$(hostname -s)}
 RESCAN_SECONDS=${REMOTE_OPERATOR_EXECUTOR_RESCAN_SECONDS:-1}
+PENDING_MAX_AGE_SECONDS=${REMOTE_OPERATOR_PENDING_MAX_AGE_SECONDS:-86400}
 
 mkdir -p "$STATE_ROOT" "$RESULT_ROOT"
 [[ -f "$QUEUE" ]] || exit 0
@@ -87,9 +88,11 @@ PY
 }
 
 parse_queue() {
-  python3 - "$QUEUE" "$REQUEST_DIR" "$STATE_ROOT" <<'PY'
-import base64,json,glob,os,re,sys
-queue,request_dir,state_root=sys.argv[1:]
+  python3 - "$QUEUE" "$REQUEST_DIR" "$STATE_ROOT" "$PENDING_MAX_AGE_SECONDS" <<'PY'
+import base64,json,glob,os,re,sys,time
+from datetime import datetime, timezone
+queue,request_dir,state_root,max_age=sys.argv[1:]
+max_age=int(max_age); now=time.time()
 paths=[queue]+sorted(glob.glob(os.path.join(request_dir,'*.txt')))
 terminal={'DONE','FAILED','TIMEOUT','CANCELLED','INTERRUPTED','INVALID'}
 busy={'CLAIMED','RUNNING'}
@@ -108,6 +111,18 @@ for path in paths:
                 with open(state_path,encoding='utf-8') as f: current=json.load(f).get('status')
             except Exception: continue
             if current in terminal or current in busy: continue
+        cm_created=re.search(r'(?m)^CREATED_AT:\s*(\S+)',block)
+        if not cm_created:
+            print(f'SKIP_ORPHAN_PENDING_NO_CREATED_AT={cid}',file=sys.stderr)
+            continue
+        try:
+            created=datetime.fromisoformat(cm_created.group(1).replace('Z','+00:00')).timestamp()
+        except Exception:
+            print(f'SKIP_INVALID_CREATED_AT={cid}',file=sys.stderr)
+            continue
+        if now-created > max_age:
+            print(f'SKIP_STALE_PENDING={cid} AGE_SECONDS={int(now-created)}',file=sys.stderr)
+            continue
         tm=re.search(r'(?m)^TIMEOUT_MINUTES:\s*(\d+)',block)
         md=re.search(r'(?m)^MODE:\s*(\S+)',block)
         cm=re.search(r'(?ms)^COMMAND:\s*\n(.*?)(?:\n---\s*$|\Z)',block)
@@ -128,7 +143,7 @@ while true; do
   active=$(count_active)
   if (( active < MAX_CONCURRENCY )); then
     records=$(mktemp)
-    parse_queue >"$records"
+    parse_queue >"$records" 2>"$STATE_ROOT/last-parse-errors.log"
     while IFS=$'\t' read -r id timeout mode encoded; do
       [[ -n "$id" ]] || continue
       active=$(count_active)
@@ -140,7 +155,7 @@ while true; do
   active=$(count_active)
   if (( active == 0 )); then
     records=$(mktemp)
-    parse_queue >"$records"
+    parse_queue >"$records" 2>"$STATE_ROOT/last-parse-errors.log"
     if ! grep -q . "$records"; then rm -f "$records"; break; fi
     rm -f "$records"
   fi
