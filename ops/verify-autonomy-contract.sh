@@ -18,6 +18,12 @@ for f in "${required[@]}"; do
   test -f "$f" || { echo "AUTONOMY_MISSING_FILE=$f" >&2; exit 1; }
 done
 
+require_text() {
+  local file="$1"
+  local term="$2"
+  grep -Fq "$term" "$file" || { echo "AUTONOMY_CONTRACT_MISSING file=$file term=$term" >&2; exit 1; }
+}
+
 core=(
   'Goal Lock'
   'No-Confirmation Loop'
@@ -62,24 +68,21 @@ advanced=(
 )
 
 for term in "${core[@]}"; do
-  grep -Fq "$term" docs/skills/MADWORLD_AGENT_SKILL.md || { echo "AUTONOMY_CORE_MISSING=$term" >&2; exit 1; }
+  require_text docs/skills/MADWORLD_AGENT_SKILL.md "$term"
 done
 for term in "${advanced[@]}"; do
-  grep -Fq "$term" docs/skills/AUTONOMY_ADVANCED_RULES.md || { echo "AUTONOMY_ADVANCED_MISSING=$term" >&2; exit 1; }
+  require_text docs/skills/AUTONOMY_ADVANCED_RULES.md "$term"
 done
 
-grep -Fq 'docs/skills/AUTONOMY_ADVANCED_RULES.md' AGENTS.md
-# The ChatGPT contract must point agents to the same advanced contract.
-grep -Fq 'docs/skills/AUTONOMY_ADVANCED_RULES.md' docs/CHATGPT_AGENT_RULES.md
-
-grep -Fq 'wait/poll' docs/skills/PLUS_AUTONOMY_RULE.md
-
-grep -Fq 'terminal result' docs/REMOTE_OPERATOR.md
-grep -Fq 'idempotency' .github/remote-operator/QUEUE.md
+require_text AGENTS.md 'docs/skills/AUTONOMY_ADVANCED_RULES.md'
+require_text docs/CHATGPT_AGENT_RULES.md 'docs/skills/AUTONOMY_ADVANCED_RULES.md'
+require_text docs/skills/PLUS_AUTONOMY_RULE.md 'wait/poll'
+require_text docs/REMOTE_OPERATOR.md 'terminal result'
+require_text .github/remote-operator/QUEUE.md 'idempotency'
 
 echo 'autonomy_contract=PASS'
-echo 'core_invariants=PASS count=19'
-echo 'advanced_invariants=PASS count=19'
+echo "core_invariants=PASS count=${#core[@]}"
+echo "advanced_invariants=PASS count=${#advanced[@]}"
 echo 'onboarding_alignment=PASS'
 echo 'remote_operator_wait_rule=PASS'
 echo 'queue_idempotency=PASS'
