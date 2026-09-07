@@ -1,6 +1,6 @@
 # B10 Environment Handoff
 
-Date: 2026-09-07
+Date: 2026-09-08
 
 This handoff converts the remaining B10 work into executable owner/environment evidence tasks. It does not claim any task has been executed merely because the repository contains the required scripts or procedures.
 
@@ -22,20 +22,25 @@ This handoff converts the remaining B10 work into executable owner/environment e
 - [ ] Execute API 33–35.
 - [ ] Execute on at least one physical device.
 - [ ] Verify login, authoritative state, offline queue, reconnect/resume, stale-state guard, notifications and network-loss behavior.
+- [ ] Verify Android 13+ notification permission behavior if user-visible notifications are enabled.
 
 ## External services
 
-- [ ] Decide whether push is a launch requirement; if yes, configure and verify the approved provider, otherwise record owner waiver.
-- [ ] Decide whether crash reporting is a launch requirement; if yes, configure and verify the approved provider, otherwise record owner waiver.
-- [ ] Decide whether analytics is a launch requirement; if yes, configure and verify the approved provider with privacy basis, otherwise record owner waiver.
+- [x] Owner decision: push notifications are a launch requirement.
+- [ ] Configure the approved Firebase/FCM project and production credentials outside Git.
+- [ ] Register a real Android FCM token through `/api/v1/sessions/push-token` and verify persistence/enabled state.
+- [ ] Exercise a real backend send through the configured provider and capture success evidence.
+- [ ] Verify foreground receipt, background receipt, offline-device delivery after reconnect, and invalid/unregistered-token disablement on a physical device.
+- [x] Owner decision: crash reporting is not a launch requirement; waiver recorded.
+- [x] Owner decision: analytics is not a launch requirement; waiver recorded.
 
 ## Legal / operations / product
 
 - [ ] Privacy Policy, Terms, Data Safety and deletion disclosures approved.
-- [ ] Incident/on-call owner assigned.
+- [x] Incident/on-call owner assigned.
 - [ ] Rollback rehearsal completed.
 - [x] Isolated target-recovery/DR rehearsal completed; production DB untouched.
-- [ ] Severity-5 disaster clamp explicitly approved as intended gameplay behavior.
+- [x] Severity-5 disaster clamp explicitly approved as intended gameplay behavior.
 
 ## Finalization
 
@@ -45,6 +50,12 @@ This handoff converts the remaining B10 work into executable owner/environment e
 - [ ] Populate `ops/RELEASE_ARTIFACT_MANIFEST.md`.
 - [ ] Select final version/tag.
 - [ ] Create production release only after the GO decision.
+
+## Current repository-side provider state
+
+FCM HTTP v1 sender, authenticated Android token registration/disable routes, token-refresh handling and bounded transient retry logic are implemented. Production provider configuration and real-device delivery are intentionally **NOT VERIFIED** until exercised against the approved Firebase project. No FCM credentials or device tokens are stored in this repository.
+
+Crash reporting and analytics remain explicit owner waivers and must not be represented as implemented providers.
 
 ## Safety
 
