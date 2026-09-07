@@ -39,10 +39,12 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
         counts['success']+=ok; counts['errors']+=err
 print(f"MUTATION_SUCCESS={counts['success']}")
 print(f"MUTATION_ERRORS={counts['errors']}")
+print(f"MUTATION_TOTAL={counts['success']+counts['errors']}")
+print(f"MUTATION_RPS={(counts['success']+counts['errors'])/15:.3f}")
 print(f"MUTATION_ERROR_RATE={(counts['errors']/(counts['success']+counts['errors'])) if counts['success']+counts['errors'] else 1:.6f}")
 PY
 printf 'MUTATION_DB_SESSIONS='
-docker exec "$DB" psql -U madworld -d madworld -tAc 'select count(*) from sessions;'
+docker exec "$DB" psql -U madworld -d madworld -tAc 'select count(*) from player_sessions;'
 AUTH_CODE=$(curl -sS -o /tmp/$N/auth-body -w '%{http_code}' --max-time 3 "http://$API:8000/api/v1/capabilities" || true)
 printf 'AUTH_NO_TOKEN_HTTP=%s\n' "$AUTH_CODE"
 RID="mutation-replay-$(cat /proc/sys/kernel/random/uuid)"
