@@ -6,7 +6,7 @@ Date: 2026-09-07
 
 **GO AFTER REMAINING OWNER ACTIONS**
 
-The repository and server technical baseline is green for the verified gates. Fresh isolated DR is verified, and the isolated API/world-tick capacity baseline plus bounded mutation rehearsal are now measured. Public production publication remains blocked by the remaining gates that require broader capacity validation, Android device coverage, provider decisions and legal/owner sign-off.
+The repository and server technical baseline is green for the verified gates. Fresh isolated DR is verified, and the isolated API/world-tick capacity baseline plus bounded mutation, authentication and idempotency rehearsals are now measured. Public production publication remains blocked by the remaining gates that require production-equivalent threshold decisions, Android device coverage, provider decisions and legal/owner sign-off.
 
 ## Verified repository/CI baseline
 
@@ -24,7 +24,7 @@ The repository and server technical baseline is green for the verified gates. Fr
 - Remote Operator service and result-sync timer are active.
 - Fresh isolated PostgreSQL 16 backup/restore rehearsal is verified with measured RTO 1.015s and production database untouched.
 - Fresh isolated API/world-tick capacity baseline is verified as an executed measurement, with no production database touched.
-- Fresh isolated mutation capacity rehearsal is verified as an executed measurement, with authentication and replay containment checks passing and no production database touched.
+- Fresh isolated mutation, authentication and idempotency rehearsal is verified as an executed measurement, with no production database touched.
 
 ## Fresh isolated capacity evidence
 
@@ -51,25 +51,29 @@ The repository and server technical baseline is green for the verified gates. Fr
 - This demonstrates configured abuse-control engagement; exact HTTP status distribution was not separately recorded by this probe.
 - Production database touched: `false`.
 
-### Mutation capacity + security/idempotency rehearsal — `cmd-20260907-164500-mutation-capacity-v5`
+### Mutation capacity + security/idempotency rehearsal — `cmd-20260907-170000-full-capacity-v5`
 
-- Remote Operator status: `DONE`; exit code `0`; duration 24.410s.
+- Remote Operator status: `DONE`; exit code `0`; duration 26.387s.
 - Executor: `github-actions-remote-operator`; server `arm-server-01` / `129.213.177.56`; run as `root`.
-- Environment: isolated PostgreSQL 16 + API container.
-- Workload: `POST /api/v1/sessions`, 20 concurrent clients, 15-second bounded synthetic-account writes.
-- Successful mutations: 2496; errors: 0; total: 2496.
-- Mutation throughput: 166.400 requests/s; error rate 0.000000.
-- Mutation latency: p50 115.976 ms; p95 156.161 ms; p99 196.668 ms.
+- Environment: isolated PostgreSQL 16 + API + world-tick worker containers.
+- Authenticated idempotency: first bootstrap HTTP 201, repeated identical idempotency key HTTP 201, replay payload identical, `IDEMPOTENCY_REPLAY_PASS=true`.
+- Concurrent mutation workload: `POST /api/v1/sessions`, 20 clients, 15 seconds.
+- Successful mutations: 2515; errors: 0; total: 2515; throughput 167.667 requests/s; error rate 0.000000.
+- Mutation latency: p50 116.065 ms; p95 154.022 ms; p99 181.860 ms.
 - Protected endpoint without bearer authentication returned HTTP 401.
-- Middleware replay containment: first request HTTP 201; repeated `X-Request-ID` request HTTP 409; containment `true`.
-- Isolated database session rows after workload: 2497, including the dedicated replay probe session.
+- Middleware replay containment: first HTTP 201; repeated `X-Request-ID` request HTTP 409; `REPLAY_CONTAINMENT_PASS=true`.
+- Isolated database session rows after workload: 2517.
+- DB connections observed: 12.
+- World tick reached tick 4 during concurrent mutation traffic.
+- Worker ticks 1–4: 51, 32, 33 and 27 ms; all captured with `lag_ms=0`.
+- API CPU 0.12%; API memory 66.82 MiB. Worker CPU 0.00%; worker memory 35.59 MiB.
 - Production database touched: `false`.
-- The only stderr output was the non-fatal Docker build warning about unavailable git commit metadata.
+- Only stderr output was the non-fatal Docker build warning about unavailable git commit metadata.
 
 ## Remaining release-owner gates
 
 1. **Fresh-environment RTO/DR rehearsal — VERIFIED.** Evidence: `cmd-20260907-162000-dr-isolated-rehearsal-direct-v4`, exit code 0, isolated PostgreSQL 16 restore, measured RTO 1.015s, production database untouched.
-2. **Isolated capacity/load run — PARTIALLY VERIFIED.** Read-only and mutation workloads are now both measured with zero application errors in their bounded runs; p95/p99 mutation latency, authentication and replay containment are evidenced. The gate is not promoted to PASS because the repository plan also requires no unbounded queue growth and environment-specific latency/error thresholds, and the current rehearsals do not establish a production-equivalent threshold or a separate queue-depth metric. No threshold is invented.
+2. **Isolated capacity/load run — PARTIALLY VERIFIED.** Read-only and mutation workloads are now both measured with zero application errors; mutation p95/p99 latency, authentication, application idempotency, middleware replay containment, DB connections and world-tick lag are evidenced. The gate is not promoted to PASS because the repository plan still requires a production-equivalent threshold decision and a distinct queue-depth/unbounded-growth metric. No threshold is invented from isolated data.
 3. **Android API/device matrix — UNVERIFIED.** The production server reports no `adb` and no Android emulator available; API 26 / 29–32 / 33–35 and physical-device checks therefore remain open.
 4. **Push delivery — UNVERIFIED / decision required if release-required.** No FCM/APNs end-to-end flow is currently claimed.
 5. **Crash reporting — UNVERIFIED / decision required if release-required.** No external crash provider is currently integrated.
@@ -86,7 +90,7 @@ The repository and server technical baseline is green for the verified gates. Fr
 - `cmd-20260907-162000-dr-isolated-rehearsal-direct-v4`: DONE, exit code 0, executor `arm-server-01`, duration 5.418s.
 - `cmd-20260907-123000-capacity-isolated-v8`: DONE, exit code 0, executor `arm-server-01`, duration 40.660s.
 - `cmd-20260907-122000-capacity-isolated-v6`: DONE, exit code 0, executor `arm-server-01`, duration 40.660s.
-- `cmd-20260907-164500-mutation-capacity-v5`: DONE, exit code 0, executor `arm-server-01`, duration 24.410s.
+- `cmd-20260907-170000-full-capacity-v5`: DONE, exit code 0, executor `arm-server-01`, duration 26.387s.
 - Capacity evidence is preserved on `remote-operator-results`.
 
 ## Explicit non-actions
