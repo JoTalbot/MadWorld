@@ -3,10 +3,6 @@ name: Remote Operator Workflow Dispatch
 on:
   push:
     branches: [main]
-    paths:
-      - '.github/remote-operator/REQUESTS/**'
-      - '.github/remote-operator/COMMANDS.txt'
-      - '.github/workflows/remote-operator-workflow-dispatch.yml'
   workflow_dispatch:
   schedule:
     - cron: '*/5 * * * *'
