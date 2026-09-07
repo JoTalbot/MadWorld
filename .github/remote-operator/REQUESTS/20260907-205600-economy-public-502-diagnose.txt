@@ -1,0 +1,10 @@
+COMMAND_ID: cmd-20260907-205600-economy-public-502-diagnose
+STATUS: PENDING
+AGENT: chatgpt
+CREATED_AT: 2026-09-07T20:56:00+03:00
+TIMEOUT_MINUTES: 10
+MODE: sync
+TYPE: COMMAND
+WORKDIR: /opt/madworld
+RUN_AS: root
+COMMAND: set -euo pipefail; cd /opt/madworld; echo '=== COMPOSE PORTS ==='; docker compose --env-file /opt/madworld/.env -f ops/docker-compose.production.yml config --services; docker compose --env-file /opt/madworld/.env -f ops/docker-compose.production.yml config | sed -n '/^  api:/,/^  [a-zA-Z0-9_-]*:/p' | grep -E 'ports:|target:|published:|MADWORLD_DATABASE_URL' || true; echo '=== CONTAINER PORTS ==='; docker inspect madworld-api-1 --format '{{json .NetworkSettings.Ports}}'; echo; echo '=== LISTENERS ==='; ss -lntp | grep -E ':8090|:8000' || true; echo '=== INTERNAL HEALTH ==='; curl -sS -o /tmp/mw-health.out -w 'HTTP %{http_code} %{content_type}\n' http://127.0.0.1:8090/health/ready || true; cat /tmp/mw-health.out 2>/dev/null || true; echo; echo '=== PUBLIC HEALTH ==='; curl -sS -o /tmp/mw-public.out -w 'HTTP %{http_code} %{content_type}\n' https://api.autosklo.org.ua/health/ready || true; head -c 1000 /tmp/mw-public.out 2>/dev/null || true; echo; echo '=== NGINX UPSTREAM ==='; nginx -T 2>&1 | grep -n -A12 -B4 'server_name api.autosklo.org.ua' | head -120 || true; echo '=== API LOGS ==='; docker logs --since 5m madworld-api-1 2>&1 | tail -120; echo '=== CONTAINER STATE ==='; docker inspect madworld-api-1 --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}'; echo '=== GIT HEAD ==='; git -c safe.directory=/opt/madworld rev-parse HEAD
