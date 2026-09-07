@@ -36,6 +36,12 @@
 
 **Главный принцип: AGENT OWNS THE WORKFLOW, NOT JUST THE COMMAND.** После авторизации логически связанного batch агент ведёт всю цепочку до acceptance criteria в пределах safety boundaries.
 
+## Advanced autonomy
+
+Обязательный расширенный контракт находится в `docs/skills/AUTONOMY_ADVANCED_RULES.md`. Он применяется вместе с базовым skill и включает Intent Preservation, Authority Boundary, Human Interrupt/Stop, Side-Effect Ledger, Compensation/Recovery, Concurrency Locking, Lease/Ownership TTL, Context Recovery, Change Budget, Risk Escalation Ladder, Invariant Before Side Effect, Postcondition Verification, Decision Journal, Negative Knowledge, Cost Awareness, Priority Arbitration, Stale Intent Detection и Autonomous End-State.
+
+**AUTONOMY IS CONTINUOUS, BUT SCOPE IS LOCKED.**
+
 ## Recovery / wait / state invariants
 
 - Запущенная асинхронная операция требует обязательного ожидания terminal result или timeout.
@@ -82,6 +88,7 @@
 4. `.github/remote-operator/QUEUE.md`
 5. `docs/skills/MADWORLD_AGENT_SKILL.md`
 6. `docs/skills/PLUS_AUTONOMY_RULE.md`
+7. `docs/skills/AUTONOMY_ADVANCED_RULES.md`
 
 Агент, который не загрузил skill, **НЕ ГОТОВ К ИЗМЕНЕНИЮ РЕПОЗИТОРИЯ**.
 
@@ -120,7 +127,7 @@
 
 ## Документация
 
-При изменении операционного поведения держать согласованными `AGENTS.md`, `docs/CHATGPT_AGENT_RULES.md`, `docs/REMOTE_OPERATOR.md`, `.github/remote-operator/QUEUE.md`, `docs/skills/MADWORLD_AGENT_SKILL.md` и связанные operational/release документы.
+При изменении операционного поведения держать согласованными `AGENTS.md`, `docs/CHATGPT_AGENT_RULES.md`, `docs/REMOTE_OPERATOR.md`, `.github/remote-operator/QUEUE.md`, `docs/skills/MADWORLD_AGENT_SKILL.md`, `docs/skills/AUTONOMY_ADVANCED_RULES.md` и связанные operational/release документы.
 
 ## Финальный отчёт
 
