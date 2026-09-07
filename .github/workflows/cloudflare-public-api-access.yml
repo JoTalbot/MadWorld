@@ -1,0 +1,136 @@
+name: Cloudflare Public API Access
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ACCOUNT_ID: dfb506f2d64df5a29132a880ffa68942
+      API_HOST: api.autosklo.org.ua
+      API_PATH: /api/v1/*
+    steps:
+      - name: Configure and verify Access
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN repository secret is required}"
+          api='https://api.cloudflare.com/client/v4'
+          auth=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json')
+
+          tmp="$RUNNER_TEMP/cf"
+          mkdir -p "$tmp"
+          trap 'rm -rf "$tmp"' EXIT
+
+          cf_get() {
+            local url="$1" out="$2"
+            curl --fail-with-body --silent --show-error --retry 2 --retry-all-errors \
+              "${auth[@]}" "$url" -o "$out"
+            jq -e '.success == true' "$out" >/dev/null
+          }
+
+          echo '=== TOKEN VERIFY ==='
+          cf_get "$api/accounts/$ACCOUNT_ID/tokens/verify" "$tmp/token.json"
+          jq '{success, result: {status: .result.status}}' "$tmp/token.json"
+
+          echo '=== CURRENT ACCESS APPLICATIONS ==='
+          cf_get "$api/accounts/$ACCOUNT_ID/access/apps?per_page=100" "$tmp/apps.json"
+          jq -r '.result[] | [.id, .type, .domain, (.policies // [] | length)] | @tsv' "$tmp/apps.json" | sed 's/\t/ | /g' || true
+
+          exact_app_id="$(jq -r --arg d "$API_HOST$API_PATH" '.result[] | select(.domain == $d) | .id' "$tmp/apps.json" | head -n1)"
+          if [[ -n "$exact_app_id" ]]; then
+            echo "Exact API Access application exists: $exact_app_id"
+            cf_get "$api/accounts/$ACCOUNT_ID/access/apps/$exact_app_id/policies?per_page=100" "$tmp/policies.json"
+            jq -r '.result[] | [.id, .decision, (.precedence // "")] | @tsv' "$tmp/policies.json" | sed 's/\t/ | /g' || true
+            bypass_count="$(jq '[.result[] | select(.decision == "bypass") | .include[]? | select(has("everyone"))] | length' "$tmp/policies.json")"
+            if [[ "$bypass_count" -eq 0 ]]; then
+              echo 'Exact application exists but has no Everyone bypass policy. Creating a reusable bypass policy and attaching it.'
+              jq -n '{name:"MadWorld public API bypass",decision:"bypass",include:[{everyone:{}}]}' > "$tmp/policy-body.json"
+              curl --fail-with-body --silent --show-error --retry 2 --retry-all-errors \
+                "${auth[@]}" -X POST "$api/accounts/$ACCOUNT_ID/access/policies" \
+                --data-binary @"$tmp/policy-body.json" -o "$tmp/new-policy.json"
+              jq -e '.success == true' "$tmp/new-policy.json" >/dev/null
+              policy_id="$(jq -r '.result.id' "$tmp/new-policy.json")"
+              echo "Created bypass policy: $policy_id"
+              jq --arg pid "$policy_id" '.result | {id,domain,type,policies} | .policies = ((.policies // []) + [{id:$pid,account_id:"'$ACCOUNT_ID'",precedence:1}])' "$tmp/app.json" >/dev/null 2>&1 || true
+              cf_get "$api/accounts/$ACCOUNT_ID/access/apps/$exact_app_id" "$tmp/app.json"
+              jq --arg pid "$policy_id" '.result as $app | ($app | {domain,type,session_duration,policies}) | .policies = ((.policies // []) + [{id:$pid,account_id:"'$ACCOUNT_ID'",precedence:1}])' "$tmp/app-patch.json" >/dev/null
+              jq --arg pid "$policy_id" '.result | {domain,type,session_duration,policies}' "$tmp/app.json" > "$tmp/app-base.json"
+              jq --arg pid "$policy_id" '.policies = ((.policies // []) + [{id:$pid,account_id:"'$ACCOUNT_ID'",precedence:1}])' "$tmp/app-base.json" > "$tmp/app-update.json"
+              curl --fail-with-body --silent --show-error --retry 2 --retry-all-errors \
+                "${auth[@]}" -X PUT "$api/accounts/$ACCOUNT_ID/access/apps/$exact_app_id" \
+                --data-binary @"$tmp/app-update.json" -o "$tmp/app-updated.json"
+              jq -e '.success == true' "$tmp/app-updated.json" >/dev/null
+            fi
+          else
+            echo "No exact $API_HOST$API_PATH Access application exists. Creating a narrowly scoped bypass application."
+            jq -n --arg domain "$API_HOST$API_PATH" '{name:"MadWorld Public API",domain:$domain,type:"self_hosted",session_duration:"24h"}' > "$tmp/app-body.json"
+            curl --fail-with-body --silent --show-error --retry 2 --retry-all-errors \
+              "${auth[@]}" -X POST "$api/accounts/$ACCOUNT_ID/access/apps" \
+              --data-binary @"$tmp/app-body.json" -o "$tmp/new-app.json"
+            jq -e '.success == true' "$tmp/new-app.json" >/dev/null
+            app_id="$(jq -r '.result.id' "$tmp/new-app.json")"
+            echo "Created API Access application: $app_id"
+
+            jq -n '{name:"MadWorld public API bypass",decision:"bypass",include:[{everyone:{}}]}' > "$tmp/policy-body.json"
+            curl --fail-with-body --silent --show-error --retry 2 --retry-all-errors \
+              "${auth[@]}" -X POST "$api/accounts/$ACCOUNT_ID/access/policies" \
+              --data-binary @"$tmp/policy-body.json" -o "$tmp/new-policy.json"
+            jq -e '.success == true' "$tmp/new-policy.json" >/dev/null
+            policy_id="$(jq -r '.result.id' "$tmp/new-policy.json")"
+            echo "Created bypass policy: $policy_id"
+
+            jq -n --arg domain "$API_HOST$API_PATH" --arg pid "$policy_id" --arg aid "$ACCOUNT_ID" \
+              '{domain:$domain,type:"self_hosted",session_duration:"24h",policies:[{id:$pid,account_id:$aid,precedence:1}]}' > "$tmp/final-app.json"
+            curl --fail-with-body --silent --show-error --retry 2 --retry-all-errors \
+              "${auth[@]}" -X PUT "$api/accounts/$ACCOUNT_ID/access/apps/$app_id" \
+              --data-binary @"$tmp/final-app.json" -o "$tmp/updated-app.json"
+            jq -e '.success == true' "$tmp/updated-app.json" >/dev/null
+            exact_app_id="$app_id"
+          fi
+
+          echo '=== FINAL ACCESS APPLICATION ==='
+          cf_get "$api/accounts/$ACCOUNT_ID/access/apps/$exact_app_id" "$tmp/final-app.json"
+          jq '{success, result: {id: .result.id, type: .result.type, domain: .result.domain, policies: (.result.policies // [] | map({id,precedence,decision}))}}' "$tmp/final-app.json"
+
+          echo '=== PUBLIC API VERIFICATION ==='
+          health_headers="$tmp/health.headers"
+          health_body="$tmp/health.body"
+          curl --silent --show-error --location --max-time 20 -D "$health_headers" -o "$health_body" \
+            "https://$API_HOST/health/ready"
+          health_code="$(awk 'NR==1{print $2}' "$health_headers")"
+          health_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{print $0}' "$health_headers" | tail -n1 | tr -d '\r')"
+          echo "health_http=$health_code $health_type"
+          cat "$health_body"
+          echo
+
+          session_headers="$tmp/session.headers"
+          session_body="$tmp/session.body"
+          curl --silent --show-error --location --max-time 20 -D "$session_headers" -o "$session_body" \
+            -X POST "https://$API_HOST/api/v1/sessions" \
+            -H 'Content-Type: application/json' --data '{}'
+          session_code="$(awk 'NR==1{print $2}' "$session_headers")"
+          session_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{print $0}' "$session_headers" | tail -n1 | tr -d '\r')"
+          echo "session_http=$session_code $session_type"
+          head -c 1000 "$session_body"
+          echo
+
+          if [[ "$health_code" != "200" ]]; then
+            echo 'Health check failed.' >&2
+            exit 20
+          fi
+          if [[ "$session_code" == "302" ]] || grep -qi '<!doctype\|<html' "$session_body"; then
+            echo 'Cloudflare Access still returns HTML/login redirect for the API.' >&2
+            exit 21
+          fi
+          if ! jq -e . "$session_body" >/dev/null 2>&1; then
+            echo 'API session endpoint did not return JSON after Access change.' >&2
+            exit 22
+          fi
+          echo 'CLOUDFLARE_PUBLIC_API_ACCESS=PASS'
