@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: madworld-production-deploy
@@ -73,15 +74,12 @@ jobs:
             -o ServerAliveCountMax=3
           )
           TARGET="${SSH_USER}@${SSH_HOST}"
-
           ssh "${SSH_OPTS[@]}" "$TARGET" "mkdir -p -- $(printf '%q' "$REMOTE_WORKDIR")"
-
           rsync -a --checksum \
             --exclude='.git/' \
             -e "ssh ${SSH_OPTS[*]}" \
             "$GITHUB_WORKSPACE/" \
             "${TARGET}:${REMOTE_WORKDIR}/"
-
           ssh "${SSH_OPTS[@]}" "$TARGET" "printf '%s\\n' '${GITHUB_SHA}' > $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha && chmod 644 $(printf '%q' "$REMOTE_WORKDIR")/.github-deployed-sha"
 
       - name: Restart and run Remote Operator
@@ -113,8 +111,39 @@ jobs:
           )
           TARGET="${SSH_USER}@${SSH_HOST}"
           EXPECTED_SHA="${GITHUB_SHA}"
-
           ssh "${SSH_OPTS[@]}" "$TARGET" "cd $(printf '%q' "$REMOTE_WORKDIR") && actual=\$(cat .github-deployed-sha 2>/dev/null || true) && test \"\$actual\" = \"$EXPECTED_SHA\" && printf '%s\\n' '=== DEPLOY VERIFIED ===' && printf 'server=%s\\n' \"\$(hostname)\" && printf 'commit=%s\\n' \"\$actual\" && test -f AGENTS.md && test -f .github/remote-operator/COMMANDS.txt && test -d .github && printf '%s\\n' 'repository-files-present=yes' && printf '%s\\n' 'remote-operator-queue-present=yes' && printf 'workdir=%s\\n' \"\$(pwd)\" && printf 'transport_euid=%s\\n' \"\$(id -u)\" && if [[ \$(id -u) -eq 0 ]]; then printf '%s\\n' 'root-runtime=yes'; else test \"\$(sudo -n id -u)\" = 0 && printf '%s\\n' 'root-runtime=yes'; fi"
+
+      - name: Trigger Remote Operator queue broker and wait for terminal result
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          before="$(gh run list --workflow remote-operator-workflow-dispatch.yml --limit 20 --json databaseId --jq '.[].databaseId' | sort -n | tr '\\n' ' ')"
+          gh workflow run remote-operator-workflow-dispatch.yml --ref main
+          deadline=$(( $(date +%s) + 900 ))
+          run_id=''
+          while [ -z "$run_id" ] && [ $(date +%s) -lt "$deadline" ]; do
+            candidates="$(gh run list --workflow remote-operator-workflow-dispatch.yml --limit 20 --json databaseId,headSha,status,event --jq '.[] | select(.headSha==env.GITHUB_SHA and .event=="workflow_dispatch") | .databaseId' | sort -n)"
+            while read -r candidate; do
+              [ -n "$candidate" ] || continue
+              if ! grep -qx "$candidate" <<<"$before"; then run_id="$candidate"; break; fi
+            done <<<"$candidates"
+            [ -n "$run_id" ] || sleep 5
+          done
+          test -n "$run_id"
+          while [ $(date +%s) -lt "$deadline" ]; do
+            status="$(gh run view "$run_id" --json status --jq '.status')"
+            conclusion="$(gh run view "$run_id" --json conclusion --jq '.conclusion')"
+            echo "broker_run=$run_id status=$status conclusion=$conclusion"
+            if [ "$status" = completed ]; then
+              test "$conclusion" = success
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Remote Operator broker did not reach a terminal result before timeout' >&2
+          exit 124
 
       - name: Cleanup SSH credentials
         if: always()
@@ -138,6 +167,6 @@ jobs:
             echo '- **Deployment marker:** exact GitHub SHA written and verified'
             echo '- **Remote Operator:** restarted and executor invoked; results are handled by the normal result-sync path'
             echo '- **Root runtime:** EUID=0 verified directly or through non-interactive sudo'
-            echo '- **Remote-operator queue:** explicitly verified'
+            echo '- **Remote-operator queue:** broker dispatch is automatically triggered and awaited to terminal state'
             echo '- **Remote-operator result/state-only pushes:** ignored'
           } >> "$GITHUB_STEP_SUMMARY"
