@@ -1,6 +1,8 @@
 name: Reconcile stale Remote Operator queue
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: '17 * * * *'
