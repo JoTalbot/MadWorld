@@ -12,17 +12,18 @@ mkdir -p "$STATE_ROOT"
 
 python3 - "$QUEUE" "$STATE_ROOT" "$MAX_AGE_SECONDS" <<'PY'
 import json, os, re, sys, time
+from datetime import datetime
 queue, state_root, max_age = sys.argv[1], sys.argv[2], int(sys.argv[3])
 text = open(queue, encoding='utf-8').read()
 now = time.time()
-found = 0
-stale = 0
+scanned = orphaned = stale = 0
 for block in re.split(r'(?m)^---\s*$', text):
     m = re.search(r'(?m)^COMMAND_ID:\s*(\S+)', block)
     s = re.search(r'(?m)^STATUS:\s*(\S+)', block)
     if not m or not s or s.group(1) != 'PENDING':
         continue
-    cid = m.group(1); found += 1
+    scanned += 1
+    cid = m.group(1)
     state_path = os.path.join(state_root, cid + '.json')
     if os.path.exists(state_path):
         try:
@@ -31,11 +32,11 @@ for block in re.split(r'(?m)^---\s*$', text):
                 continue
         except Exception:
             continue
+    orphaned += 1
     cm = re.search(r'(?m)^CREATED_AT:\s*(\S+)', block)
     if not cm:
-        print(f'STALE_CANDIDATE_WITHOUT_TIMESTAMP={cid}')
+        print(f'ORPHAN_PENDING_WITHOUT_CREATED_AT={cid}')
         continue
-    from datetime import datetime, timezone
     try:
         created = datetime.fromisoformat(cm.group(1).replace('Z','+00:00')).timestamp()
     except Exception:
@@ -46,7 +47,9 @@ for block in re.split(r'(?m)^---\s*$', text):
         stale += 1
         print(f'STALE_PENDING={cid} AGE_SECONDS={int(age)}')
 
-print(f'PENDING_WITHOUT_TERMINAL_STATE={found}')
+print(f'PENDING_SCANNED={scanned}')
+print(f'ORPHAN_PENDING={orphaned}')
 print(f'STALE_PENDING_CANDIDATES={stale}')
 print('RECONCILIATION_ONLY=true')
 print('QUEUE_NOT_MODIFIED=true')
+PY
