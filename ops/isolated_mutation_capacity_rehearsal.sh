@@ -17,7 +17,7 @@ docker run -d --name "$API" --network "$NET" -e PYTHONPATH=/app/backend -e MADWO
 for i in $(seq 1 45); do docker exec "$API" python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health/ready", timeout=2).read()' >/tmp/$N/ready 2>/dev/null && break; sleep 1; done
 printf 'MUTATION_WORKLOAD=POST /api/v1/sessions, 20 concurrent clients, 15s bounded synthetic-account writes\n'
 docker run --rm --network "$NET" python:3.12-slim python - "$API" <<'PY'
-import concurrent.futures, json, sys, time, urllib.error, urllib.request, uuid
+import concurrent.futures, json, sys, time, urllib.request, uuid
 host=sys.argv[1]
 end=time.monotonic()+15
 counts={'success':0,'errors':0}
@@ -43,11 +43,9 @@ print(f"MUTATION_ERROR_RATE={(counts['errors']/(counts['success']+counts['errors
 PY
 printf 'MUTATION_DB_SESSIONS='
 docker exec "$DB" psql -U madworld -d madworld -tAc 'select count(*) from sessions;'
-# Authorization boundary: protected endpoint without credentials must reject before storage access.
-AUTH_CODE=$(curl -sS -o /tmp/$N/auth-body -w '%{http_code}' --max-time 3 "$API:8000/api/v1/capabilities" || true)
+AUTH_CODE=$(curl -sS -o /tmp/$N/auth-body -w '%{http_code}' --max-time 3 "http://$API:8000/api/v1/capabilities" || true)
 printf 'AUTH_NO_TOKEN_HTTP=%s\n' "$AUTH_CODE"
-# Replay containment: identical X-Request-ID on two mutation requests must reject the second request.
-RID="mutation-replay-$(uuidgen)"
+RID="mutation-replay-$(cat /proc/sys/kernel/random/uuid)"
 R1=$(curl -sS -o /tmp/$N/r1 -w '%{http_code}' --max-time 3 -X POST -H 'Content-Type: application/json' -H "X-Request-ID: $RID" --data '{"handle":"replay_probe_a"}' "http://$API:8000/api/v1/sessions" || true)
 R2=$(curl -sS -o /tmp/$N/r2 -w '%{http_code}' --max-time 3 -X POST -H 'Content-Type: application/json' -H "X-Request-ID: $RID" --data '{"handle":"replay_probe_b"}' "http://$API:8000/api/v1/sessions" || true)
 printf 'REPLAY_FIRST_HTTP=%s\n' "$R1"
