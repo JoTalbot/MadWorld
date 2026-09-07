@@ -35,6 +35,85 @@ A missing subsequent `+` is NOT a stop signal while the agent is already executi
 
 See `docs/skills/PLUS_AUTONOMY_RULE.md` for the durable rule.
 
+## Autonomous operating model
+
+### 1. Goal Lock
+At batch start, derive and retain one explicit logical goal and its acceptance criteria. Every subsequent action MUST be classified as one of:
+- required to reach the goal;
+- required to verify the goal;
+- required to recover from a failure on the path to the goal; or
+- required to preserve safety/evidence.
+
+Do not silently expand scope into unrelated improvements. A useful idea that is outside the locked goal becomes a documented follow-up, not an excuse to interrupt the batch.
+
+### 2. No-Confirmation Loop
+Once the goal is authorized, internal milestones do not require user confirmation. Completion of a command, test, workflow, or subtask is an input to the next step, not a pause point.
+
+### 3. Async Wait Invariant
+For every asynchronous operation whose result matters, the owner agent MUST wait until `DONE`, `FAILED`, `TIMEOUT`, `CANCELLED`, `INTERRUPTED`, or `INVALID`. A dispatch acknowledgement is never terminal evidence.
+
+Polling must be bounded by a defined timeout. If the operation is still non-terminal at timeout, classify it explicitly and preserve the evidence.
+
+### 4. No Premature Success
+Never report success because:
+- a workflow was accepted;
+- a job started;
+- one command returned `exit 0`;
+- one test passed;
+- a service appears reachable; or
+- an expected artifact was merely created.
+
+Success requires the complete acceptance criteria and evidence chain for the locked goal.
+
+### 5. Fresh-State Rule
+Before each substantial dependent action, retry, or dispatch, re-check the state that can invalidate the decision: branch, HEAD, queue, existing results, deployment state, and relevant server state. Never build a new decision on stale state when fresh state is available.
+
+### 6. Single Source of Truth
+Use GitHub for repository code, workflows, and durable documentation. Use Remote Operator result records and server evidence for server state. When sources disagree, stop treating the disputed claim as verified, classify the discrepancy, and reconcile it before relying on it.
+
+### 7. No Dead-End Success
+A successful intermediate step is not a valid final state if it leaves the logical goal unfinished. After every major milestone, identify the next required dependency and continue automatically unless a stop condition applies.
+
+### 8. Automatic Dependency Graph
+Represent the batch mentally as a dependency graph rather than a checklist of isolated commands. When step A completes, automatically execute every newly unblocked step B required by the goal. Parallelize independent safe checks when doing so reduces time, but serialize steps that can conflict or invalidate one another.
+
+### 9. Retry Intelligence
+On failure, distinguish transient, deterministic, stale-state, configuration, dependency, permission, and safety failures before retrying. Retry only when the failure class makes retry meaningful. Prefer fix -> test -> verify over blind repetition.
+
+### 10. Stale Execution Protection
+A workflow or server command tied to an old commit, queue snapshot, deployment version, or request identity MUST NOT be treated as evidence for newer state. If the current state matters, execute or verify against the current state.
+
+### 11. Result Ownership
+The agent that authorizes a logical batch owns the result chain. It must collect terminal outcomes of dependent operations and reconcile them into one final status. Handing work to another agent, workflow, or server does not transfer responsibility for verifying completion.
+
+### 12. Crash Recovery
+If the agent or workflow resumes after interruption, reconstruct state from durable evidence before continuing. Reuse verified terminal evidence where safe, detect already-completed operations, and avoid duplicate side effects.
+
+### 13. Human Approval Boundary
+Autonomy ends only where a decision inherently belongs to a human/owner/legal authority, or where a documented safety boundary forbids automation. Technical inconvenience, missing convenience tooling, or a preference for manual clicking is not by itself a valid stop reason.
+
+When escalation is necessary, state the exact approval/action required and continue all independent safe work first.
+
+### 14. Autonomy Budget
+Each batch should have bounded execution resources: timeouts, retry limits, polling limits, and a clear stop condition. The budget prevents runaway loops without turning ordinary recoverable failures into premature stops.
+
+### 15. Circuit Breaker
+If repeated failures show that continued execution risks duplicate side effects, data corruption, infrastructure damage, secret exposure, or violation of a safety boundary, stop the affected path immediately. Preserve evidence and classify the blocker instead of escalating retries.
+
+### 16. Invariant Checkpoints
+At major milestones, verify the invariants that must remain true for the goal to be safe: correct repository/branch, intended commit, queue integrity, idempotency, server identity, isolation boundaries, health, and required artifacts/evidence. A broken invariant blocks dependent work until repaired or explicitly classified.
+
+### 17. Parallel Work Control
+Independent read-only checks may run in parallel. Mutating operations that can conflict must be serialized or protected by explicit idempotency/concurrency controls. Parallel execution must never weaken evidence ordering or make terminal ownership ambiguous.
+
+### 18. Final Autonomous Sweep
+Before reporting completion, perform one final sweep of the locked goal: required steps, terminal results, acceptance criteria, regressions, evidence, documentation, and remaining blockers. If the sweep finds unfinished work inside scope, continue it automatically.
+
+### 19. Strongest principle
+**AGENT OWNS THE WORKFLOW, NOT JUST THE COMMAND.**
+
+Once a logically connected operation is authorized, the agent owns the whole chain to the acceptance criteria within the defined safety boundaries. It must wait, inspect, recover, verify, and continue without requiring repeated user confirmations.
+
 ## Core operating rules
 - Work from verified repository state, never assumptions.
 - Preserve existing architecture unless evidence requires change.
