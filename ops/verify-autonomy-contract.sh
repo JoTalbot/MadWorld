@@ -76,7 +76,7 @@ done
 
 require_text AGENTS.md 'docs/skills/AUTONOMY_ADVANCED_RULES.md'
 require_text docs/CHATGPT_AGENT_RULES.md 'docs/skills/AUTONOMY_ADVANCED_RULES.md'
-require_text docs/skills/PLUS_AUTONOMY_RULE.md 'wait/poll'
+require_text docs/skills/PLUS_AUTONOMY_RULE.md 'waiting/polling for terminal results'
 require_text docs/REMOTE_OPERATOR.md 'terminal result'
 require_text .github/remote-operator/QUEUE.md 'idempotency'
 
