@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-140002-autonomy-governance-runtime-v3
+STATUS: PENDING
+AGENT: autonomy-runtime-verification-v3
+CREATED_AT: 2026-09-07T14:00:02Z
+TIMEOUT_MINUTES: 15
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; gh workflow run agent-governance.yml --ref main; for i in $(seq 1 90); do r=$(gh run list --workflow agent-governance.yml --branch main --event workflow_dispatch --limit 10 --json databaseId,status,conclusion,headSha,createdAt --jq '[.[] | select(.createdAt >= \"2026-09-07T14:00:02Z\")] | .[0]'); if [ -n \"$r\" ] && [ \"$r\" != \"null\" ]; then printf \"%s\\n\" \"$r\"; s=$(printf \"%s\" \"$r\" | jq -r .status); if [ \"$s\" = completed ]; then c=$(printf \"%s\" \"$r\" | jq -r .conclusion); if [ \"$c\" = success ]; then exit 0; else exit 1; fi; fi; fi; sleep 10; done; echo TIMEOUT >&2; exit 124","timeout_minutes":15,"workdir":"/opt/madworld","cleanup":"true"}
+---
