@@ -1,0 +1,21 @@
+{
+  "command_id": "cmd-20260907-140000-workflow-dispatch-e2e",
+  "duration_seconds": 2,
+  "error": "gh: Workflow does not have 'workflow_dispatch' trigger (HTTP 422)",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-07T11:22:21Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "",
+    "mode": "sync",
+    "operation": "diagnostics",
+    "timeout_minutes": "2",
+    "workdir": ""
+  },
+  "ref": "main",
+  "request_file": "20260907-workflow-dispatch-e2e.txt",
+  "started_at": "2026-09-07T11:22:19Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator.yml"
+}
