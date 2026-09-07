@@ -5,7 +5,8 @@ N="madworld-capacity-$$"
 NET="$N-net"
 DB="$N-db"
 API="$N-api"
-cleanup(){ docker rm -f "$API" "$DB" >/dev/null 2>&1 || true; docker network rm "$NET" >/dev/null 2>&1 || true; rm -rf "/tmp/$N"; }
+WORKER="$N-worker"
+cleanup(){ docker rm -f "$API" "$WORKER" "$DB" >/dev/null 2>&1 || true; docker network rm "$NET" >/dev/null 2>&1 || true; rm -rf "/tmp/$N"; }
 trap cleanup EXIT
 mkdir -p "/tmp/$N"
 docker network create "$NET" >/dev/null
@@ -14,12 +15,18 @@ for i in $(seq 1 45); do docker exec "$DB" pg_isready -U madworld -d madworld >/
 docker build -q -f ops/Dockerfile.backend -t "$N-backend" . >/tmp/$N/build.log
 docker run --rm --network "$NET" -e PYTHONPATH=/app/backend -e MADWORLD_DATABASE_URL="postgresql://madworld:madworld@$DB:5432/madworld" "$N-backend" python scripts/migrate.py >/tmp/$N/migrate.log
 docker run -d --name "$API" --network "$NET" -e PYTHONPATH=/app/backend -e MADWORLD_DATABASE_URL="postgresql://madworld:madworld@$DB:5432/madworld" -e MADWORLD_RATE_LIMIT=10000 "$N-backend" uvicorn app.main:app --host 0.0.0.0 --port 8000 >/tmp/$N/api.log
+docker run -d --name "$WORKER" --network "$NET" -e PYTHONPATH=/app/backend -e MADWORLD_DATABASE_URL="postgresql://madworld:madworld@$DB:5432/madworld" -e MADWORLD_WORLD_TICK_SECONDS=5 "$N-backend" python -m scripts.world_tick_worker >/tmp/$N/worker.log
 for i in $(seq 1 45); do docker exec "$API" python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health/ready", timeout=2).read()' >/tmp/$N/ready 2>/dev/null && break; sleep 1; done
 printf 'CAPACITY_WORKLOAD=GET /health/ready, 20 concurrent clients, 30s bounded read-only, isolated rate limit 10000/min\n'
 docker run --rm --network "$NET" -v /opt/madworld/ops/isolated_capacity_client.py:/client.py:ro python:3.12-slim python /client.py "$API" 30 20
 printf 'DB_CONNECTIONS='
 docker exec "$DB" psql -U madworld -d madworld -tAc 'select count(*) from pg_stat_activity;'
+printf 'WORLD_TICK='
+docker exec "$DB" psql -U madworld -d madworld -tAc 'select tick from world_simulation_state where id=1;'
 docker stats --no-stream --format 'API_CPU={{.CPUPerc}} API_MEM={{.MemUsage}}' "$API"
+docker stats --no-stream --format 'WORKER_CPU={{.CPUPerc}} WORKER_MEM={{.MemUsage}}' "$WORKER"
 cat /tmp/$N/ready
-echo 'CAPACITY_ENVIRONMENT=isolated_postgres16_api_container'
+printf 'WORKER_LOG_TAIL=\n'
+docker logs --tail 20 "$WORKER" 2>&1 || true
+echo 'CAPACITY_ENVIRONMENT=isolated_postgres16_api_worker_containers'
 echo 'PRODUCTION_DATABASE_TOUCHED=false'
