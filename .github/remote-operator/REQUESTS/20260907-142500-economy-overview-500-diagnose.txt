@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-142500-economy-overview-500-diagnose
+STATUS: PENDING
+AGENT: chatgpt-economy-overview-500-diagnose
+CREATED_AT: 2026-09-07T14:25:00Z
+TIMEOUT_MINUTES: 5
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -o pipefail; echo '=== REPO ==='; cd /opt/madworld; git rev-parse HEAD; git status --short; echo '=== DEPLOYMENT ==='; docker compose ps; echo '=== API IMAGE ==='; docker inspect madworld-api-1 --format '{{.Image}}' 2>/dev/null || true; docker inspect madworld-api-1 --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' 2>/dev/null || true; echo '=== LIVE OPENAPI ==='; curl -sS https://api.autosklo.org.ua/openapi.json -o /tmp/mw_openapi.json -w 'HTTP=%{http_code} CT=%{content_type}\\n'; grep -o 'economy/overview' /tmp/mw_openapi.json | head -5 || true; echo; echo '=== RECENT ECONOMY ERRORS ==='; docker logs --since 30m madworld-api-1 2>&1 | grep -i -E 'economy|exception|traceback|500' | tail -160 || true; echo '=== ROUTE IN CONTAINER ==='; docker exec madworld-api-1 sh -lc \"grep -n -A25 -B5 'def economy_overview' /app/app/api/economy_loop_routes.py 2>/dev/null || grep -R -n -A25 -B5 'def economy_overview' /app/app 2>/dev/null | head -100\" || true","timeout_minutes":"5","workdir":"/opt/madworld","cleanup":"true"}
+---
