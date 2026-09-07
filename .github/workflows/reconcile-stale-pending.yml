@@ -28,3 +28,5 @@ jobs:
         with:
           name: stale-pending-reconciliation
           path: /tmp/reconcile.txt
+
+# Keep this workflow independently push-triggerable so the Remote Operator broker can verify reconciliation without manual dispatch.
