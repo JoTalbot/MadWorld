@@ -1,8 +1,16 @@
 # Remote Operator Queue
 
-The repository uses one canonical append-only queue file: `.github/remote-operator/COMMANDS.txt`.
+The repository uses append-only request records under `.github/remote-operator/REQUESTS/`. Each request is immutable and identified by a unique `COMMAND_ID`.
+
+For workflow-dispatch operations, the request record is consumed by the Remote Operator workflow-dispatch broker. Terminal evidence is written to the `remote-operator-results` branch under `.github/remote-operator/workflow-dispatch/<COMMAND_ID>.json`.
 
 ## Lifecycle
+
+Request record:
+
+`PENDING -> broker claim/execution -> terminal result`
+
+Remote command execution itself follows:
 
 `PENDING -> CLAIMED -> RUNNING -> DONE`
 
@@ -12,9 +20,9 @@ Failure:
 
 A command must have a unique immutable `COMMAND_ID`. Agents must never reuse an ID.
 
-## Command format
+## Workflow-dispatch request format
 
-Append one command block to the end of `.github/remote-operator/COMMANDS.txt`:
+Create a new file under `.github/remote-operator/REQUESTS/`:
 
 ```text
 ---
@@ -23,54 +31,39 @@ STATUS: PENDING
 AGENT: <agent-id>
 CREATED_AT: <UTC timestamp>
 TIMEOUT_MINUTES: 30
-MODE: sync
-
-COMMAND:
-<shell command or bash script>
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: <workflow-file.yml>
+REF: main
+INPUTS_JSON: {"input_name":"value"}
 ---
 ```
 
-## Concurrency rules
+For direct server execution, use the documented Remote Operator request format for the server-execution workflow rather than inventing a second queue location.
 
-1. Only `PENDING` commands are eligible for execution.
-2. An executor must atomically claim a command before execution by changing its state to `CLAIMED` and recording the attempt/claim metadata.
-3. A claimed command must become `RUNNING` before the remote command starts.
-4. A command already marked `CLAIMED`, `RUNNING`, `DONE`, `FAILED`, or `TIMEOUT` must never be executed again automatically under the same `COMMAND_ID`.
-5. The `COMMAND_ID` is the idempotency key.
-6. Results belong to the command ID and should be stored separately from the queue definition when output is large.
-7. A crashed executor must not silently cause duplicate execution. Recovery requires an explicit stale-claim policy and a new `ATTEMPT_ID`.
-8. Parallel agents may process different command IDs concurrently, provided the claim mechanism is concurrency-safe.
-9. An agent must not modify another agent's active command.
-10. Secrets and credentials must never be stored in queue files.
-11. Completed commands remain in the queue as an audit trail.
+## Concurrency and idempotency
 
-## Result format
+1. Only `PENDING` requests are eligible for execution.
+2. The executor/broker must claim work safely before execution and must not execute the same `COMMAND_ID` twice automatically.
+3. A command already represented by terminal evidence must not be re-executed under the same `COMMAND_ID`.
+4. `COMMAND_ID` is the immutable idempotency key; retries require a new command ID/attempt according to the executor policy.
+5. Results belong to the command ID and should be stored separately from the request definition when output is large.
+6. A crashed executor must not silently cause duplicate execution. Recovery requires an explicit stale-claim policy and a new attempt identity.
+7. Parallel agents may process different command IDs concurrently, provided claim/execution is concurrency-safe.
+8. An agent must not modify another agent's active command.
+9. Secrets and credentials must never be stored in request files or result records.
+10. Completed requests remain as immutable audit history.
 
-For every completed attempt, store:
+## Mandatory terminal-result rule
 
-```text
-COMMAND_ID: <id>
-ATTEMPT_ID: <id>-attempt-N
-STATUS: DONE | FAILED | TIMEOUT
-EXIT_CODE: <integer>
-STARTED_AT: <UTC timestamp>
-FINISHED_AT: <UTC timestamp>
-EXECUTOR: <executor-id>
+Appending a request is submission evidence only. Dispatching a workflow is not execution evidence. Every queued operation must wait/poll until the target reaches a terminal result or the configured timeout, then verify workflow status, job status/conclusion, exit code where applicable, stdout/stderr, `result.json` and artifacts where applicable.
 
-COMMAND:
-<exact command executed>
+A timeout is a terminal outcome, not permission to assume success.
 
-STDOUT:
-<captured stdout>
+## Current verified implementation
 
-STDERR:
-<captured stderr>
-```
+The workflow-dispatch broker is an active Remote Operator control-plane component. It uses the repository-scoped ephemeral `GITHUB_TOKEN` with `actions: write` to dispatch target workflows and waits for their terminal state. The verified standard path is documented in `docs/REMOTE_OPERATOR_WORKFLOW_DISPATCH.md`.
 
-The full stdout/stderr may be stored in the corresponding Actions artifact and/or a separate repository result file. Never store secrets in either location.
+The broker's GitHub dispatch path avoids requiring GitHub CLI authentication on the server. Server-side commands must not assume that `gh` is authenticated unless the execution workflow explicitly provisions and scopes credentials for that operation.
 
-## Current implementation boundary
-
-The queue protocol is committed to the repository. The current GitHub connector does not expose workflow dispatch and cannot safely create the arbitrary SSH execution workflow required to consume this queue. Consequently, queue entries must remain `PENDING` until an actual executor performs and verifies the command.
-
-Do not mark commands `DONE` merely because they were committed.
+Do not mark commands `DONE` merely because a request was committed or a workflow was dispatched. Only terminal execution evidence may establish completion.
