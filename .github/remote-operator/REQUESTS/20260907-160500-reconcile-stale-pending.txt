@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260907-160500-reconcile-stale-pending
+STATUS: PENDING
+AGENT: autonomy-blocker-fallback-v1
+CREATED_AT: 2026-09-07T16:05:00Z
+TIMEOUT_MINUTES: 10
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: reconcile-stale-pending.yml
+REF: main
+INPUTS_JSON: {}
+---
