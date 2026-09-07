@@ -68,10 +68,19 @@ jobs:
               if not raw:
                   return {}
               try:
-                  return json.loads(raw)
+                  value = json.loads(raw)
               except json.JSONDecodeError:
-                  repaired = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', raw)
-                  return json.loads(repaired)
+                  # Request files are human-editable. Repair only invalid backslash
+                  # escapes inside the JSON representation, preserving valid JSON
+                  # escapes such as \\n, \\t, \\uXXXX and escaped quotes.
+                  repaired = re.sub(r'\\\\(?!["\\\\/bfnrtu])', r'\\\\\\\\', raw)
+                  try:
+                      value = json.loads(repaired)
+                  except json.JSONDecodeError as exc:
+                      raise ValueError(f'INPUTS_JSON invalid after safe escape repair: {exc}') from exc
+              if not isinstance(value, dict):
+                  raise ValueError('INPUTS_JSON must decode to an object')
+              return value
 
           requests = []
           if root.exists():
@@ -190,5 +199,3 @@ jobs:
         if: always()
         shell: bash
         run: echo 'Remote Operator workflow-dispatch broker completed.' >> "$GITHUB_STEP_SUMMARY"
-
-# Force a push-triggered broker run after parser fixes.
