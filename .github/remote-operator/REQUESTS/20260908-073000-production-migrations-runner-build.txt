@@ -1,0 +1,8 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-073000-prod-migrations-runner-build
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 10
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; docker compose --env-file .env -f ops/docker-compose.production.yml build migrator; docker compose --env-file .env -f ops/docker-compose.production.yml run --rm migrator python scripts/migrate.py; printf '%s\\n' '=== migration runner completed ==='; curl -fsS https://api.autosklo.org.ua/health >/tmp/mw-health.txt; curl -fsS https://api.autosklo.org.ua/health/ready >/tmp/mw-ready.txt; printf '%s\\n' '=== health ==='; cat /tmp/mw-health.txt; printf '%s\\n' '=== ready ==='; cat /tmp/mw-ready.txt","workdir":"/opt/madworld","timeout_minutes":10,"cleanup":true}
+---
