@@ -2,11 +2,9 @@
 
 ## Push
 
-**Provider: Firebase Cloud Messaging (FCM).** The repository now contains the FCM HTTP v1 sender, authenticated Android token registration, token refresh handling, invalid-token detection and bounded transient retries. `device_push_tokens` remains the authoritative token registry. Credentials stay outside Git via `GOOGLE_APPLICATION_CREDENTIALS`; the project is selected with `MADWORLD_FCM_PROJECT_ID`.
+**Provider: none.** Firebase Cloud Messaging (FCM) is explicitly removed from MadWorld. The Android application does not include the Firebase Messaging SDK or service, the backend does not provide FCM delivery, and release builds require no Firebase configuration or credentials.
 
-Implementation is **NOT VERIFIED for production delivery** until a configured Firebase project is exercised from a physical Android device. Required evidence: token registration, server-side send success, foreground receipt, background receipt, offline-device delivery after reconnect, and invalid/unregistered token disablement. Provider credentials and the Firebase console remain environment evidence and must never be committed.
-
-Android release builds require `MADWORLD_FIREBASE_API_KEY`, `MADWORLD_FIREBASE_APP_ID`, `MADWORLD_FIREBASE_PROJECT_ID`, `MADWORLD_FIREBASE_SENDER_ID` in the build environment. These are configuration values, not proof of delivery.
+The obsolete `device_push_tokens` registry is removed by migration `035_remove_firebase_push_tokens.sql`. No provider token registration or external push-delivery evidence is required for this release.
 
 ## Crash reporting
 
@@ -18,4 +16,4 @@ Current repository state does not claim external analytics delivery. The owner w
 
 ## Rule
 
-Provider availability, credentials and external dashboards are environment evidence. Never mark these gates VERIFIED merely because a schema, dependency or placeholder exists.
+External providers are optional and must not be introduced solely to satisfy a release checklist. Firebase/FCM is not part of the current release architecture.
