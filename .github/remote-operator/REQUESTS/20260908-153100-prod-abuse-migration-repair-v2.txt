@@ -1,0 +1,10 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-153100-prod-abuse-migration-repair-v2
+STATUS: PENDING
+AGENT: production-recovery
+CREATED_AT: 2026-09-08T02:23:10Z
+TIMEOUT_MINUTES: 15
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail\ncd /opt/madworld\nCF=/opt/madworld/ops/docker-compose.production.yml\nDF=/opt/madworld/ops/docker-compose.deploy.yml\nENVF=/opt/madworld/.env\necho REPAIR_V2_START cmd-20260908-153100-prod-abuse-migration-repair-v2\ndate -u +%FT%TZ; hostname; id -u\necho '--MIGRATE_IDEMPOTENT--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" run --rm migrator\necho '--VERIFY_TABLES_VIA_APP_ENV--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" run --rm migrator python -c \"from sqlalchemy import text; from app.infrastructure.db import create_engine_from_env; e=create_engine_from_env(); c=e.connect(); print(c.execute(text(\\\"select to_regclass('public.abuse_control_hits'), to_regclass('public.abuse_control_replays'), to_regclass('public.abuse_control_scores')\\\")).one()); c.close()\"\necho '--RESTART_API--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" up -d --no-build api\nfor i in 1 2 3 4 5 6 7 8 9 10; do sleep 3; c=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/health || true); echo probe_$i=$c; [ \"$c\" = 200 ] && break; done\necho '--HEALTH--'\ncurl -sS -o /dev/null -w 'health=%{http_code}\\n' http://127.0.0.1:8090/health\ncurl -sS -o /dev/null -w 'ready=%{http_code}\\n' http://127.0.0.1:8090/health/ready\necho '--PUBLIC--'\ncurl -k -sS -o /dev/null -w 'public=%{http_code}\\n' https://api.autosklo.org.ua/health\necho '--STATUS--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" ps -a\nfree -m | head -2\necho REPAIR_V2_DONE"}
+---
