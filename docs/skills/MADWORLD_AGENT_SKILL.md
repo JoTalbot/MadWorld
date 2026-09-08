@@ -221,5 +221,12 @@ It rsyncs files, restarts `madworld-remote-operator.service`, runs the executor 
 ### L6. An agent without `actions: write` must reach the queue through `main`
 `remote-operator-workflow-dispatch.yml` checks out `ref: main` and only reads `.github/remote-operator/REQUESTS/` from `main` (push to `main` + cron `*/5`). A restricted agent token gets `HTTP 403: Resource not accessible by integration` from `POST /actions/workflows/{id}/dispatches`. The working path is: commit the request record on the working branch, open a PR to `main`, and let the scheduled broker consume it after merge. Do not report `NOT EXECUTED` before that route has been offered.
 
+### L7. Agent tokens cannot push `.github/workflows/**` — ship a *fresh* patch instead
+A GitHub App / Arena token push containing a workflow file is rejected with `refusing to allow a GitHub App to create or update workflow ... without workflows permission`. The repository's sanctioned workaround is `docs/patches/` (see its README). Two traps verified on 2026-09-08:
+- the stored patch had gone **stale** (`git apply --check` failed on both hunks), so the documented recovery path silently did not work — always re-verify `git apply --check` against current `HEAD` and refresh the patch;
+- `backend/tests/test_workflow_yaml_validity.py` marks the affected workflow **strict-xfail while the patch file exists**, so a stale-but-present patch keeps CI green and hides the breakage. Refreshing the patch (not deleting it) preserves the guard; deleting it after the owner applies the fix is what flips the guard back to enforcing.
+
+Current open instance: `.github/workflows/remote-operator.yml` is invalid YAML on `main` (heredoc body/terminator at column 0 inside `run: |`), producing a zero-job startup-failure run on **every push to any branch** and making the documented `remote-operator.yml` SSH path undispatchable. Owner action required: `git apply docs/patches/remote-operator-yaml-heredoc-fix.patch`.
+
 ## Handoff invariant
 Before completion, the agent must confirm the skill was loaded and applied, check existing lessons, preserve important evidence, and leave durable knowledge required by the next agent. A future agent should not have to rediscover an important known fact by repeating an already documented failure.
