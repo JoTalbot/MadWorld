@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-052100-full-5min-capacity-v2
+STATUS: PENDING
+AGENT: b10-capacity-gate-v2
+CREATED_AT: 2026-09-08T05:21:00Z
+TIMEOUT_MINUTES: 15
+MODE: WORKFLOW_DISPATCH
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"git -C /opt/madworld fetch origin main && git -C /opt/madworld reset --hard origin/main && bash /opt/madworld/ops/isolated_5min_capacity_rehearsal.sh","timeout_minutes":"15","cleanup":"true"}
+---
