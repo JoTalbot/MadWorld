@@ -1,0 +1,36 @@
+{
+  "command_id": "cmd-20260908-154100-server-runtime-tls-followup",
+  "duration_seconds": 1,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T00:04:04Z",
+  "inputs": {
+    "command": "set -u; echo SERVER_RUNTIME_TLS_START; hostname; id -un; id -u; git -C /opt/madworld rev-parse --git-dir 2>/dev/null || echo GIT_DIR=absent; git -C /opt/madworld rev-parse HEAD 2>/dev/null || echo GIT_HEAD=unknown; curl -kfsSL --max-time 10 https://127.0.0.1/health || true; curl -kfsSL --max-time 10 https://127.0.0.1/health/ready || true; systemctl is-active madworld-remote-operator.service || true; systemctl is-enabled madworld-remote-operator.service || true; systemctl is-active madworld-remote-operator-sync.timer || true; systemctl is-enabled madworld-remote-operator-sync.timer || true; systemctl --failed --no-legend || true; df -h /opt/madworld; free -h; cat /proc/loadavg; echo SERVER_RUNTIME_TLS_OK",
+    "timeout_minutes": "3",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 1.37,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T00:04:04Z",
+    "job_id": "cmd-20260908-154100-server-runtime-tls-followup",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T00:04:02Z",
+    "status": "SUCCESS",
+    "stderr": "curl: (22) The requested URL returned error: 502\ncurl: (22) The requested URL returned error: 502\n",
+    "stdout": "SERVER_RUNTIME_TLS_START\narm-server-01\nroot\n0\nGIT_DIR=absent\nGIT_HEAD=unknown\nactive\nenabled\nactive\nenabled\n\u25cf octopus-slo-checker.service loaded failed failed Octopus SLO machine-readable checker\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/sda1       145G   50G   95G  35% /\n               total        used        free      shared  buff/cache   available\nMem:            23Gi        22Gi       354Mi       198Mi       1.3Gi       1.2Gi\nSwap:             0B          0B          0B\n3.10 6.65 4.93 1/2226 2225997\nSERVER_RUNTIME_TLS_OK\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-154100-server-runtime-tls-followup.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T00:04:02Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
