@@ -1,0 +1,3 @@
+WORKFLOW_DISPATCH
+COMMAND=cd "$REMOTE_WORKDIR" && ./ops/remote_operator/run_5min_capacity_gate.sh
+TIMEOUT=480
