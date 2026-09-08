@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-060000-fix-server-git-remote
+STATUS: PENDING
+AGENT: b10-capacity-gate-v3
+CREATED_AT: 2026-09-08T06:00:00Z
+TIMEOUT_MINUTES: 5
+MODE: WORKFLOW_DISPATCH
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; echo BEFORE_REMOTE=$(git remote get-url origin); git remote set-url origin https://github.com/JoTalbot/MadWorld.git; echo AFTER_REMOTE=$(git remote get-url origin); git fetch origin main; git reset --hard origin/main; git rev-parse HEAD","timeout_minutes":"5","cleanup":"true"}
+---
