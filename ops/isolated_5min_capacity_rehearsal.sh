@@ -30,12 +30,12 @@ print(f'API_READY={str(ready).lower()}',flush=True)
 if not ready:raise SystemExit(2)
 DURATION=300
 end=time.monotonic()+DURATION
-start=time.monotonic(); total=errors=0; lats=[]; statuses={}; max_inflight=0
+start=time.monotonic(); total=errors=0; lats=[]; statuses={}
 from threading import Lock
-lock=Lock(); inflight=0
+lock=Lock(); inflight=0; max_inflight=0
 
 def one(_):
- global total,errors,max_inflight,inflight
+ global inflight,max_inflight
  local_ok=local_err=0; local_lat=[]; local_status={}
  while time.monotonic()<end:
   h='load5_'+uuid.uuid4().hex[:24]; body=json.dumps({'handle':h}).encode(); t=time.perf_counter()
@@ -52,8 +52,12 @@ def one(_):
    except Exception: local_err+=1
   else: local_err+=1
  return local_ok,local_err,local_lat,local_status
-with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
- for ok,err,lat,st in ex.map(one,range(20)):
+# Acceptance requires >=120 RPS. The previous 20-worker client capped throughput at ~94 RPS
+# simply because measured latency was ~0.29-0.31s. Use 40 workers so the harness can
+# exercise the server above the acceptance threshold without changing production limits.
+CLIENT_WORKERS=40
+with concurrent.futures.ThreadPoolExecutor(max_workers=CLIENT_WORKERS) as ex:
+ for ok,err,lat,st in ex.map(one,range(CLIENT_WORKERS)):
   total+=ok+err; errors+=err; lats+=lat
   for k,v in st.items(): statuses[k]=statuses.get(k,0)+v
 elapsed=time.monotonic()-start
@@ -65,32 +69,33 @@ print(f'CAPACITY_RPS={total/elapsed:.3f}',flush=True);print(f'CAPACITY_ERROR_RAT
 print(f'CAPACITY_P50_MS={pct(.50):.3f}',flush=True);print(f'CAPACITY_P95_MS={pct(.95):.3f}',flush=True);print(f'CAPACITY_P99_MS={pct(.99):.3f}',flush=True)
 print('HTTP_STATUS_DISTRIBUTION='+json.dumps(statuses,sort_keys=True),flush=True);print(f'CLIENT_MAX_INFLIGHT={max_inflight}',flush=True)
 PY
-# Monitor durable outbox queue depth and world-tick progression independently while load runs.
+# Monitor durable outbox queue and DB connections during load, then continue for a
+# dedicated recovery window. World-tick health is measured from worker lag_ms logs,
+# not from a 5-second sampling interval that cannot prove a <=1s lag requirement.
 (
-  end=$(( $(date +%s) + 300 )); i=0; last_tick=""; last_tick_ts=""; max_queue=0; min_queue=999999999; max_tick_gap=0
-  while [ "$(date +%s)" -lt "$end" ]; do
+  load_end=$(( $(date +%s) + 300 )); recovery_end=$(( load_end + 60 )); i=0; max_queue=0; min_queue=999999999
+  while [ "$(date +%s)" -lt "$recovery_end" ]; do
     ts=$(date +%s); q=$(docker exec "$DB" psql -U madworld -d madworld -tAc "select count(*) from outbox_events where published_at is null;" 2>/dev/null || echo 0); c=$(docker exec "$DB" psql -U madworld -d madworld -tAc "select count(*) from pg_stat_activity;" 2>/dev/null || echo 0); tick=$(docker exec "$DB" psql -U madworld -d madworld -tAc "select tick from world_simulation_state where id=1;" 2>/dev/null || echo -1)
     q=${q//[[:space:]]/}; c=${c//[[:space:]]/}; tick=${tick//[[:space:]]/}; [ -z "$q" ] && q=0; [ -z "$c" ] && c=0; [ -z "$tick" ] && tick=-1
     [ "$q" -gt "$max_queue" ] 2>/dev/null && max_queue=$q; [ "$q" -lt "$min_queue" ] 2>/dev/null && min_queue=$q
-    if [ -n "$last_tick_ts" ] && [ "$tick" != "$last_tick" ] && [ "$tick" -ge 0 ] 2>/dev/null; then gap=$((ts-last_tick_ts)); [ "$gap" -gt "$max_tick_gap" ] && max_tick_gap=$gap; fi
-    if [ "$tick" -ge 0 ] 2>/dev/null; then last_tick=$tick; last_tick_ts=$ts; fi
-    printf 'METRIC t=%s queue_depth=%s db_connections=%s world_tick=%s\n' "$i" "$q" "$c" "$tick" | tee -a "/tmp/$N/metrics.log" >/dev/null
+    printf 'METRIC t=%s queue_depth=%s db_connections=%s world_tick=%s phase=%s\n' "$i" "$q" "$c" "$tick" "$( [ "$(date +%s)" -lt "$load_end" ] && echo load || echo recovery )" | tee -a "/tmp/$N/metrics.log" >/dev/null
     i=$((i+1)); sleep 5
   done
-  echo "MAX_QUEUE_DEPTH=$max_queue" >> "/tmp/$N/metrics.log"; echo "MIN_QUEUE_DEPTH=$min_queue" >> "/tmp/$N/metrics.log"; echo "MAX_WORLD_TICK_INTERVAL_SECONDS=$max_tick_gap" >> "/tmp/$N/metrics.log"
+  echo "MAX_QUEUE_DEPTH=$max_queue" >> "/tmp/$N/metrics.log"; echo "MIN_QUEUE_DEPTH=$min_queue" >> "/tmp/$N/metrics.log"
+  grep '^METRIC ' /tmp/$N/metrics.log | awk -F'queue_depth=' 'NR==1{split($2,a," "); start=a[1]} END{split($2,a," "); end=a[1]; printf "QUEUE_DEPTH_START=%s\nQUEUE_DEPTH_RECOVERY_END=%s\nQUEUE_RECOVERY_PASS=%s\n", start,end,(end<=start ? "true":"false")}' >> /tmp/$N/metrics.log
 ) &
 MON=$!
 docker cp /tmp/$N/client.py "$API":/tmp/client.py
 docker exec "$API" python /tmp/client.py
 wait "$MON" || true
-sleep 5
-printf 'QUEUE_DEPTH_START='; head -1 /tmp/$N/metrics.log | sed -E 's/.*queue_depth=([^ ]+).*/\1/'
+printf 'QUEUE_DEPTH_START='; grep 'QUEUE_DEPTH_START=' /tmp/$N/metrics.log | tail -1 | cut -d= -f2
 printf 'QUEUE_DEPTH_MAX='; grep 'MAX_QUEUE_DEPTH=' /tmp/$N/metrics.log | tail -1 | cut -d= -f2
 printf 'QUEUE_DEPTH_MIN='; grep 'MIN_QUEUE_DEPTH=' /tmp/$N/metrics.log | tail -1 | cut -d= -f2
-printf 'QUEUE_DEPTH_END='; grep '^METRIC ' /tmp/$N/metrics.log | tail -1 | sed -E 's/.*queue_depth=([^ ]+).*/\1/'
-printf 'MAX_WORLD_TICK_INTERVAL_SECONDS='; grep 'MAX_WORLD_TICK_INTERVAL_SECONDS=' /tmp/$N/metrics.log | tail -1 | cut -d= -f2
+printf 'QUEUE_DEPTH_END='; grep 'QUEUE_DEPTH_RECOVERY_END=' /tmp/$N/metrics.log | tail -1 | cut -d= -f2
+printf 'QUEUE_RECOVERY_PASS='; grep 'QUEUE_RECOVERY_PASS=' /tmp/$N/metrics.log | tail -1 | cut -d= -f2
 printf 'DB_CONNECTIONS_FINAL='; docker exec "$DB" psql -U madworld -d madworld -tAc 'select count(*) from pg_stat_activity;'
 printf 'WORLD_TICK_FINAL='; docker exec "$DB" psql -U madworld -d madworld -tAc 'select tick from world_simulation_state where id=1;'
+printf 'WORLD_TICK_MAX_LAG_MS='; docker logs "$WORKER" 2>&1 | sed -n 's/.*lag_ms=\([0-9][0-9]*\).*/\1/p' | sort -n | tail -1
 printf 'WORLD_TICK_LOG_TAIL=\n'; docker logs --tail 30 "$WORKER" 2>&1 || true
 docker stats --no-stream --format 'API_CPU={{.CPUPerc}} API_MEM={{.MemUsage}}' "$API"
 docker stats --no-stream --format 'WORKER_CPU={{.CPUPerc}} WORKER_MEM={{.MemUsage}}' "$WORKER"
