@@ -11,9 +11,9 @@ permissions:
   actions: write
   contents: write
 
-concurrency:
-  group: remote-operator-workflow-dispatch-${{ github.ref }}
-  cancel-in-progress: false
+# The broker is a queue consumer. Do not serialize all main/ref runs behind
+# one concurrency group, otherwise a queued run can block the queue itself.
+# Result publication below is race-safe and retries against the result branch.
 
 jobs:
   dispatch:
@@ -219,8 +219,6 @@ jobs:
               (work / f'{cid}.json').write_text(json.dumps(record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
               print(json.dumps(record, indent=2, sort_keys=True))
 
-          # Publish with a fetch/rebase retry loop because multiple broker/reconciler runs can
-          # legitimately update remote-operator-results concurrently. Never discard evidence.
           target = Path('.github/remote-operator/workflow-dispatch')
           for attempt in range(1, 6):
               subprocess.run(['git', 'fetch', 'origin', 'remote-operator-results:refs/remotes/origin/remote-operator-results'], check=True)
