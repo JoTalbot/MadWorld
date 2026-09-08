@@ -1,0 +1,34 @@
+{
+  "command_id": "cmd-20260908-050500-capacity-discovery",
+  "duration_seconds": 1,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T04:50:24Z",
+  "inputs": {
+    "command": "set -euo pipefail; cd /opt/madworld; echo CAPACITY_DISCOVERY_START; echo HEAD=$(git rev-parse HEAD); echo BRANCH=$(git branch --show-current); echo ===CANDIDATE_FILES===; find . -maxdepth 5 -type f \\( -iname '*capacity*' -o -iname '*load*' -o -iname '*stress*' -o -iname '*rehears*' \\) -not -path './.git/*' | sort | head -200; echo ===COMPOSE===; ls -la docker-compose*.yml 2>/dev/null || true; echo ===OPS_CAPACITY===; find ops -maxdepth 3 -type f | sort | grep -Ei 'capacity|load|stress|resilien|rehears' || true; echo CAPACITY_DISCOVERY_END"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 1.231,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T04:50:24Z",
+    "job_id": "cmd-20260908-050500-capacity-discovery",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T04:50:23Z",
+    "status": "SUCCESS",
+    "stderr": "",
+    "stdout": "CAPACITY_DISCOVERY_START\nHEAD=b66e1ec3afa0d3796e9a5fd4eafb5107d5d9fac5\nBRANCH=main\n===CANDIDATE_FILES===\n./.github/remote-operator/REQUESTS/20260905-dr-isolated-rehearsal.txt\n./.github/remote-operator/REQUESTS/20260907-capacity-isolated-v1.txt\n./.github/remote-operator/REQUESTS/20260907-capacity-isolated-v3.txt\n./.github/remote-operator/REQUESTS/20260907-capacity-isolated-v4.txt\n./.github/remote-operator/REQUESTS/20260907-dr-isolated-rehearsal-direct-v2.txt\n./.github/remote-operator/REQUESTS/20260907-dr-isolated-rehearsal-direct-v3.txt\n./.github/remote-operator/REQUESTS/20260907-dr-isolated-rehearsal-direct-v4.txt\n./.github/remote-operator/REQUESTS/20260907-dr-isolated-rehearsal-workflow-dispatch.txt\n./.github/remote-operator/REQUESTS/20260907-mutation-capacity-v1.txt\n./.github/remote-operator/REQUESTS/20260907-mutation-capacity-v2.txt\n./.github/remote-operator/REQUESTS/20260907-mutation-capacity-v3.txt\n./.github/remote-operator/REQUESTS/20260907-mutation-capacity-v4.txt\n./.github/remote-operator/REQUESTS/20260908-050500-capacity-discovery.txt\n./.github/remote-operator/REQUESTS/20260908-093000-capacity-release-gate.txt\n./.github/remote-operator/state/cmd-20260905-045900-dr-isolated-rehearsal.json\n./.github/remote-operator/state/cmd-20260905-045900-dr-isolated-rehearsal.json.lock\n./.github/remote-operator/state/cmd-20260905-160000-dr-rehearsal-preflight.json\n./.github/remote-operator/state/cmd-20260905-160000-dr-rehearsal-preflight.json.lock\n./.github/remote-operator/state/cmd-20260905-160500-capacity-baseline-readonly-probe.json\n./.github/remote-operator/state/cmd-20260905-160500-capacity-baseline-readonly-probe.json.lock\n./backend/migrations/028_b2_cargo_capacity.sql\n./backend/tests/__pycache__/test_b9_load_contract.cpython-312-pytest-9.1.1.pyc\n./backend/tests/test_b9_load_contract.py\n./ops/B10_CAPACITY_CI_EVIDENCE.md\n./ops/B10_CAPACITY_VERIFICATION.md\n./ops/CAPACITY_ACCEPTANCE.md\n./ops/LOAD_TEST_PLAN.md\n./ops/isolated_capacity_client.py\n./ops/isolated_capacity_rehearsal.sh\n./ops/isolated_full_capacity_rehearsal_v5.sh\n./ops/isolated_mutation_capacity_rehearsal.sh\n./ops/isolated_mutation_capacity_rehearsal_v3.sh\n./ops/isolated_mutation_capacity_rehearsal_v4.sh\n===COMPOSE===\n===OPS_CAPACITY===\nops/B10_ANDROID_NETWORK_RESILIENCE.md\nops/B10_CAPACITY_CI_EVIDENCE.md\nops/B10_CAPACITY_VERIFICATION.md\nops/CAPACITY_ACCEPTANCE.md\nops/LOAD_TEST_PLAN.md\nops/isolated_capacity_client.py\nops/isolated_capacity_rehearsal.sh\nops/isolated_full_capacity_rehearsal_v5.sh\nops/isolated_mutation_capacity_rehearsal.sh\nops/isolated_mutation_capacity_rehearsal_v3.sh\nops/isolated_mutation_capacity_rehearsal_v4.sh\nCAPACITY_DISCOVERY_END\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-050500-capacity-discovery.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T04:50:23Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
