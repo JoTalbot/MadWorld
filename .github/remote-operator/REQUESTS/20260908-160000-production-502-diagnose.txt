@@ -1,0 +1,10 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-160000-production-502-diagnose
+STATUS: PENDING
+AGENT: chatgpt-production-diagnose
+CREATED_AT: 2026-09-08T16:00:00Z
+TIMEOUT_MINUTES: 3
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -u; echo DIAG_START; hostname; id -u; echo LISTEN; ss -lntp 2>/dev/null | grep -E ':80 |:443 |:8000 |:8080 |:3000 |:5000 ' || true; echo DOCKER; docker ps --format '{{.Names}} {{.Image}} {{.Status}} {{.Ports}}' 2>&1 || true; echo SYSTEMD_MADWORLD; systemctl list-units --all --type=service --no-legend 2>/dev/null | grep -i madworld || true; echo NGINX; systemctl is-active nginx 2>/dev/null || true; nginx -T 2>&1 | grep -E 'server_name|proxy_pass|upstream|listen ' | head -n 120 || true; echo HTTPS; curl -k -sS -D - -o /dev/null --max-time 10 https://127.0.0.1/health || true; echo DOMAIN; curl -sS -D - -o /dev/null --max-time 15 https://api.autosklo.org.ua/health || true; echo PROCESS; ps -eo pid,user,stat,%cpu,%mem,cmd --sort=-%cpu | head -n 25; echo DIAG_DONE","workdir":"/opt/madworld","timeout_minutes":"3"}
+---
