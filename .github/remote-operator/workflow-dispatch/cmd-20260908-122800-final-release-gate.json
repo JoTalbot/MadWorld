@@ -1,18 +1,18 @@
 {
   "command_id": "cmd-20260908-122800-final-release-gate",
-  "duration_seconds": 1810,
+  "duration_seconds": 1815,
   "error": "workflow run timeout after 30 minutes",
   "executor": "github-actions-remote-operator",
-  "finished_at": "2026-09-08T10:03:23Z",
+  "finished_at": "2026-09-08T10:06:02Z",
   "inputs": {},
   "ref": "main",
   "request_file": "20260908-122800-final-release-gate.txt",
   "run_conclusion": null,
   "run_status": "queued",
-  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34210633888",
-  "started_at": "2026-09-08T09:33:13Z",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34210872042",
+  "started_at": "2026-09-08T09:35:46Z",
   "status": "TIMEOUT",
   "type": "WORKFLOW_DISPATCH",
   "workflow": "release-gate.yml",
-  "workflow_run_id": 34210633888
+  "workflow_run_id": 34210872042
 }
