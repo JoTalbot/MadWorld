@@ -95,3 +95,17 @@ Safety/deletion legal review and publication; account-deletion implementation
 verification or owner-approved manual process; rollback rehearsal; exact-head
 Release Gate rerun on the final release commit; artifact digest freeze; final
 version/tag and production publication after the owner GO decision.
+
+## Post-merge continuation checkpoint — 2026-09-08 12:23 UTC
+
+PR #23 was merged as `df787dc` at 11:23:51 UTC. The repair no longer awaits
+merge. Backend CI `34220470032` and Release Gate `34220470103` on that merge
+commit were still QUEUED on recheck; four pre-fix Release Gate runs remained
+IN_PROGRESS at Android emulator boot. A direct stale-run cancellation attempt
+was denied with HTTP 403 and was not applied.
+
+The next repository-side recovery (tested bounded emulator helper, refreshed
+pending workflow patch and regression guards) is recorded in
+`ops/B10_ANDROID_MATRIX_RECOVERY_2026-09-08.md`. It does not certify real Android
+coverage, current CI success or production readiness. No additional Release
+Gate was dispatched as part of that recovery.
