@@ -1,0 +1,7 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-061200-verify-server-git-v3
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 5
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; printf 'REMOTE='; git remote get-url origin; printf 'HEAD='; git rev-parse HEAD; printf 'USER='; id -un; printf 'EUID='; id -u","timeout_minutes":5,"workdir":"/opt/madworld","mode":"sync"}
