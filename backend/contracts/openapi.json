@@ -2112,6 +2112,45 @@
         "title": "ProvenanceRecord",
         "type": "object"
       },
+      "PushTokenRequest": {
+        "properties": {
+          "platform": {
+            "default": "android",
+            "pattern": "^android$",
+            "title": "Platform",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 4096,
+            "minLength": 20,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "PushTokenRequest",
+        "type": "object"
+      },
+      "PushTokenResponse": {
+        "properties": {
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "registered": {
+            "title": "Registered",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "registered",
+          "platform"
+        ],
+        "title": "PushTokenResponse",
+        "type": "object"
+      },
       "RecoveryRequest": {
         "properties": {
           "cost": {
@@ -7507,7 +7546,7 @@
     },
     "/api/v1/sessions": {
       "delete": {
-        "description": "Log out everywhere: revoke every active session of the authenticated player, including this one.",
+        "description": "Log out everywhere: revoke every active session of the authenticated player.",
         "operationId": "revoke_all_sessions_api_v1_sessions_delete",
         "parameters": [
           {
@@ -7596,7 +7635,7 @@
     },
     "/api/v1/sessions/current": {
       "delete": {
-        "description": "Log out: revoke the presented session token. Idempotent for already-revoked tokens of a valid session.",
+        "description": "Log out: revoke the presented session token.",
         "operationId": "revoke_current_session_api_v1_sessions_current_delete",
         "parameters": [
           {
@@ -7632,6 +7671,117 @@
           }
         },
         "summary": "Revoke Current Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/push-token": {
+      "delete": {
+        "description": "Disable one previously registered FCM token for the authenticated player.",
+        "operationId": "unregister_push_token_api_v1_sessions_push_token_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unregister Push Token",
+        "tags": [
+          "sessions"
+        ]
+      },
+      "put": {
+        "description": "Register or refresh one FCM token for the authenticated player.\n\nThe token is stored as opaque data and is never returned in API responses.",
+        "operationId": "register_push_token_api_v1_sessions_push_token_put",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTokenResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Push Token",
         "tags": [
           "sessions"
         ]
