@@ -1,0 +1,23 @@
+{
+  "command_id": "cmd-20260908-061100-full-5min-capacity-v4",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml",
+  "ref": "main",
+  "request_file": "20260908-061100-full-5min-capacity-v4.txt",
+  "executor": "github-actions-remote-operator",
+  "status": "DONE",
+  "execution": "direct-remote-operator",
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "remote_result": {
+    "status": "SUCCESS",
+    "operation": "command",
+    "mode": "sync",
+    "job_id": "cmd-20260908-061100-full-5min-capacity-v4",
+    "run_as": "root",
+    "exit_code": 0,
+    "duration_seconds": 320.309,
+    "stdout": "API_READY=true\nCAPACITY_DURATION_SECONDS=300.142\nCAPACITY_REQUESTS=28077\nCAPACITY_SUCCESS=28077\nCAPACITY_ERRORS=0\nCAPACITY_RPS=93.546\nCAPACITY_ERROR_RATE=0.000000\nCAPACITY_P50_MS=205.748\nCAPACITY_P95_MS=287.882\nCAPACITY_P99_MS=381.742\nHTTP_STATUS_DISTRIBUTION={\"201\": 28077}\nCLIENT_MAX_INFLIGHT=20\nQUEUE_DEPTH_START=0\nQUEUE_DEPTH_MAX=135\nQUEUE_DEPTH_MIN=0\nQUEUE_DEPTH_END=135\nMAX_WORLD_TICK_INTERVAL_SECONDS=6\nDB_CONNECTIONS_FINAL=12\nWORLD_TICK_FINAL=62\nAPI_CPU=0.10% API_MEM=67.72MiB / 23.41GiB\nWORKER_CPU=2.30% WORKER_MEM=35.54MiB / 23.41GiB\nCAPACITY_ENVIRONMENT=isolated_postgres16_api_worker_containers\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "stderr": "From https://github.com/JoTalbot/MadWorld\n * branch            main       -> FETCH_HEAD\n"
+  }
+}
