@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-091500-prod-migrations-runner-network-fix
+STATUS: PENDING
+AGENT: chatgpt
+CREATED_AT: 2026-09-08T06:15:00Z
+TIMEOUT_MINUTES: 10
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; docker compose --env-file .env -f ops/docker-compose.production.yml build --no-cache migrator; docker compose --env-file .env -f ops/docker-compose.production.yml run --rm migrator python scripts/migrate.py; printf '%s\\n' '=== migration runner completed ==='; docker compose --env-file .env -f ops/docker-compose.production.yml run --rm migrator python -c \"from app.infrastructure.db import create_engine_from_env; from sqlalchemy import inspect; e=create_engine_from_env(); print('tables=', sorted(inspect(e).get_table_names()))\"; printf '%s\\n' '=== health ==='; curl -fsS https://api.autosklo.org.ua/health; printf '\\n%s\\n' '=== ready ==='; curl -fsS https://api.autosklo.org.ua/health/ready; printf '\\n%s\\n' '=== compose ps ==='; docker compose --env-file .env -f ops/docker-compose.production.yml ps","workdir":"/opt/madworld","timeout_minutes":10,"cleanup":true}
+---
