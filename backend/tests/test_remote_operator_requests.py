@@ -42,11 +42,34 @@ LEGACY_MALFORMED_IDS = {
     "cmd-20260907-remote-governance-dispatch",
 }
 # Records the broker only accepts through its invalid-escape repair fallback.
+# cmd-20260908-050500-capacity-discovery executed with terminal SUCCESS
+# evidence on the remote-operator-results branch (executor
+# github-actions-remote-operator, 2026-09-08T04:50:24Z, exit 0) before this
+# guard was tightened; the stored INPUTS_JSON uses `\(`/`\)` escapes.
 LEGACY_NON_STRICT_JSON = {
     "cmd-20260907-144100-economy-overview-500-env-discovery",
     "cmd-20260907-172600-cloudflare-access-diagnose",
     "cmd-20260907-150000-dr-isolated-rehearsal-direct-v2",
     "cmd-20260907-144500-dr-isolated-rehearsal-workflow",
+    "cmd-20260908-050500-capacity-discovery",
+}
+# Records whose stored request file carries no INPUTS_JSON at all and whose
+# WORKFLOW is the direct-remote-operator dispatch target. Both are terminal:
+# cmd-20260908-060000-prod-firebase-removal executed and FAILED (exit 1,
+# 2026-09-08T03:11:19Z, terminal result on the remote-operator-results branch)
+# and is marked INVALID in the request file; cmd-20260908-061000-prod-firebase-removal-v2
+# was never executed (no terminal result record) and is marked INVALID in the
+# request file. Both were superseded by cmd-20260908-062000-prod-firebase-removal-final.
+LEGACY_MISSING_INPUTS_JSON = {
+    "cmd-20260908-060000-prod-firebase-removal",
+    "cmd-20260908-061000-prod-firebase-removal-v2",
+}
+# Records intentionally paused by the operator (STATUS: HOLD) that must never
+# be executed or re-marked. cmd-20260908-092000-prod-credential-rotation-diagnostic-v2
+# was placed on HOLD by commit ce34ac8 and superseded by later credential
+# rotation diagnostic attempts; it has no execution path from HOLD.
+LEGACY_HOLD_STATUS = {
+    "cmd-20260908-092000-prod-credential-rotation-diagnostic-v2",
 }
 
 SECRET_RE = re.compile(
@@ -94,11 +117,17 @@ def test_command_ids_match_the_broker_regex():
     )
 
 
-def test_legacy_malformed_allowlist_is_still_accurate():
-    """Self-cleaning: drop an ID from the allowlist once it no longer exists."""
+def test_legacy_allowlists_are_still_accurate():
+    """Self-cleaning: drop an ID from an allowlist once it no longer exists."""
     present = {_command_id(block) for _, _, block in ALL_BLOCKS}
-    stale = LEGACY_MALFORMED_IDS - present
-    assert not stale, f"remove from LEGACY_MALFORMED_IDS, no longer present: {sorted(stale)}"
+    for name, allowlist in (
+        ("LEGACY_MALFORMED_IDS", LEGACY_MALFORMED_IDS),
+        ("LEGACY_NON_STRICT_JSON", LEGACY_NON_STRICT_JSON),
+        ("LEGACY_MISSING_INPUTS_JSON", LEGACY_MISSING_INPUTS_JSON),
+        ("LEGACY_HOLD_STATUS", LEGACY_HOLD_STATUS),
+    ):
+        stale = allowlist - present
+        assert not stale, f"remove from {name}, no longer present: {sorted(stale)}"
     for command_id in LEGACY_MALFORMED_IDS:
         assert not COMMAND_ID_RE.fullmatch(command_id), (
             f"{command_id} is now well-formed; remove it from LEGACY_MALFORMED_IDS"
@@ -132,8 +161,9 @@ def test_status_and_timeout_values_are_valid():
                "CANCELLED", "INTERRUPTED", "INVALID"}
     problems = []
     for path, index, block in ALL_BLOCKS:
+        command_id = _command_id(block)
         status = _field(block, "STATUS")
-        if status not in allowed:
+        if status not in allowed and command_id not in LEGACY_HOLD_STATUS:
             problems.append(f"{path.name}#{index}: STATUS={status!r}")
         timeout = _field(block, "TIMEOUT_MINUTES")
         if timeout is not None and not timeout.isdigit():
@@ -147,7 +177,7 @@ def test_inputs_json_is_strict_single_line_json():
         command_id = _command_id(block)
         match = INPUTS_JSON_RE.search(block)
         if match is None:
-            if _field(block, "WORKFLOW") == DIRECT_SSH_WORKFLOW:
+            if _field(block, "WORKFLOW") == DIRECT_SSH_WORKFLOW and command_id not in LEGACY_MISSING_INPUTS_JSON:
                 problems.append(f"{path.name}#{index}: {DIRECT_SSH_WORKFLOW} needs INPUTS_JSON")
             continue
         if command_id in LEGACY_NON_STRICT_JSON:

@@ -55,6 +55,24 @@ These were executed only because the broker applies a documented escape-repair f
 parsing. They are accepted as-is, but new records must be strict JSON; the guard test enforces that
 for anything not on the classified legacy list.
 
+### Classified legacy records (2026-09-08, late batch)
+
+The following records predate the current strict form of the guard test
+(`backend/tests/test_remote_operator_requests.py`). All are immutable history;
+none is rewritten, deleted, or re-executed:
+
+| Record | Defect | Classification |
+|---|---|---|
+| `cmd-20260908-050500-capacity-discovery` (`20260908-050500-capacity-discovery.txt`) | `INPUTS_JSON` uses invalid `\(`/`\)` escapes (strict JSON would reject it) | `EXECUTED_VIA_REPAIR` — terminal SUCCESS evidence on the `remote-operator-results` branch (`cmd-20260908-050500-capacity-discovery.json`, exit 0, 2026-09-08T04:50:24Z). No re-execution. |
+| `cmd-20260908-060000-prod-firebase-removal` (`20260908-060000-production-firebase-removal.txt`) | No `INPUTS_JSON` in the stored record; `WORKFLOW: remote-operator-dispatch.yml` | Terminal. Executed FAILED (exit 1, `POSTGRES_USER: unbound variable`, 2026-09-08T03:11:19Z; result on `remote-operator-results`), record marked `STATUS: INVALID`. Superseded by `cmd-20260908-062000-prod-firebase-removal-final`. No re-execution. |
+| `cmd-20260908-061000-prod-firebase-removal-v2` (`20260908-061000-production-firebase-removal-v2.txt`) | No `INPUTS_JSON` in the stored record; `WORKFLOW: remote-operator-dispatch.yml` | Terminal. Never executed (no terminal result record exists), marked `STATUS: INVALID` with reason. Superseded by `cmd-20260908-062000-prod-firebase-removal-final`. No re-execution. |
+| `cmd-20260908-092000-prod-credential-rotation-diagnostic-v2` (`20260908-092000-prod-credential-rotation-diagnostic-v2.txt`) | `STATUS: HOLD` is not an execution state | Paused by operator commit `ce34ac8`; never executed from `HOLD`; superseded by later credential-rotation diagnostic attempts. No action required. |
+
+The guard test keeps each classified ID on a named allowlist
+(`LEGACY_NON_STRICT_JSON`, `LEGACY_MISSING_INPUTS_JSON`, `LEGACY_HOLD_STATUS`)
+and fails CI if any allowlisted ID disappears or a new record repeats the same
+defect.
+
 ## Verification
 
 `ops/remote-operator/test-reconcile-stale-pending.sh` exercises the legacy/orphan and fresh timestamp cases. `.github/workflows/reconcile-stale-pending.yml` runs the test and publishes the reconciliation audit as an artifact.

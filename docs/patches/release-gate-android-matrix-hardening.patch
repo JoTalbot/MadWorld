@@ -1,0 +1,48 @@
+diff --git a/.github/workflows/release-gate.yml b/tmp/rg.yml
+index 27a14ee..063b530 100644
+--- a/.github/workflows/release-gate.yml
++++ b/.github/workflows/release-gate.yml
+@@ -89,6 +89,7 @@ jobs:
+   android-matrix:
+     name: Android API ${{ matrix.api }} smoke
+     runs-on: ubuntu-latest
++    timeout-minutes: 60
+     strategy:
+       fail-fast: false
+       matrix:
+@@ -120,12 +121,29 @@ jobs:
+         working-directory: .
+         run: |
+           set -euo pipefail
+-          emulator -avd "madworld-api-${{ matrix.api }}" -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect >"$RUNNER_TEMP/emulator-${{ matrix.api }}.log" 2>&1 &
+-          adb wait-for-device
+-          adb shell settings put global window_animation_scale 0
+-          adb shell settings put global transition_animation_scale 0
+-          adb shell settings put global animator_duration_scale 0
+-          timeout 180 bash -c 'until adb shell getprop sys.boot_completed | grep -m1 "1"; do sleep 2; done'
++          LOG="$RUNNER_TEMP/emulator-${{ matrix.api }}.log"
++          ACCEL="-accel off"
++          if [[ -e /dev/kvm ]]; then ACCEL="-accel on"; fi
++          nohup emulator -avd "madworld-api-${{ matrix.api }}" $ACCEL -no-window -no-audio -no-boot-anim -no-snapshot -no-metrics -gpu swiftshader_indirect >"$LOG" 2>&1 &
++          EMU_PID=$!
++          # Bound the whole boot. A silent hang must fail fast and surface the
++          # emulator log (uploaded by the failure artifact step) instead of
++          # blocking the runner until the job timeout.
++          timeout 420 bash -c '
++            adb wait-for-device
++            adb shell settings put global window_animation_scale 0
++            adb shell settings put global transition_animation_scale 0
++            adb shell settings put global animator_duration_scale 0
++            until adb shell getprop sys.boot_completed 2>/dev/null | grep -m1 "1"; do sleep 5; done
++          ' || {
++            echo "=== emulator log tail ===" >&2
++            tail -n 80 "$RUNNER_TEMP/emulator-${{ matrix.api }}.log" >&2 || true
++            echo "=== adb devices ===" >&2
++            adb devices >&2 || true
++            echo "=== emulator process ===" >&2
++            ps -p "$EMU_PID" -o pid,stat,etime,cmd || true
++            exit 1
++          }
+           adb shell input keyevent 82
+       - name: Install and launch APK
+         working-directory: .
