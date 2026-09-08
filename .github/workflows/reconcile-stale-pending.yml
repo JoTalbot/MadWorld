@@ -8,21 +8,68 @@ on:
     - cron: '17 * * * *'
 
 permissions:
+  actions: write
   contents: read
+
+env:
+  REMOTE_OPERATOR_WORKFLOW_ID: 352237887
+  REMOTE_OPERATOR_MAX_PENDING_AGE_SECONDS: 900
 
 jobs:
   reconcile:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Run reconciliation unit test
         run: |
           chmod +x ops/remote-operator/test-reconcile-stale-pending.sh
           ./ops/remote-operator/test-reconcile-stale-pending.sh
+
       - name: Audit stale PENDING entries
         run: |
           chmod +x ops/remote-operator/reconcile-stale-pending.sh
           REMOTE_OPERATOR_PENDING_MAX_AGE_SECONDS=86400 ops/remote-operator/reconcile-stale-pending.sh | tee /tmp/reconcile.txt
+
+      - name: Cancel stale queued Remote Operator workflow runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cutoff=$(( $(date +%s) - REMOTE_OPERATOR_MAX_PENDING_AGE_SECONDS ))
+          runs_json=$(gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2026-03-10' \
+            "/repos/${REPOSITORY}/actions/workflows/${REMOTE_OPERATOR_WORKFLOW_ID}/runs?status=pending&per_page=100")
+
+          cancelled=0
+          while IFS=$'\t' read -r run_id created_at; do
+            [[ -n "$run_id" ]] || continue
+            created_epoch=$(date -u -d "$created_at" +%s)
+            (( created_epoch < cutoff )) || continue
+
+            jobs_json=$(gh api \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2026-03-10' \
+              "/repos/${REPOSITORY}/actions/runs/${run_id}/jobs?per_page=100")
+            job_count=$(printf '%s' "$jobs_json" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("jobs", [])))')
+            if (( job_count != 0 )); then
+              echo "Keeping stale-age run ${run_id}: it has ${job_count} job(s)."
+              continue
+            fi
+
+            echo "Cancelling stale queued Remote Operator run ${run_id}, created ${created_at}."
+            gh api --method POST \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2026-03-10' \
+              "/repos/${REPOSITORY}/actions/runs/${run_id}/cancel"
+            cancelled=$((cancelled + 1))
+          done < <(printf '%s' "$runs_json" | python3 -c 'import json,sys; [print(f"{r[\"id\"]}\t{r[\"created_at\"]}") for r in json.load(sys.stdin).get("workflow_runs", [])]')
+
+          echo "Cancelled stale queued Remote Operator runs: ${cancelled}"
+
       - name: Preserve audit output
         uses: actions/upload-artifact@v4
         with:
