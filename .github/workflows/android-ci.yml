@@ -32,18 +32,13 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon
       - name: Assemble release APK
         run: gradle :app:assembleRelease -PMADWORLD_API_URL=https://api.autosklo.org.ua --no-daemon
-      - name: Normalize release APK path
+      - name: Verify release APK
         run: |
           set -euo pipefail
-          APK="$(find app/build/outputs -type f -name '*.apk' -path '*/release/*' | sort | head -n 1)"
-          test -n "$APK"
-          case "$APK" in
-            */release/*) ;;
-            *) echo "not a release APK: $APK" >&2; exit 1 ;;
-          esac
-          mkdir -p app/build/outputs/apk/release
-          cp "$APK" app/build/outputs/apk/release/app-release.apk
-          test -s app/build/outputs/apk/release/app-release.apk
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          echo "Release APK: $APK"
+          ls -lh "$APK"
       - name: Generate release checksum
         run: sha256sum app/build/outputs/apk/release/app-release.apk > app/build/outputs/apk/release/app-release.apk.sha256
       - name: Upload Android build artifacts
