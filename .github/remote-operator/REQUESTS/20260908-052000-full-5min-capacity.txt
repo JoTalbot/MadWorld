@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-052000-full-5min-capacity
+STATUS: PENDING
+AGENT: b10-capacity-gate-v1
+CREATED_AT: 2026-09-08T05:20:00Z
+TIMEOUT_MINUTES: 15
+MODE: WORKFLOW_DISPATCH
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"bash ops/isolated_5min_capacity_rehearsal.sh","timeout_minutes":"15","cleanup":"true"}
+---
