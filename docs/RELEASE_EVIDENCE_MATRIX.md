@@ -15,7 +15,8 @@ This file maps release gates to concrete evidence. It is a truth map, not a pred
 
 | Gate | Evidence | Boundary / freshness | Status | Remaining action |
 |---|---|---|---|---|
-| Repository / backend CI | GitHub Actions backend gate | candidate | PARTIALLY VERIFIED | rerun on exact final release commit |
+| Repository / backend CI | PR #23 repair CI; post-merge run `34220470032` | `df787dc`, 2026-09-08 12:23 UTC | PARTIALLY VERIFIED | post-merge CI is QUEUED, not PASS; see `ops/B10_ANDROID_MATRIX_RECOVERY_2026-09-08.md`, then verify exact final release commit |
+| Local backend / PostgreSQL 16 verification | `ops/B10_POSTGRES16_VERIFICATION_2026-09-08.md`: 281 tests, zero skips, 43 matching migrations | `879faa4`, isolated PostgreSQL 16.2 / Python 3.11.2, 2026-09-08 | VERIFIED | does not replace exact-head GitHub CI, Python 3.12/container, or Android verification |
 | Android unit/debug/release build | Android CI + release artifact | candidate | VERIFIED | remaining API matrix is separate |
 | Production deployment | deployment run + exact deployed commit + service/runtime checks | deployed candidate | VERIFIED | recheck after release-affecting changes |
 | Public API health | public `/health/ready` response | live deployment | VERIFIED | recheck after release-affecting changes |
@@ -27,7 +28,7 @@ This file maps release gates to concrete evidence. It is a truth map, not a pred
 | Auth / idempotency / replay | full isolated rehearsal | ephemeral environment | VERIFIED | none for isolated gate |
 | World tick under load | isolated worker ticks and lag | ephemeral environment | VERIFIED | preserve regression coverage |
 | Production-equivalent capacity acceptance | owner-approved threshold + controlled queue-growth/recovery evidence | release boundary | PARTIALLY VERIFIED | execute controlled bounded run and record queue-depth/recovery |
-| Android API/device matrix | API 26 / 29–32 / 33–35 + physical/emulator coverage | release environment | PARTIALLY VERIFIED | API 26 and API 29–32 still require evidence; API 35 physical validation recorded |
+| Android API/device matrix | API 26 / 29–32 / 33–35 + physical/emulator coverage; pending CI hardening in `ops/B10_ANDROID_MATRIX_RECOVERY_2026-09-08.md` | release environment | PARTIALLY VERIFIED | API 26 and API 29–32 still require real evidence; fake-tool helper tests do not close this gate; API 35 physical validation recorded |
 | Push notifications | owner decision | release scope | WAIVED | explicitly removed from this release scope |
 | Crash reporting | owner waiver | release scope | WAIVED | none |
 | Analytics | owner waiver | release scope | WAIVED | none |

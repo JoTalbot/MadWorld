@@ -78,6 +78,16 @@ Do not record secrets or sensitive credentials.
 - **Revisit condition:** if release governance changes, update the gate model and this log together.
 - **Status:** VERIFIED.
 
+## D-006 — Bound Android smoke execution without weakening release gates
+
+- **Date:** 2026-09-08
+- **Decision:** move the emulator boot/install/launch lifecycle into a locally testable helper with deadlines, terminal evidence and owned-process cleanup; deliver the workflow wiring through the existing permission-aware patch process.
+- **Context:** four old Release Gate runs remained at emulator boot while current CI was queued; the live wait and parts of the older patch's diagnostics were unbounded. Direct cancellation returned HTTP 403.
+- **Alternatives rejected:** another stale rerun; an unbounded software-emulator fallback; dropping API jobs or marking fixture tests as device PASS; bypassing workflow-write restrictions.
+- **Impact:** keep API 26/29/32/35 and final gate dependencies; cap parallel runner use and cancel superseded per-ref candidates only after the workflow change is applied. Production and owner decisions are unchanged.
+- **Evidence:** `ops/B10_ANDROID_MATRIX_RECOVERY_2026-09-08.md`, helper regression tests and pending-patch/live-workflow contract guards.
+- **Status:** PARTIALLY VERIFIED — local behavior verified; patch application and actual Android CI remain required.
+
 ## Maintenance
 
 When a consequential decision changes, append a new decision rather than silently rewriting history. Mark superseded decisions and link the replacement when applicable.
