@@ -30,6 +30,10 @@ android {
             val apiUrl = envOrProperty("MADWORLD_API_URL")
             buildConfigField("String", "MADWORLD_API_URL", "\"${escaped(apiUrl ?: "")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = false
+            // The release artifact is intended for direct device testing/distribution.
+            // Use the standard Android debug keystore so it is installable without
+            // storing a production signing key in the repository or CI logs.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
