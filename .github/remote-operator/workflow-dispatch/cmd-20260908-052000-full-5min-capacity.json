@@ -1,0 +1,36 @@
+{
+  "command_id": "cmd-20260908-052000-full-5min-capacity",
+  "duration_seconds": 0,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T04:52:37Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "bash ops/isolated_5min_capacity_rehearsal.sh",
+    "timeout_minutes": "15"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 0.394,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 127,
+    "finished_at": "2026-09-08T04:52:37Z",
+    "job_id": "cmd-20260908-052000-full-5min-capacity",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T04:52:36Z",
+    "status": "FAILED",
+    "stderr": "bash: ops/isolated_5min_capacity_rehearsal.sh: No such file or directory\n",
+    "stdout": "",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-052000-full-5min-capacity.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-08T04:52:36Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
