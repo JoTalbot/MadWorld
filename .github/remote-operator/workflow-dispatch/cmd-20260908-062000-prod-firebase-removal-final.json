@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-062000-prod-firebase-removal-final",
+  "duration_seconds": 0,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T03:17:11Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; cd /opt/madworld; test -f backend/migrations/035_remove_firebase_push_tokens.sql; docker compose -f ops/docker-compose.production.yml run --rm migrator python scripts/migrate.py; docker compose -f ops/docker-compose.production.yml exec -T postgres psql -tAc 'SELECT to_regclass($$public.device_push_tokens$$) IS NULL;' | grep -qx t; curl -fsS https://api.autosklo.org.ua/health; printf '%s\\n' ''; curl -fsS https://api.autosklo.org.ua/health/ready",
+    "timeout_minutes": 10,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 0.625,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-08T03:17:11Z",
+    "job_id": "cmd-20260908-062000-prod-firebase-removal-final",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T03:17:11Z",
+    "status": "FAILED",
+    "stderr": "error while interpolating services.api.environment.MADWORLD_DATABASE_URL: required variable MADWORLD_DATABASE_URL is missing a value: required\nerror while interpolating services.migrator.environment.MADWORLD_DATABASE_URL: required variable MADWORLD_DATABASE_URL is missing a value: required\nerror while interpolating services.world-tick-worker.environment.MADWORLD_DATABASE_URL: required variable MADWORLD_DATABASE_URL is missing a value: required\n",
+    "stdout": "",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-062000-production-firebase-removal-final.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-08T03:17:10Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
