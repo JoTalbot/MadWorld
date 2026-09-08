@@ -1,0 +1,39 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10044630065,
+      "name": "remote-operator-result",
+      "size_in_bytes": 2025
+    }
+  ],
+  "command_id": "cmd-20260908-093000-prod-schema-discovery-v3",
+  "duration_seconds": 16,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T07:09:46Z",
+  "inputs": {
+    "command": "set -u; printf '%s\\n' DB_DISCOVERY_START; date -u +%FT%TZ; hostname; id -u; printf '%s\\n' --DEPLOYED--; cat /opt/madworld/.github-deployed-sha 2>/dev/null || true; printf '%s\\n' --CONTAINERS--; docker ps --format '{{.Names}}' | sort; printf '%s\\n' --POSTGRES_ENV--; docker inspect madworld-postgres-1 --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | sed -E 's/(PASSWORD=).*/\\1<redacted>/; s/(SECRET=).*/\\1<redacted>/' | sort || true; printf '%s\\n' --COMPOSE_POSTGRES--; grep -RniE 'POSTGRES_(DB|USER)|DATABASE_URL|DB_NAME|DB_DATABASE' ops .env* 2>/dev/null | sed -E 's/(PASSWORD|SECRET|TOKEN|KEY)=.*/\\1=<redacted>/' | head -100 || true; printf '%s\\n' --DB_LIST--; for db in postgres madworld madworld_prod madworld_production; do docker exec madworld-postgres-1 psql -U madworld -d postgres -Atc \"SELECT datname FROM pg_database WHERE datname='${db}';\" 2>/dev/null || true; done; printf '%s\\n' DB_DISCOVERY_DONE",
+    "mode": "sync",
+    "operation": "command",
+    "timeout_minutes": "10",
+    "workdir": "/opt/madworld"
+  },
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101969852249,
+      "name": "remote",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260908-093000-prod-schema-discovery-v3.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34197960151",
+  "started_at": "2026-09-08T07:09:30Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator.yml",
+  "workflow_run_id": 34197960151
+}
