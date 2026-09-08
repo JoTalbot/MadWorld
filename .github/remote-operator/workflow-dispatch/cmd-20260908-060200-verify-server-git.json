@@ -1,0 +1,36 @@
+{
+  "command_id": "cmd-20260908-060200-verify-server-git",
+  "duration_seconds": 0,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T05:31:34Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "set -euo pipefail; cd /opt/madworld; printf 'REMOTE='; git remote get-url origin; printf 'HEAD='; git rev-parse HEAD; printf 'USER='; id -un; printf 'EUID='; id -u",
+    "timeout_minutes": "5"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 0.333,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T05:31:34Z",
+    "job_id": "cmd-20260908-060200-verify-server-git",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T05:31:33Z",
+    "status": "SUCCESS",
+    "stderr": "",
+    "stdout": "REMOTE=https://github.com/JoTalbot/MadWorld.git\nHEAD=2d426c9220a71310bcc0b12057b562a402bd4c48\nUSER=root\nEUID=0\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-060200-verify-server-git.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T05:31:33Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}

@@ -1,0 +1,36 @@
+{
+  "command_id": "cmd-20260908-060100-full-5min-capacity-v3",
+  "duration_seconds": 321,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T05:31:33Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "set -euo pipefail; cd /opt/madworld; git fetch origin main; git reset --hard origin/main; bash /opt/madworld/ops/isolated_5min_capacity_rehearsal.sh",
+    "timeout_minutes": "15"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 321.207,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T05:31:33Z",
+    "job_id": "cmd-20260908-060100-full-5min-capacity-v3",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T05:26:12Z",
+    "status": "SUCCESS",
+    "stderr": "From https://github.com/JoTalbot/MadWorld\n * branch            main       -> FETCH_HEAD\n",
+    "stdout": "HEAD is now at 2d426c9 fix: make Remote Operator result publication race-safe\nAPI_READY=true\nCAPACITY_DURATION_SECONDS=300.082\nCAPACITY_REQUESTS=26524\nCAPACITY_SUCCESS=26524\nCAPACITY_ERRORS=0\nCAPACITY_RPS=88.389\nCAPACITY_ERROR_RATE=0.000000\nCAPACITY_P50_MS=214.467\nCAPACITY_P95_MS=311.575\nCAPACITY_P99_MS=415.293\nHTTP_STATUS_DISTRIBUTION={\"201\": 26524}\nCLIENT_MAX_INFLIGHT=20\nQUEUE_DEPTH_START=0\nQUEUE_DEPTH_MAX=135\nQUEUE_DEPTH_MIN=0\nQUEUE_DEPTH_END=135\nMAX_WORLD_TICK_INTERVAL_SECONDS=7\nDB_CONNECTIONS_FINAL=12\nWORLD_TICK_FINAL=62\nWORLD_TICK_LOG_TAIL=\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=44 events=2 missions=0 duration_ms=28 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=4 replays=0 scores=0\nINFO:madworld.world_tick:world tick=45 events=3 missions=0 duration_ms=203 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=46 events=2 missions=0 duration_ms=49 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=47 events=2 missions=0 duration_ms=46 lag_ms=0\nINFO:madworld.world_tick:world tick=48 events=2 missions=0 duration_ms=32 lag_ms=0\nINFO:madworld.world_tick:world tick=49 events=3 missions=0 duration_ms=42 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=2 replays=0 scores=0\nINFO:madworld.world_tick:world tick=50 events=2 missions=0 duration_ms=38 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=51 events=2 missions=0 duration_ms=30 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=52 events=2 missions=0 duration_ms=30 lag_ms=0\nINFO:madworld.world_tick:world tick=53 events=3 missions=0 duration_ms=35 lag_ms=0\nINFO:madworld.world_tick:world tick=54 events=2 missions=0 duration_ms=55 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=55 events=2 missions=0 duration_ms=34 lag_ms=0\nINFO:madworld.world_tick:world tick=56 events=2 missions=0 duration_ms=45 lag_ms=0\nINFO:madworld.world_tick:world tick=57 events=3 missions=0 duration_ms=89 lag_ms=0\nINFO:madworld.world_tick:world tick=58 events=2 missions=0 duration_ms=25 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=59 events=2 missions=0 duration_ms=26 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=1 replays=0 scores=0\nINFO:madworld.world_tick:world tick=60 events=2 missions=0 duration_ms=24 lag_ms=0\nINFO:madworld.world_tick:world tick=61 events=3 missions=0 duration_ms=35 lag_ms=0\nINFO:madworld.world_tick:abuse-control prune hits=323 replays=0 scores=0\nINFO:madworld.world_tick:world tick=62 events=2 missions=0 duration_ms=25 lag_ms=0\nAPI_CPU=0.11% API_MEM=67.76MiB / 23.41GiB\nWORKER_CPU=1.89% WORKER_MEM=35.54MiB / 23.41GiB\nCAPACITY_ENVIRONMENT=isolated_postgres16_api_worker_containers\nPRODUCTION_DATABASE_TOUCHED=false\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-060100-full-5min-capacity-v3.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T05:26:12Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
