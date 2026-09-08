@@ -1,0 +1,7 @@
+COMMAND_ID=cmd-20260908-062400-server-status
+STATUS=PENDING
+WORKFLOW=remote-operator-dispatch.yml
+REF=main
+TIMEOUT=5
+INPUTS
+command=set -euo pipefail; printf 'HOST='; hostname; printf 'TIME='; date -Is; printf 'DISK='; df -h /opt/madworld | tail -1; printf 'MEM='; free -h | awk '/Mem:/ {print $3"/"$2}'; printf 'LOAD='; uptime
