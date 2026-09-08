@@ -24,19 +24,11 @@ android {
         debug {
             val apiUrl = envOrProperty("MADWORLD_API_URL") ?: "https://api.autosklo.org.ua"
             buildConfigField("String", "MADWORLD_API_URL", "\"${escaped(apiUrl)}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_API_KEY", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_API_KEY") ?: "")}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_APP_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_APP_ID") ?: "")}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_PROJECT_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_PROJECT_ID") ?: "")}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_SENDER_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_SENDER_ID") ?: "")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = apiUrl.startsWith("http://")
         }
         release {
             val apiUrl = envOrProperty("MADWORLD_API_URL")
             buildConfigField("String", "MADWORLD_API_URL", "\"${escaped(apiUrl ?: "")}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_API_KEY", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_API_KEY") ?: "")}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_APP_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_APP_ID") ?: "")}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_PROJECT_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_PROJECT_ID") ?: "")}\"")
-            buildConfigField("String", "MADWORLD_FIREBASE_SENDER_ID", "\"${escaped(envOrProperty("MADWORLD_FIREBASE_SENDER_ID") ?: "")}\"")
             manifestPlaceholders["madworldAllowCleartext"] = false
         }
     }
@@ -57,7 +49,6 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("com.google.firebase:firebase-messaging:24.1.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
@@ -68,8 +59,5 @@ gradle.taskGraph.whenReady {
     if (releaseScheduled) {
         val apiUrl = envOrProperty("MADWORLD_API_URL") ?: throw GradleException("MADWORLD_API_URL is required for release builds")
         require(apiUrl.startsWith("https://")) { "MADWORLD_API_URL must use HTTPS for release builds" }
-        val requiredFirebase = listOf("MADWORLD_FIREBASE_API_KEY", "MADWORLD_FIREBASE_APP_ID", "MADWORLD_FIREBASE_PROJECT_ID", "MADWORLD_FIREBASE_SENDER_ID")
-        val missing = requiredFirebase.filter { envOrProperty(it).isNullOrBlank() }
-        require(missing.isEmpty()) { "Firebase Messaging configuration is required for release builds: ${missing.joinToString()}" }
     }
 }
