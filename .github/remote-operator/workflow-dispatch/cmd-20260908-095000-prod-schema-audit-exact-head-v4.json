@@ -1,0 +1,39 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10045855830,
+      "name": "remote-operator-result",
+      "size_in_bytes": 827
+    }
+  ],
+  "command_id": "cmd-20260908-095000-prod-schema-audit-exact-head-v4",
+  "duration_seconds": 16,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T07:48:38Z",
+  "inputs": {
+    "command": "set -u; db_user=\"$(sed -n 's/^POSTGRES_USER=//p' .env 2>/dev/null | head -1)\"; db_name=\"$(sed -n 's/^POSTGRES_DB=//p' .env 2>/dev/null | head -1)\"; db_user=\"${db_user:-madworld}\"; db_name=\"${db_name:-madworld_db}\"; echo SCHEMA_AUDIT_START; echo deployed_sha=$(cat .github-deployed-sha 2>/dev/null || echo missing); echo postgres=$(docker inspect madworld-postgres-1 --format '{{.State.Status}}' 2>/dev/null || echo missing); echo databases; docker exec madworld-postgres-1 psql -U \"$db_user\" -Atc \"SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname;\"; echo abuse_tables; docker exec madworld-postgres-1 psql -U \"$db_user\" -d \"$db_name\" -Atc \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'abuse_control_%' ORDER BY tablename;\"; echo schema_migrations; docker exec madworld-postgres-1 psql -U \"$db_user\" -d \"$db_name\" -Atc \"SELECT count(*) FROM schema_migrations;\"; echo SCHEMA_AUDIT_DONE",
+    "mode": "sync",
+    "operation": "command",
+    "timeout_minutes": "10",
+    "workdir": "/opt/madworld"
+  },
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101980088054,
+      "name": "remote",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260908-095000-prod-schema-audit-exact-head-v4.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34201183520",
+  "started_at": "2026-09-08T07:48:22Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator.yml",
+  "workflow_run_id": 34201183520
+}
