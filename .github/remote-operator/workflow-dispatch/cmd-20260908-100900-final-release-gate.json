@@ -1,26 +1,26 @@
 {
   "artifacts": [],
   "command_id": "cmd-20260908-100900-final-release-gate",
-  "duration_seconds": 168,
+  "duration_seconds": 148,
   "executor": "github-actions-remote-operator",
-  "finished_at": "2026-09-08T08:42:17Z",
+  "finished_at": "2026-09-08T08:42:22Z",
   "inputs": {},
   "jobs": [
     {
       "conclusion": "failure",
-      "id": 101994505646,
-      "name": "backend",
-      "status": "completed"
-    },
-    {
-      "conclusion": "failure",
-      "id": 101994505886,
+      "id": 101994636609,
       "name": "android",
       "status": "completed"
     },
     {
+      "conclusion": "failure",
+      "id": 101994636798,
+      "name": "backend",
+      "status": "completed"
+    },
+    {
       "conclusion": "skipped",
-      "id": 101995309312,
+      "id": 101995322413,
       "name": "gate",
       "status": "completed"
     }
@@ -29,10 +29,10 @@
   "request_file": "20260908-final-release-gate.txt",
   "run_conclusion": "failure",
   "run_status": "completed",
-  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34205684445",
-  "started_at": "2026-09-08T08:39:28Z",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34205724824",
+  "started_at": "2026-09-08T08:39:54Z",
   "status": "FAILED",
   "type": "WORKFLOW_DISPATCH",
   "workflow": "release-gate.yml",
-  "workflow_run_id": 34205684445
+  "workflow_run_id": 34205724824
 }
