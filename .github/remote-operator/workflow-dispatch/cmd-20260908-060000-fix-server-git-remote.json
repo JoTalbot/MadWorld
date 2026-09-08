@@ -1,0 +1,5 @@
+{
+  "command_id":"cmd-20260908-060000-fix-server-git-remote",
+  "type":"WORKFLOW_DISPATCH","workflow":"remote-operator-dispatch.yml","ref":"main","request_file":"20260908-060000-fix-server-git-remote.txt","executor":"github-actions-remote-operator","status":"DONE","execution":"direct-remote-operator","run_status":"completed","run_conclusion":"success",
+  "remote_result":{"status":"SUCCESS","mode":"sync","job_id":"cmd-20260908-060000-fix-server-git-remote","run_as":"root","exit_code":0,"duration_seconds":0.681,"stdout":"BEFORE_REMOTE=https://github.com/JoTalbot/MadWorld.git\nAFTER_REMOTE=https://github.com/JoTalbot/MadWorld.git\nHEAD is now at 005999f test: mark final batch boundary\n005999f8de8698ef4056c669c5d07518ddf9830f\n","stderr":"From https://github.com/JoTalbot/MadWorld\n * branch main -> FETCH_HEAD\n"}
+}
