@@ -1,0 +1,10 @@
+# Fresh controlled isolated capacity rehearsal on current main. Production DB must not be touched.
+---
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-100000-capacity-rehearsal-v7
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 15
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; git fetch origin main; git reset --hard origin/main; tmp=$(mktemp -d); cp ops/isolated_5min_capacity_rehearsal.sh \"$tmp/harness.sh\"; sed -i '/docker run -d --name \"$API\"/s/ -e MADWORLD_RATE_LIMIT=10000/ -e MADWORLD_RATE_LIMIT=10000 -e MADWORLD_DB_POOL_SIZE=10 -e MADWORLD_DB_MAX_OVERFLOW=20/' \"$tmp/harness.sh\"; sed -i '/docker run -d --name \"$WORKER\"/s/ -e MADWORLD_WORLD_TICK_SECONDS=5/ -e MADWORLD_WORLD_TICK_SECONDS=5 -e MADWORLD_DB_POOL_SIZE=10 -e MADWORLD_DB_MAX_OVERFLOW=20/' \"$tmp/harness.sh\"; bash \"$tmp/harness.sh\"; rm -rf \"$tmp\"","timeout_minutes":"15","cleanup":"true"}
+---
