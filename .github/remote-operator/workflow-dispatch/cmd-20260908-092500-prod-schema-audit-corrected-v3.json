@@ -1,0 +1,39 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10044765619,
+      "name": "remote-operator-result",
+      "size_in_bytes": 1211
+    }
+  ],
+  "command_id": "cmd-20260908-092500-prod-schema-audit-corrected-v3",
+  "duration_seconds": 16,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T07:14:20Z",
+  "inputs": {
+    "command": "set -u; db_user=\"$(sed -n 's/^POSTGRES_USER=//p' .env 2>/dev/null | head -1)\"; db_name=\"$(sed -n 's/^POSTGRES_DB=//p' .env 2>/dev/null | head -1)\"; db_user=\"${db_user:-madworld}\"; db_name=\"${db_name:-madworld_db}\"; printf '%s\\n' SCHEMA_AUDIT_START; date -u +%FT%TZ; hostname; id -u; printf '%s\\n' --DEPLOYED--; cat /opt/madworld/.github-deployed-sha 2>/dev/null || true; printf '%s\\n' --ENV_PRESENCE--; for k in MADWORLD_DATABASE_URL POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD DB_HOST_PORT; do if grep -qE \"^${k}=\" .env 2>/dev/null; then echo ${k}=set-in-dotenv; else echo ${k}=absent-from-dotenv; fi; done; printf '%s\\n' --COMPOSE_PS--; docker compose --env-file .env -f ops/docker-compose.production.yml -f ops/docker-compose.deploy.yml ps 2>&1 || true; printf '%s\\n' --POSTGRES_STATE--; docker inspect madworld-postgres-1 --format 'image={{.Config.Image}} state={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' 2>&1 || true; printf '%s\\n' --DATABASES--; timeout 20 docker exec madworld-postgres-1 psql -U \"$db_user\" -Atc \"SELECT datname FROM pg_database WHERE datistemplate=false ORDER BY datname;\" 2>&1 || true; printf '%s\\n' --ABUSE_TABLES--; timeout 20 docker exec madworld-postgres-1 psql -U \"$db_user\" -d \"$db_name\" -Atc \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'abuse_control_%' ORDER BY tablename;\" 2>&1 || true; printf '%s\\n' --SCHEMA_MIGRATIONS--; timeout 20 docker exec madworld-postgres-1 psql -U \"$db_user\" -d \"$db_name\" -Atc \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='schema_migrations';\" 2>&1 || true; printf '%s\\n' --MIGRATION_COUNT--; timeout 20 docker exec madworld-postgres-1 psql -U \"$db_user\" -d \"$db_name\" -Atc \"SELECT count(*) FROM schema_migrations;\" 2>&1 || true; printf '%s\\n' SCHEMA_AUDIT_DONE",
+    "mode": "sync",
+    "operation": "command",
+    "timeout_minutes": "10",
+    "workdir": "/opt/madworld"
+  },
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101971031671,
+      "name": "remote",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260908-092500-prod-schema-audit-corrected.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34198322738",
+  "started_at": "2026-09-08T07:14:03Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator.yml",
+  "workflow_run_id": 34198322738
+}
