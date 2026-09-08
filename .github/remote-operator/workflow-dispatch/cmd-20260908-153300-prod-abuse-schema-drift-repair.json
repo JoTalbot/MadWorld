@@ -1,0 +1,34 @@
+{
+  "command_id": "cmd-20260908-153300-prod-abuse-schema-drift-repair",
+  "duration_seconds": 2,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T02:25:03Z",
+  "inputs": {
+    "command": "set -euo pipefail\ncd /opt/madworld\nCF=/opt/madworld/ops/docker-compose.production.yml\nDF=/opt/madworld/ops/docker-compose.deploy.yml\nENVF=/opt/madworld/.env\necho DRIFT_REPAIR_START cmd-20260908-153300-prod-abuse-schema-drift-repair\npython3 - <<'PY'\nfrom pathlib import Path\nprint('host migration present=', Path('backend/migrations/034_b10_shared_abuse_controls.sql').exists())\nPY\necho '--APPLY_EXACT_034_SQL--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" run --rm migrator python -c \"from pathlib import Path; from app.infrastructure.db import create_engine_from_env; e=create_engine_from_env(); sql=Path('migrations/034_b10_shared_abuse_controls.sql').read_text(); c=e.connect(); c.exec_driver_sql(sql); c.commit(); print('034 SQL executed directly'); print(c.execute(__import__('sqlalchemy').text(\\\"select to_regclass('public.abuse_control_hits'), to_regclass('public.abuse_control_replays'), to_regclass('public.abuse_control_scores')\\\")).one()); c.close()\"\necho '--RESTART_API--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" up -d --no-build api\nsleep 5\necho '--HEALTH--'\ncurl -sS -o /dev/null -w 'health=%{http_code}\\n' http://127.0.0.1:8090/health\ncurl -sS -o /dev/null -w 'ready=%{http_code}\\n' http://127.0.0.1:8090/health/ready\necho '--PUBLIC--'\ncurl -k -sS -o /dev/null -w 'public=%{http_code}\\n' https://api.autosklo.org.ua/health\necho '--STATUS--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" ps -a\nfree -m | head -2\necho DRIFT_REPAIR_DONE"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 2.607,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-08T02:25:03Z",
+    "job_id": "cmd-20260908-153300-prod-abuse-schema-drift-repair",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T02:25:01Z",
+    "status": "FAILED",
+    "stderr": " Container madworld-postgres-1 Running \n Container madworld-postgres-1 Waiting \n Container madworld-postgres-1 Healthy \n Container madworld-migrator-run-f5981a430cef Creating \n Container madworld-migrator-run-f5981a430cef Created \nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.12/pathlib.py\", line 1027, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/pathlib.py\", line 1013, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'migrations/034_b10_shared_abuse_controls.sql'\n\n",
+    "stdout": "DRIFT_REPAIR_START cmd-20260908-153300-prod-abuse-schema-drift-repair\nhost migration present= True\n--APPLY_EXACT_034_SQL--\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-153300-prod-abuse-schema-drift-repair.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-08T02:25:01Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
