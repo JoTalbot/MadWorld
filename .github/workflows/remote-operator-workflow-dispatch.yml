@@ -219,17 +219,29 @@ jobs:
               (work / f'{cid}.json').write_text(json.dumps(record, indent=2, sort_keys=True) + '\n', encoding='utf-8')
               print(json.dumps(record, indent=2, sort_keys=True))
 
-          subprocess.run(['git', 'checkout', '-B', 'workflow-dispatch-publish', result_ref], check=True)
+          # Publish with a fetch/rebase retry loop because multiple broker/reconciler runs can
+          # legitimately update remote-operator-results concurrently. Never discard evidence.
           target = Path('.github/remote-operator/workflow-dispatch')
-          target.mkdir(parents=True, exist_ok=True)
-          for p in work.glob('*.json'):
-              (target / p.name).write_text(p.read_text(encoding='utf-8'), encoding='utf-8')
-          subprocess.run(['git', 'add', str(target)], check=True)
-          if subprocess.run(['git', 'diff', '--cached', '--quiet']).returncode != 0:
+          for attempt in range(1, 6):
+              subprocess.run(['git', 'fetch', 'origin', 'remote-operator-results:refs/remotes/origin/remote-operator-results'], check=True)
+              subprocess.run(['git', 'checkout', '-B', 'workflow-dispatch-publish', result_ref], check=True)
+              target.mkdir(parents=True, exist_ok=True)
+              for p in work.glob('*.json'):
+                  (target / p.name).write_text(p.read_text(encoding='utf-8'), encoding='utf-8')
+              subprocess.run(['git', 'add', str(target)], check=True)
+              if subprocess.run(['git', 'diff', '--cached', '--quiet']).returncode == 0:
+                  print('No new workflow-dispatch evidence to publish.')
+                  break
               subprocess.run(['git', 'commit', '-m', 'ops: publish workflow dispatch results'], check=True)
-              subprocess.run(['git', 'push', 'origin', 'HEAD:remote-operator-results'], check=True)
-          else:
-              print('No new workflow-dispatch evidence to publish.')
+              push = subprocess.run(['git', 'push', 'origin', 'HEAD:remote-operator-results'], text=True, capture_output=True)
+              if push.returncode == 0:
+                  print(f'Published workflow-dispatch evidence on attempt {attempt}.')
+                  break
+              print(f'Publish attempt {attempt} failed; refreshing result branch before retry.', file=sys.stderr)
+              if attempt == 5:
+                  print(push.stderr, file=sys.stderr)
+                  raise RuntimeError('failed to publish workflow-dispatch evidence after 5 attempts')
+              time.sleep(2 * attempt)
           PY
 
       - name: Summary
