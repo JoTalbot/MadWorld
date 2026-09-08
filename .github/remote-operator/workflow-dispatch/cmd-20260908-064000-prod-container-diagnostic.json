@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-064000-prod-container-diagnostic",
+  "duration_seconds": 2,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T03:18:11Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; printf '%s\\n' '=== running containers ==='; docker ps --format '{{.Names}}' | sort; printf '%s\\n' '=== compose project labels ==='; docker ps --format '{{.Names}} {{.Label \"com.docker.compose.project\"}}' | sort",
+    "timeout_minutes": 5,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 2.008,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T03:18:11Z",
+    "job_id": "cmd-20260908-064000-prod-container-diagnostic",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T03:18:09Z",
+    "status": "SUCCESS",
+    "stderr": "",
+    "stdout": "=== running containers ===\nliza-browser\nliza-browser-profile9\nmadworld-api-1\nmadworld-dr-verify-1543008-dst\nmadworld-dr-verify-1543008-src\nmadworld-postgres-1\nmadworld-world-tick-worker-1\noctopus\noctopus-child-8300\noctopus-child-8301\noctopus-child-8302\noctopus-child-8303\noctopus-child-8304\noctopus-child-8305\noctopus-grafana\noctopus-next-admin\noctopus-prometheus\n=== compose project labels ===\nliza-browser liza\nliza-browser-profile9 liza\nmadworld-api-1 madworld\nmadworld-dr-verify-1543008-dst \nmadworld-dr-verify-1543008-src \nmadworld-postgres-1 madworld\nmadworld-world-tick-worker-1 madworld\noctopus \noctopus-child-8300 \noctopus-child-8301 \noctopus-child-8302 \noctopus-child-8303 \noctopus-child-8304 \noctopus-child-8305 \noctopus-grafana octopus-monitoring\noctopus-next-admin \noctopus-prometheus octopus-monitoring\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-064000-production-container-diagnostic.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T03:18:09Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
