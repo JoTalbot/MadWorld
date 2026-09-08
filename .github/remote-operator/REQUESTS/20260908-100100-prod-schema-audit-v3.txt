@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-100100-prod-schema-audit-v3
+STATUS: PENDING
+AGENT: release-schema-auditor-v1
+CREATED_AT: 2026-09-08T10:01:00+03:00
+TIMEOUT_MINUTES: 10
+MODE: WORKFLOW_DISPATCH
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; echo SCHEMA_AUDIT_START; date -u +%FT%TZ; hostname; id -u; echo --DEPLOYED--; cat /opt/madworld/.github-deployed-sha 2>/dev/null || true; echo --ABUSE_TABLES--; timeout 20 docker exec madworld-postgres-1 psql -U madworld -d madworld -Atc \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'abuse_control_%' ORDER BY tablename;\"; echo --MIGRATION_TABLES--; timeout 20 docker exec madworld-postgres-1 psql -U madworld -d madworld -Atc \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('schema_migrations','migration_versions','alembic_version') ORDER BY table_name;\"; echo --MIGRATION_FILES--; find backend/migrations -maxdepth 1 -type f -printf '%f\\n' | sort | tail -12; echo SCHEMA_AUDIT_DONE","timeout_minutes":"10","workdir":"/opt/madworld","cleanup":"true"}
+---
