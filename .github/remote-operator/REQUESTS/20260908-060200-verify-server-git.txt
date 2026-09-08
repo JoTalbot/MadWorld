@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-060200-verify-server-git
+STATUS: PENDING
+AGENT: b10-capacity-gate-v3
+CREATED_AT: 2026-09-08T06:02:00Z
+TIMEOUT_MINUTES: 5
+MODE: WORKFLOW_DISPATCH
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; printf 'REMOTE='; git remote get-url origin; printf 'HEAD='; git rev-parse HEAD; printf 'USER='; id -un; printf 'EUID='; id -u","timeout_minutes":"5","cleanup":"true"}
+---
