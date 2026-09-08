@@ -1,0 +1,10 @@
+# Read-only production database discovery for the B10 schema audit.
+---
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-093000-prod-schema-discovery-v3
+STATUS: PENDING
+WORKFLOW: remote-operator.yml
+REF: main
+TIMEOUT_MINUTES: 10
+INPUTS_JSON: {"operation":"command","mode":"sync","timeout_minutes":"10","workdir":"/opt/madworld","command":"set -u; printf '%s\\n' DB_DISCOVERY_START; date -u +%FT%TZ; hostname; id -u; printf '%s\\n' --DEPLOYED--; cat /opt/madworld/.github-deployed-sha 2>/dev/null || true; printf '%s\\n' --CONTAINERS--; docker ps --format '{{.Names}}' | sort; printf '%s\\n' --POSTGRES_ENV--; docker inspect madworld-postgres-1 --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | sed -E 's/(PASSWORD=).*/\\1<redacted>/; s/(SECRET=).*/\\1<redacted>/' | sort || true; printf '%s\\n' --COMPOSE_POSTGRES--; grep -RniE 'POSTGRES_(DB|USER)|DATABASE_URL|DB_NAME|DB_DATABASE' ops .env* 2>/dev/null | sed -E 's/(PASSWORD|SECRET|TOKEN|KEY)=.*/\\1=<redacted>/' | head -100 || true; printf '%s\\n' --DB_LIST--; for db in postgres madworld madworld_prod madworld_production; do docker exec madworld-postgres-1 psql -U madworld -d postgres -Atc \"SELECT datname FROM pg_database WHERE datname='${db}';\" 2>/dev/null || true; done; printf '%s\\n' DB_DISCOVERY_DONE"}
+---
