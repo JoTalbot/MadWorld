@@ -197,5 +197,29 @@ If reusable verified knowledge appeared, record it in the appropriate durable pr
 
 The skill is never considered permanently finished. New agents must extend it with verified experience and correct obsolete lessons when evidence changes.
 
+## Verified lessons (negative knowledge)
+
+Durable, evidence-backed facts. Do not rediscover them by repeating the failure.
+
+### L1. `/opt/madworld` has no `.git` — this is expected, not a defect
+`deploy-on-push.yml` deploys with `rsync -a --checksum --exclude='.git/'` and writes the deployed revision to `/opt/madworld/.github-deployed-sha`. Remote probes reporting `GIT_DIR=absent` / `GIT_HEAD=unknown` are therefore normal. Verify the deployed revision with `cat /opt/madworld/.github-deployed-sha`, never with `git -C /opt/madworld rev-parse HEAD`.
+Evidence: `cmd-20260908-151500-server-runtime-current`, `cmd-20260908-153800-server-runtime-followup`.
+
+### L2. Local HTTP/HTTPS probes on the server need explicit flags
+Host nginx answers `http://127.0.0.1/...` with `301` to HTTPS, and the local certificate is self-signed, so `curl -fsSL` fails with exit `60` before any application evidence is collected. Use `curl -k` for loopback checks (or probe the upstream port directly over plain HTTP) and keep the public-hostname check as a separate probe.
+Evidence: `cmd-20260908-153700/153800-server-runtime-followup` (exit 60), `cmd-20260908-154100-server-runtime-tls-followup` (exit 0, 502 observed).
+
+### L3. Wrap every remote probe in `timeout(1)` — a single hang burns the whole budget
+`cmd-20260908-160000-production-502-diagnose` ran unbounded `nginx -T`, `ss` and `docker ps` inside a 3-minute budget, hit the broker's `subprocess` timeout and returned `TIMEOUT` with **empty stdout** — zero diagnostic value. Bound each probe individually (`timeout 10 ...`), prefer a bounded `grep` over `/etc/nginx/sites-enabled` to a full `nginx -T`, and size `TIMEOUT_MINUTES` above the sum of the per-probe budgets. Under memory pressure `docker` calls are the most likely hang.
+
+### L4. The API upstream is `127.0.0.1:8090`, not `8000`
+`ops/docker-compose.deploy.yml` publishes the API container as `127.0.0.1:${API_HOST_PORT:-8090}:8000` because host port 8000 belongs to another project on the shared host. An nginx `502` means that loopback upstream is unreachable. Diagnose with `curl http://127.0.0.1:8090/health` plus container `State.Status` / `State.OOMKilled` / `RestartCount`. The API container has a 768 MB memory limit on a host that has been observed at 22 Gi/23 Gi used.
+
+### L5. `deploy-on-push.yml` does not restart the application
+It rsyncs files, restarts `madworld-remote-operator.service`, runs the executor and triggers the queue broker. It never runs `docker compose up`. A green deploy run is therefore **not** evidence that the API is running, and merging to `main` does not by itself repair or restart a downed API.
+
+### L6. An agent without `actions: write` must reach the queue through `main`
+`remote-operator-workflow-dispatch.yml` checks out `ref: main` and only reads `.github/remote-operator/REQUESTS/` from `main` (push to `main` + cron `*/5`). A restricted agent token gets `HTTP 403: Resource not accessible by integration` from `POST /actions/workflows/{id}/dispatches`. The working path is: commit the request record on the working branch, open a PR to `main`, and let the scheduled broker consume it after merge. Do not report `NOT EXECUTED` before that route has been offered.
+
 ## Handoff invariant
 Before completion, the agent must confirm the skill was loaded and applied, check existing lessons, preserve important evidence, and leave durable knowledge required by the next agent. A future agent should not have to rediscover an important known fact by repeating an already documented failure.
