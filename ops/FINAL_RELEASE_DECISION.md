@@ -11,7 +11,7 @@ The delegated owner decisions are now recorded in-repository. The technical base
 ## Closed delegated decisions
 
 - **Capacity acceptance:** production-equivalent release thresholds are defined in `ops/CAPACITY_ACCEPTANCE.md`.
-- **Push:** required for release scope. Crash reporting and external analytics are not required for this release.
+- **Push:** Firebase/FCM push notifications are explicitly removed from release scope. No Firebase project, credentials, SDK, token registration or push delivery is required.
 - **Privacy/Terms:** drafts prepared in `docs/legal/`; final jurisdiction-specific legal review and publication remain required.
 - **Deletion:** documented in `docs/legal/DATA_DELETION.md`; complete automated deletion is not claimed until its implementation is verified.
 - **Incident/on-call/rollback:** runbook prepared in `ops/INCIDENT_RESPONSE_AND_ROLLBACK.md`; technical ownership model and rollback procedure are documented. A live rollback rehearsal is not claimed without execution evidence.
@@ -22,7 +22,7 @@ The delegated owner decisions are now recorded in-repository. The technical base
 - B1–B9 complete.
 - B10 automated Release Gate passed on the verified candidate boundary.
 - PostgreSQL migrations and backend tests exercised on PostgreSQL 16.
-- Android unit tests, debug artifact generation and production release APK build pass.
+- Android unit tests and debug artifact generation pass; release build is being revalidated after Firebase removal.
 - Production world-tick defects were fixed with regression coverage.
 - Production audit on `arm-server-01` completed with exit code 0.
 - Production API and PostgreSQL healthy; world-tick worker running.
@@ -51,10 +51,10 @@ Existing isolated runs measured approximately 167–169 requests/s with zero app
 ## Remaining mandatory gates
 
 1. **Android API/device matrix — UNVERIFIED.** API 26 / 29–32 / 33–35 plus at least one physical Android device still require execution evidence.
-2. **Push delivery — UNVERIFIED.** Push is required for this release. FCM production configuration and a physical-device end-to-end delivery test remain required.
+2. **Push delivery — REMOVED FROM RELEASE SCOPE.** No FCM production configuration or physical-device push test is required.
 3. **Privacy Policy / Terms — LEGAL REVIEW REQUIRED.** Drafts are prepared, but legal publication and a valid operator/support contact remain required.
 4. **Data deletion — PARTIALLY VERIFIED.** The policy/process is documented, but complete deletion implementation and PostgreSQL integration behavior remain unverified.
-5. **Capacity full gate — PARTIALLY VERIFIED.** Thresholds are now decided, but the required 5-minute controlled run with queue-depth/recovery evidence remains unexecuted.
+5. **Capacity full gate — PARTIALLY VERIFIED.** Thresholds are decided, but the required 5-minute controlled run with queue-depth/recovery evidence remains unexecuted.
 6. **Rollback rehearsal — NOT VERIFIED.** Runbook and ownership are documented; a real rehearsal requires execution through the production operator path and terminal evidence.
 
 Crash reporting and external analytics are explicitly **not release requirements** for this candidate and remain disabled/unclaimed.
@@ -67,4 +67,4 @@ Severity 5 is accepted at +5000 bps travel risk, -5000 bps extraction and +4000 
 
 **NOT READY FOR PUBLIC PRODUCTION PUBLICATION.**
 
-The remaining blockers are external/device execution and final legal publication, not an unresolved owner decision.
+The remaining blockers are external/device execution and final legal publication, not Firebase configuration.
