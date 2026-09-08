@@ -1,0 +1,7 @@
+COMMAND_ID=cmd-20260908-062000-verify-server-git-final
+STATUS=PENDING
+WORKFLOW=remote-operator-dispatch.yml
+REF=main
+TIMEOUT=5
+INPUTS
+command=set -euo pipefail; cd /opt/madworld; printf 'REMOTE='; git remote get-url origin; printf 'HEAD='; git rev-parse HEAD; printf 'USER='; id -un; printf 'EUID='; id -u
