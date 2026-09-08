@@ -1,0 +1,10 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-153300-prod-abuse-schema-drift-repair
+STATUS: PENDING
+AGENT: production-recovery
+CREATED_AT: 2026-09-08T02:25:10Z
+TIMEOUT_MINUTES: 15
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail\ncd /opt/madworld\nCF=/opt/madworld/ops/docker-compose.production.yml\nDF=/opt/madworld/ops/docker-compose.deploy.yml\nENVF=/opt/madworld/.env\necho DRIFT_REPAIR_START cmd-20260908-153300-prod-abuse-schema-drift-repair\npython3 - <<'PY'\nfrom pathlib import Path\nprint('host migration present=', Path('backend/migrations/034_b10_shared_abuse_controls.sql').exists())\nPY\necho '--APPLY_EXACT_034_SQL--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" run --rm migrator python -c \"from pathlib import Path; from app.infrastructure.db import create_engine_from_env; e=create_engine_from_env(); sql=Path('migrations/034_b10_shared_abuse_controls.sql').read_text(); c=e.connect(); c.exec_driver_sql(sql); c.commit(); print('034 SQL executed directly'); print(c.execute(__import__('sqlalchemy').text(\\\"select to_regclass('public.abuse_control_hits'), to_regclass('public.abuse_control_replays'), to_regclass('public.abuse_control_scores')\\\")).one()); c.close()\"\necho '--RESTART_API--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" up -d --no-build api\nsleep 5\necho '--HEALTH--'\ncurl -sS -o /dev/null -w 'health=%{http_code}\\n' http://127.0.0.1:8090/health\ncurl -sS -o /dev/null -w 'ready=%{http_code}\\n' http://127.0.0.1:8090/health/ready\necho '--PUBLIC--'\ncurl -k -sS -o /dev/null -w 'public=%{http_code}\\n' https://api.autosklo.org.ua/health\necho '--STATUS--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" ps -a\nfree -m | head -2\necho DRIFT_REPAIR_DONE"}
+---
