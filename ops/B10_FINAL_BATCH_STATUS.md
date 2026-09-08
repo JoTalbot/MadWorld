@@ -64,3 +64,10 @@ See `ops/B10_CURRENT_RELEASE_AUDIT.md` and `ops/B10_OWNER_GATE_EVIDENCE.md` for 
 - Guard added: `backend/tests/test_workflow_yaml_validity.py`.
 - Pending owner-applied patches: `remote-operator-yaml-heredoc-fix`, `backend-ci-quality-gates`, `android-ci-gradle-version-from-wrapper`.
 - Release decision unchanged: **NO-GO until owner/environment gates are verified.**
+
+## Addendum — 2026-09-08 (repository CI repair, supersedes the 2026-09-05 addendum)
+
+- The Remote Operator heredoc YAML breakage was repaired directly on `main` by commit `7190ccd`; the quality gates (`406caa1`) and the Android wrapper version resolution (`7373351`) are also on `main`. The three pending patches listed above are applied/superseded and were removed (PR #23); `backend/tests/test_workflow_yaml_validity.py` no longer xfails broken workflows and now enforces unconditionally.
+- Backend CI on `main` had drifted red (ruff import order in `backend/scripts/migrate.py`, stale committed OpenAPI contract after the push-token API removal, stale release-gate contract guard after the Android API matrix was added, and legacy Remote Operator queue records failing the request guard). Fixed in commit `0589ac1` (PR #23): full details and evidence in `ops/B10_CI_REPAIR_EVIDENCE_2026-09-08.md`.
+- PR #23 must be merged to `main` before any exact-head Release Gate rerun; the pre-fix Release Gate runs (backend job) cannot pass on the old head.
+- Release decision unchanged: **NO-GO until the remaining external/owner gates are verified.**

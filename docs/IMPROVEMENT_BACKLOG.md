@@ -250,6 +250,7 @@ New product-changing ideas discovered during implementation remain subject to th
 - Guard: `backend/tests/test_workflow_yaml_validity.py` — every workflow must parse as YAML, every `run:` step must pass `bash -n`, no column-0 non-key lines. Runs in Backend CI and Release Gate. `pyyaml` added to `backend/requirements.txt`.
 - While the patch file exists and the workflows are still broken, the two Remote Operator workflows are strict `xfail`; once the owner applies the patch (and deletes it per `docs/patches/README.md`) the tests must pass. Removing the patch without applying it turns the tests red.
 - Queue: appended `cmd-20260905-160000-dr-rehearsal-preflight` (read-only DR preflight) and `cmd-20260905-160500-capacity-baseline-readonly-probe` (bounded read-only baseline). Status: NOT EXECUTED — pending workflow fix and executor pickup. Neither closes an owner gate.
+- Update (2026-09-08): the workflow fix landed directly on `main` via commit `7190ccd` (Remote Operator heredoc indentation); `406caa1` restored the Backend CI quality gates and `7373351` resolved the Android Gradle wrapper version. The three `docs/patches/*.patch` files are therefore applied/superseded and were removed in PR #23; `test_workflow_yaml_validity.py` is now hard-enforcing.
 
 ## Post-B10 candidates — PLANNED (awaiting owner variant selection)
 

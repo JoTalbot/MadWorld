@@ -7,6 +7,11 @@ inside ``run: |`` blocks. GitHub rejected the files as invalid YAML, every run
 failed in 0 seconds and the Remote Operator queue silently stopped being
 executed. A workflow-only breakage never touched application tests, so nothing
 went red. This test closes that gap.
+
+The breakage was repaired on ``main`` by commit ``7190ccd``; the temporary
+pending-patch strict-xfail marker was removed with the patch files on
+2026-09-08 (PR #23), so this guard now enforces unconditionally: an unparseable
+workflow or an invalid ``run:`` block fails CI.
 """
 
 from __future__ import annotations
@@ -23,36 +28,9 @@ yaml = pytest.importorskip("yaml")
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = sorted((ROOT / ".github" / "workflows").glob("*.yml"))
 
-# Workflow fixes the bot cannot push live in docs/patches/. While the patch
-# file still exists, the corresponding workflows are *expected* to be broken
-# (strict xfail). Once the owner applies the patch and deletes it, as
-# docs/patches/README.md instructs, the tests must pass.
-PENDING_PATCH = ROOT / "docs" / "patches" / "remote-operator-yaml-heredoc-fix.patch"
-PENDING_BROKEN = {"remote-operator.yml", "remote-operator-reusable.yml"}
-
-
-def _is_pending(workflow: Path) -> bool:
-    if not PENDING_PATCH.exists() or workflow.name not in PENDING_BROKEN:
-        return False
-    try:
-        yaml.safe_load(workflow.read_text(encoding="utf-8"))
-    except yaml.YAMLError:
-        return True
-    return False  # patch already applied but not deleted -> tests must pass
-
 
 def _params():
-    return [
-        pytest.param(
-            w,
-            id=w.name,
-            marks=pytest.mark.xfail(
-                _is_pending(w), strict=True,
-                reason="pending owner-applied docs/patches/remote-operator-yaml-heredoc-fix.patch",
-            ),
-        )
-        for w in WORKFLOWS
-    ]
+    return [pytest.param(w, id=w.name) for w in WORKFLOWS]
 
 
 assert WORKFLOWS, "no workflows found - repository layout changed?"
@@ -99,8 +77,6 @@ def test_heredoc_terminators_are_not_at_column_zero_of_yaml():
     the pattern that broke the Remote Operator workflows."""
     offenders = []
     for workflow in WORKFLOWS:
-        if _is_pending(workflow):
-            continue
         for lineno, line in enumerate(workflow.read_text(encoding="utf-8").splitlines(), 1):
             stripped = line.rstrip()
             if not stripped or stripped.startswith("#"):
