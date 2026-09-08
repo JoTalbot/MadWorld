@@ -1,0 +1,69 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10048566967,
+      "name": "madworld-android-release-gate",
+      "size_in_bytes": 15381552
+    }
+  ],
+  "command_id": "cmd-20260908-113500-final-release-gate-v3",
+  "duration_seconds": 169,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T09:05:25Z",
+  "inputs": {},
+  "jobs": [
+    {
+      "conclusion": "failure",
+      "id": 102001357689,
+      "name": "Android API 29 smoke",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "id": 102001357776,
+      "name": "android",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "id": 102001357915,
+      "name": "Android API 35 smoke",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "id": 102001357931,
+      "name": "Android API 26 smoke",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "id": 102001357974,
+      "name": "backend",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "id": 102001357990,
+      "name": "Android API 32 smoke",
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "id": 102002143468,
+      "name": "gate",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260908-113500-final-release-gate-v3.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34207802812",
+  "started_at": "2026-09-08T09:02:36Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "release-gate.yml",
+  "workflow_run_id": 34207802812
+}
