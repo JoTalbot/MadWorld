@@ -117,3 +117,30 @@ code, migration SQL and workflow files were not changed for this continuation.
 PR #24's GitHub checks remain QUEUED and the workflow patch is still NOT APPLIED.
 This strengthens backend evidence only; it does not close the real Android,
 exact-head CI or production gates. The owner handoff above remains required.
+
+## Owner cancellation checkpoint — 2026-09-08 14:17 UTC
+
+The owner reported stopping all workflow runs. GitHub independently confirmed:
+
+- **0 queued, 0 in-progress and 0 waiting runs** at this checkpoint.
+- Release Gate runs `34210293609`, `34210312794`, `34210345974` and
+  `34210347665` are all **COMPLETED / CANCELLED**. All 16 previously hung API
+  smoke jobs are terminal CANCELLED; their old backend failures remain history.
+- Main checks `34220470032` / `34220470103`, and PR #24 checks `34234520934` /
+  `34234520928`, are CANCELLED, not PASS.
+- Workflow definitions remain **active**. Cancelling runs did not disable
+  schedules or apply the pending workflow patch.
+- `main` is still `df787dc`; PR #24 is a draft at `0b3ed1d` before this update.
+
+The stale-run cancellation handoff is now **VERIFIED**; do not repeat it based
+on the old queued/in-progress snapshots above. This documentation-only update
+allows a fresh normal PR event to run **Backend CI and Agent Governance only**
+on its new head, without requiring an Actions-write rerun. Collect their actual
+terminal results in PR #24; old cancelled runs cannot verify the new head.
+
+The unsafe pre-patch Release Gate and the Remote Operator broker must not be
+manually restarted as part of this recovery. No server request, deployment,
+workflow configuration change or release is performed by this checkpoint.
+The owner workflow-apply/removal step in `docs/patches/README.md` remains open;
+real Android and final release gates remain NOT VERIFIED until that step and
+the required exact-head executions actually complete.

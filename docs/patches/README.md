@@ -77,9 +77,17 @@ PYTHONPATH=backend python -m pytest backend/tests/test_b10_release_workflow_cont
 
 Commit the workflow change and patch deletion together on the same working
 branch, then merge via PR. Recheck `main`/queue state first if it has advanced.
-The current agent cannot cancel the existing hung runs (`actions: write` was
-denied with HTTP 403); an Actions-authorized owner must reconcile/cancel the
-stale runs. The new concurrency rule cannot retroactively cancel runs started
-without a concurrency group. Then allow **one** Release Gate on the applied
-exact head and collect all terminal jobs/artifacts before updating release
-status. See `ops/B10_ANDROID_MATRIX_RECOVERY_2026-09-08.md` for the checkpoint.
+The owner completed stale-run cancellation on 2026-09-08: at 14:17 UTC GitHub
+reported no queued/in-progress/waiting runs, all four old Release Gates and all
+16 hung emulator jobs were terminal CANCELLED. **That handoff step is closed.**
+The agent's earlier `actions: write` denial is not a reason to ask the owner to
+repeat a cancellation already verified. Recheck fresh state before any retry.
+
+Workflow definitions remain active: cancellation did not disable schedules or
+apply this patch. Resume only the safe Backend CI / Agent Governance PR checks
+until an authorized account applies/removes the patch. Do not manually restart
+the old Release Gate or the broker to work around the missing workflow change.
+After application, allow **one** Release Gate on the applied exact head and
+collect all terminal jobs/artifacts before updating release status. The new
+concurrency rule does not retroactively cancel earlier ungrouped runs.
+See `ops/B10_ANDROID_MATRIX_RECOVERY_2026-09-08.md` for the checkpoint.
