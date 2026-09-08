@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-090000-prod-migrator-network-diagnostic",
+  "duration_seconds": 2,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T04:16:23Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; cd /opt/madworld; echo '=== compose ps ==='; docker compose --env-file .env -f ops/docker-compose.production.yml ps -a; echo '=== docker networks ==='; docker network ls; echo '=== postgres inspect ==='; docker inspect madworld-postgres-1 --format '{{json .NetworkSettings.Networks}}'; echo '=== migrator compose network config ==='; docker compose --env-file .env -f ops/docker-compose.production.yml config | sed -n '/^networks:/,$p'; echo '=== project containers networks ==='; docker ps --format '{{.Names}}' | while read -r n; do printf '%s ' \"$n\"; docker inspect \"$n\" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'; done",
+    "timeout_minutes": 5,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 2.495,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T04:16:23Z",
+    "job_id": "cmd-20260908-090000-prod-migrator-network-diagnostic",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T04:16:20Z",
+    "status": "SUCCESS",
+    "stderr": "",
+    "stdout": "=== compose ps ===\nNAME                           IMAGE                                                                     COMMAND                  SERVICE             CREATED       STATUS                  PORTS\nmadworld-api-1                 madworld-api                                                              \"uvicorn app.main:ap\u2026\"   api                 2 hours ago   Up 2 hours (healthy)    127.0.0.1:8090->8000/tcp\nmadworld-migrator-1            sha256:fdab12e534b7ed31dd0fae761b47e7ddb2a30722f25cf4874bec33d7af52d401   \"python scripts/migr\u2026\"   migrator            3 days ago    Exited (0) 3 days ago   \nmadworld-postgres-1            postgres:16                                                               \"docker-entrypoint.s\u2026\"   postgres            3 days ago    Up 3 days (healthy)     127.0.0.1:5433->5432/tcp\nmadworld-world-tick-worker-1   madworld-world-tick-worker                                                \"python -m scripts.w\u2026\"   world-tick-worker   3 days ago    Up 3 days               8000/tcp\n=== docker networks ===\nNETWORK ID     NAME                             DRIVER    SCOPE\nf9491cdeb102   bridge                           bridge    local\nab99ddab4e09   host                             host      local\n43787acc0b80   liza_default                     bridge    local\n2b49edd1f7d6   madworld-dr-verify-1543008-net   bridge    local\n6a7fcd476e88   madworld_default                 bridge    local\nd9c6df5bf18c   madworld_net                     bridge    local\n7c4f94ef1f1d   none                             null      local\nc8b6941ee5ab   octopus-monitoring_default       bridge    local\n=== postgres inspect ===\n{\"madworld_net\":{\"IPAMConfig\":null,\"Links\":null,\"Aliases\":[\"madworld-postgres-1\",\"postgres\"],\"DriverOpts\":null,\"GwPriority\":0,\"NetworkID\":\"d9c6df5bf18c1d456114ff80924a89bff3c2617ff76c3d27ca5c0286bfc0d74a\",\"EndpointID\":\"c60faf80e4f98e16263c6e1981168d3d55f9e08d7eb2f044986ae1dbf0a8b363\",\"Gateway\":\"172.20.0.1\",\"IPAddress\":\"172.20.0.2\",\"MacAddress\":\"a2:67:39:41:78:ff\",\"IPPrefixLen\":16,\"IPv6Gateway\":\"\",\"GlobalIPv6Address\":\"\",\"GlobalIPv6PrefixLen\":0,\"DNSNames\":[\"madworld-postgres-1\",\"postgres\",\"d8880ef24a8f\"]}}\n=== migrator compose network config ===\nnetworks:\n  default:\n    name: madworld_default\n=== project containers networks ===\nmadworld-api-1 madworld_net \noctopus-child-8305 host \noctopus-child-8303 host \noctopus-child-8304 host \noctopus-child-8302 host \noctopus host \noctopus-child-8300 host \noctopus-child-8301 host \nliza-browser bridge \nmadworld-dr-verify-1543008-dst madworld-dr-verify-1543008-net \nmadworld-dr-verify-1543008-src madworld-dr-verify-1543008-net \nmadworld-world-tick-worker-1 madworld_net \nmadworld-postgres-1 madworld_net \nliza-browser-profile9 bridge \noctopus-grafana host \noctopus-prometheus host \noctopus-next-admin host \n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-090000-production-migrator-network-diagnostic.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T04:16:20Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
