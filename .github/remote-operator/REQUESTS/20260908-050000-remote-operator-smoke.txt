@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-050000-remote-operator-smoke
+STATUS: PENDING
+AGENT: release-verification
+CREATED_AT: 2026-09-08T05:00:00Z
+TIMEOUT_MINUTES: 5
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"printf 'REMOTE_OPERATOR_SMOKE=PASS\\n'; printf 'EUID=%s\\n' \"$(id -u)\"; printf 'USER=%s\\n' \"$(id -un)\"; printf 'HOST=%s\\n' \"$(hostname)\"; printf 'PWD=%s\\n' \"$(pwd)\"; printf 'KERNEL=%s\\n' \"$(uname -sr)\"; printf 'DISK='; df -P . | awk 'NR==2 {print $4}'","timeout_minutes":"5","workdir":"","cleanup":"true"}
+---
