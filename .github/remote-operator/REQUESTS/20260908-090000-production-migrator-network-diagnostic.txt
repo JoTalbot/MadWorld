@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-090000-prod-migrator-network-diagnostic
+STATUS: PENDING
+AGENT: chatgpt
+CREATED_AT: 2026-09-08T06:00:00Z
+TIMEOUT_MINUTES: 5
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; echo '=== compose ps ==='; docker compose --env-file .env -f ops/docker-compose.production.yml ps -a; echo '=== docker networks ==='; docker network ls; echo '=== postgres inspect ==='; docker inspect madworld-postgres-1 --format '{{json .NetworkSettings.Networks}}'; echo '=== migrator compose network config ==='; docker compose --env-file .env -f ops/docker-compose.production.yml config | sed -n '/^networks:/,$p'; echo '=== project containers networks ==='; docker ps --format '{{.Names}}' | while read -r n; do printf '%s ' \"$n\"; docker inspect \"$n\" --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}'; done","workdir":"/opt/madworld","timeout_minutes":5,"cleanup":true}
+---
