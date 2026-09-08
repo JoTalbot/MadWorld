@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-071500-prod-migration-network-diagnostic",
+  "duration_seconds": 2,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T04:08:39Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; cd /opt/madworld; echo '=== compose config networks ==='; docker compose --env-file .env -f ops/docker-compose.production.yml config --networks; echo '=== containers ==='; docker ps --format '{{.Names}}|{{.Status}}|{{.Networks}}'; echo '=== networks ==='; docker network ls --format '{{.Name}}|{{.Driver}}'; echo '=== postgres network inspect ==='; for n in $(docker network ls --format '{{.Name}}'); do if docker network inspect \"$n\" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}} {{end}}' 2>/dev/null | grep -q 'postgres'; then echo \"network=$n\"; docker network inspect \"$n\" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}} {{end}}'; fi; done; echo '=== migrator DNS test ==='; docker compose --env-file .env -f ops/docker-compose.production.yml run --rm migrator python -c \"import socket; print(socket.gethostbyname('postgres'))\"",
+    "timeout_minutes": 5,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 2.386,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-08T04:08:39Z",
+    "job_id": "cmd-20260908-071500-prod-migration-network-diagnostic",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T04:08:37Z",
+    "status": "FAILED",
+    "stderr": "time=\"2026-09-08T04:08:38Z\" level=warning msg=\"Found orphan containers (madworld-postgres-1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up.\"\n Container madworld-migrator-run-844c305a4dc7 Creating \n Container madworld-migrator-run-844c305a4dc7 Created \nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nsocket.gaierror: [Errno -2] Name or service not known\n\n",
+    "stdout": "=== compose config networks ===\ndefault\n=== containers ===\nmadworld-api-1|Up 2 hours (healthy)|madworld_net\noctopus-child-8305|Up 4 hours|host\noctopus-child-8303|Up 4 hours|host\noctopus-child-8304|Up 4 hours|host\noctopus-child-8302|Up 4 hours|host\noctopus|Up 4 hours|host\noctopus-child-8300|Up 4 hours|host\noctopus-child-8301|Up 4 hours|host\nliza-browser|Up 8 hours|bridge\nmadworld-dr-verify-1543008-dst|Up 3 days|madworld-dr-verify-1543008-net\nmadworld-dr-verify-1543008-src|Up 3 days|madworld-dr-verify-1543008-net\nmadworld-world-tick-worker-1|Up 3 days|madworld_net\nmadworld-postgres-1|Up 3 days (healthy)|madworld_net\nliza-browser-profile9|Up 3 days|bridge\noctopus-grafana|Up 6 days|host\noctopus-prometheus|Up 6 days|host\noctopus-next-admin|Up 6 days|host\n=== networks ===\nbridge|bridge\nhost|host\nliza_default|bridge\nmadworld-dr-verify-1543008-net|bridge\nmadworld_default|bridge\nmadworld_net|bridge\nnone|null\noctopus-monitoring_default|bridge\n=== postgres network inspect ===\nnetwork=madworld_net\nmadworld-api-1 172.20.0.4/16 madworld-world-tick-worker-1 172.20.0.3/16 madworld-postgres-1 172.20.0.2/16 \n=== migrator DNS test ===\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-071500-prod-migration-network-diagnostic.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-08T04:08:37Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
