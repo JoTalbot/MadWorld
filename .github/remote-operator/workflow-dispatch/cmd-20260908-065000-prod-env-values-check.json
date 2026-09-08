@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-065000-prod-env-values-check",
+  "duration_seconds": 0,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T03:18:46Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; cd /opt/madworld; printf '%s\\n' '=== configured variable presence in .env ==='; for k in MADWORLD_DATABASE_URL POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD; do if grep -qE \"^${k}=\" .env; then echo ${k}=set-in-dotenv; else echo ${k}=absent-from-dotenv; fi; done; printf '%s\\n' '=== compose interpolation check ==='; if docker compose --env-file .env -f ops/docker-compose.production.yml config >/dev/null 2>/tmp/mw-compose.err; then echo compose-config=success; else echo compose-config=failed; sed -n '1,12p' /tmp/mw-compose.err; fi",
+    "timeout_minutes": 5,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 0.64,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T03:18:46Z",
+    "job_id": "cmd-20260908-065000-prod-env-values-check",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T03:18:45Z",
+    "status": "SUCCESS",
+    "stderr": "",
+    "stdout": "=== configured variable presence in .env ===\nMADWORLD_DATABASE_URL=set-in-dotenv\nPOSTGRES_USER=set-in-dotenv\nPOSTGRES_DB=set-in-dotenv\nPOSTGRES_PASSWORD=set-in-dotenv\n=== compose interpolation check ===\ncompose-config=success\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-065000-production-env-values-check.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T03:18:45Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
