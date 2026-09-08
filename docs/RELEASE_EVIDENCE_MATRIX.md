@@ -15,24 +15,26 @@ This file maps release gates to concrete evidence. It is a truth map, not a pred
 
 | Gate | Evidence | Boundary / freshness | Status | Remaining action |
 |---|---|---|---|---|
-| Repository / backend CI | GitHub Actions backend gate | verified candidate | VERIFIED | none known |
-| Android unit/debug/release build | Android CI + release artifact | verified candidate | VERIFIED | device matrix remains separate |
-| Production deployment | deployment run + exact deployed commit + service/runtime checks | deployed candidate | VERIFIED | none known |
+| Repository / backend CI | GitHub Actions backend gate | candidate | PARTIALLY VERIFIED | rerun on exact final release commit |
+| Android unit/debug/release build | Android CI + release artifact | candidate | VERIFIED | remaining API matrix is separate |
+| Production deployment | deployment run + exact deployed commit + service/runtime checks | deployed candidate | VERIFIED | recheck after release-affecting changes |
 | Public API health | public `/health/ready` response | live deployment | VERIFIED | recheck after release-affecting changes |
 | Public TLS | certificate/chain verification | live deployment | VERIFIED | recheck after certificate/DNS changes |
 | Backup automation | timer state + latest backup/checksum | production | VERIFIED | continue operational monitoring |
-| Isolated DR | Remote Operator result, restore verification, migration count, RTO | ephemeral PostgreSQL 16 | VERIFIED | production DR remains environment-specific |
-| Read capacity | isolated 20-client / 30s rehearsal | ephemeral PostgreSQL 16 + API + worker | VERIFIED | no invented production threshold |
-| Mutation capacity | isolated concurrent POST rehearsal | ephemeral PostgreSQL 16 + API | VERIFIED | no invented production threshold |
+| Isolated DR | Remote Operator result, restore verification, migration count, RTO | ephemeral PostgreSQL 16 | VERIFIED | rollback/target-recovery rehearsal remains separate |
+| Read capacity | isolated 20-client / 30s rehearsal | ephemeral PostgreSQL 16 + API + worker | VERIFIED | preserve evidence |
+| Mutation capacity | isolated concurrent POST rehearsal | ephemeral PostgreSQL 16 + API | VERIFIED | preserve evidence |
 | Auth / idempotency / replay | full isolated rehearsal | ephemeral environment | VERIFIED | none for isolated gate |
 | World tick under load | isolated worker ticks and lag | ephemeral environment | VERIFIED | preserve regression coverage |
-| Production-equivalent capacity acceptance | measured threshold + queue-growth evidence | release boundary | PARTIALLY VERIFIED | define/approve threshold and collect queue-growth evidence |
-| Android API/device matrix | API 26 / 29–32 / 33–35 + physical/emulator coverage | release environment | NOT VERIFIED | execute required device tests |
-| Push/crash/analytics | live client/provider evidence | release environment | NOT VERIFIED | execute if release-required |
-| Privacy / terms / data safety / deletion | owner/legal review | external | NOT VERIFIED | owner/legal action |
-| Incident/on-call ownership | named ownership + rollback rehearsal | external/owner | NOT VERIFIED | assign owner and rehearse rollback |
-| Severity-5 disaster clamp interpretation | owner decision | external/owner | NOT VERIFIED | obtain owner confirmation |
-| Public publication | all required gates closed | release | NOT VERIFIED | blocked by remaining gates |
+| Production-equivalent capacity acceptance | owner-approved threshold + controlled queue-growth/recovery evidence | release boundary | PARTIALLY VERIFIED | execute controlled bounded run and record queue-depth/recovery |
+| Android API/device matrix | API 26 / 29–32 / 33–35 + physical/emulator coverage | release environment | PARTIALLY VERIFIED | API 26 and API 29–32 still require evidence; API 35 physical validation recorded |
+| Push notifications | owner decision | release scope | WAIVED | explicitly removed from this release scope |
+| Crash reporting | owner waiver | release scope | WAIVED | none |
+| Analytics | owner waiver | release scope | WAIVED | none |
+| Privacy / terms / data safety / deletion | repository disclosures + owner approval; independent legal review where required | release | PARTIALLY VERIFIED | publish/verify final public location and complete any required external legal review |
+| Incident/on-call ownership | named owner + rehearsal | external/owner | PARTIALLY VERIFIED | rollback rehearsal remains |
+| Severity-5 disaster clamp interpretation | owner decision | external/owner | VERIFIED | owner approval recorded |
+| Public publication | all required gates closed | release | NOT VERIFIED | blocked by remaining technical/publication evidence |
 
 ## Rules
 
