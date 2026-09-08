@@ -1,0 +1,24 @@
+{
+  "command_id": "cmd-20260908-061000-verify-server-git-v2",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml",
+  "ref": "main",
+  "request_file": "20260908-061000-verify-server-git-v2.txt",
+  "executor": "github-actions-remote-operator",
+  "status": "DONE",
+  "execution": "direct-remote-operator",
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "remote_result": {
+    "status": "SUCCESS",
+    "operation": "command",
+    "mode": "sync",
+    "job_id": "cmd-20260908-061000-verify-server-git-v2",
+    "run_as": "root",
+    "exit_code": 0,
+    "duration_seconds": 0.569,
+    "stdout": "REMOTE=https://github.com/JoTalbot/MadWorld.git\nHEAD=1e303843d84b6454cd6fc96fa75c355461da72a4\nUSER=root\nEUID=0\n",
+    "stderr": "",
+    "executor": "github-actions-remote-operator"
+  }
+}
