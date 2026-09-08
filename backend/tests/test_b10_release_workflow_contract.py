@@ -8,8 +8,9 @@ def test_release_gate_workflow_has_backend_android_and_final_gate():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "backend:" in text
     assert "android:" in text
+    assert "android-matrix:" in text
     assert "gate:" in text
-    assert "needs: [backend, android]" in text
+    assert "needs: [backend, android, android-matrix]" in text
     assert "pytest backend/tests -q" in text
     assert ":app:testDebugUnitTest" in text
     assert "assembleDebug" in text
