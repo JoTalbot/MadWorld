@@ -107,6 +107,8 @@ jobs:
           gradle-version: '8.10'
       - name: Assemble debug APK
         run: gradle :app:assembleDebug -PMADWORLD_API_URL=https://example.invalid --no-daemon
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
       - name: Install Android SDK emulator
         working-directory: .
         run: |
