@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-071000-prod-migrations-runner",
+  "duration_seconds": 2,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T03:19:25Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; cd /opt/madworld; docker compose --env-file .env -f ops/docker-compose.production.yml run --rm migrator python scripts/migrate.py; curl -fsS https://api.autosklo.org.ua/health >/tmp/mw-health.txt; curl -fsS https://api.autosklo.org.ua/health/ready >/tmp/mw-ready.txt; printf '%s\\n' '=== health ==='; cat /tmp/mw-health.txt; printf '%s\\n' '=== ready ==='; cat /tmp/mw-ready.txt",
+    "timeout_minutes": 10,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 2.712,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-08T03:19:25Z",
+    "job_id": "cmd-20260908-071000-prod-migrations-runner",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T03:19:22Z",
+    "status": "FAILED",
+    "stderr": "time=\"2026-09-08T03:19:24Z\" level=warning msg=\"Found orphan containers (madworld-postgres-1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up.\"\n Container madworld-migrator-run-6feff88f26c7 Creating \n Container madworld-migrator-run-6feff88f26c7 Created \nTraceback (most recent call last):\n  File \"/app/backend/scripts/migrate.py\", line 5, in <module>\n    from app.infrastructure.db import create_engine_from_env\nModuleNotFoundError: No module named 'app'\n\n",
+    "stdout": "",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-071000-production-migrations-runner.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-08T03:19:22Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
