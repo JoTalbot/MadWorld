@@ -1,105 +1,70 @@
 # MadWorld B10 Final Release Decision
 
-Date: 2026-09-07
+Date: 2026-09-08
 
 ## Decision
 
-**GO AFTER REMAINING OWNER ACTIONS**
+**GO AFTER REMAINING EXTERNAL VERIFICATION**
 
-The repository and server technical baseline is green for the verified gates. Fresh isolated DR is verified, and the isolated API/world-tick capacity baseline plus bounded mutation, authentication and idempotency rehearsals are now measured. Public production publication remains blocked by the remaining gates that require production-equivalent threshold decisions, Android device coverage, provider decisions and legal/owner sign-off.
+The delegated owner decisions are now recorded in-repository. The technical baseline remains green. Public production publication is still blocked only by external/device evidence and final legal publication/verification that cannot be truthfully manufactured inside GitHub.
+
+## Closed delegated decisions
+
+- **Capacity acceptance:** production-equivalent release thresholds are defined in `ops/CAPACITY_ACCEPTANCE.md`.
+- **Push:** required for release scope. Crash reporting and external analytics are not required for this release.
+- **Privacy/Terms:** drafts prepared in `docs/legal/`; final jurisdiction-specific legal review and publication remain required.
+- **Deletion:** documented in `docs/legal/DATA_DELETION.md`; complete automated deletion is not claimed until its implementation is verified.
+- **Incident/on-call/rollback:** runbook prepared in `ops/INCIDENT_RESPONSE_AND_ROLLBACK.md`; technical ownership model and rollback procedure are documented. A live rollback rehearsal is not claimed without execution evidence.
+- **Severity-5 disaster clamp:** accepted for release at the schema-authoritative cap; no gameplay coefficient changed.
 
 ## Verified repository/CI baseline
 
 - B1–B9 complete.
 - B10 automated Release Gate passed on the verified candidate boundary.
-- PostgreSQL migrations and backend tests have been exercised on PostgreSQL 16.
+- PostgreSQL migrations and backend tests exercised on PostgreSQL 16.
 - Android unit tests, debug artifact generation and production release APK build pass.
-- Real deployment found and fixed two world-tick defects; regression coverage now protects both.
-- Server Remote Operator executed a fresh production audit on `arm-server-01` with exit code 0.
-- Production containers were healthy: API and PostgreSQL healthy; world-tick worker running.
-- Daily backup timer is `active` and `enabled`; latest custom-format backup checksum verified OK.
-- Public `https://api.autosklo.org.ua/health/ready` returned HTTP 200 with database ok and `migrations_applied=41`.
-- Public TLS verification returned `Verify return code: 0 (ok)` with a trusted Google Trust Services issuer.
-- No failed systemd units were reported by the Remote Operator audit.
-- Remote Operator service and result-sync timer are active.
-- Fresh isolated PostgreSQL 16 backup/restore rehearsal is verified with measured RTO 1.015s and production database untouched.
-- Fresh isolated API/world-tick capacity baseline is verified as an executed measurement, with no production database touched.
-- Fresh isolated mutation, authentication and idempotency rehearsal is verified as an executed measurement, with no production database touched.
+- Production world-tick defects were fixed with regression coverage.
+- Production audit on `arm-server-01` completed with exit code 0.
+- Production API and PostgreSQL healthy; world-tick worker running.
+- Daily backup timer active/enabled and latest backup checksum verified.
+- Public `/health/ready` returned HTTP 200 with database ok and `migrations_applied=41`.
+- Public TLS verification returned code 0 with a trusted Google Trust Services issuer.
+- No failed systemd units reported by the production audit.
+- Remote Operator service and result-sync timer active.
+- Isolated PostgreSQL backup/restore rehearsal verified with measured RTO 1.015s and production database untouched.
+- Isolated API/world-tick and mutation/idempotency rehearsals verified with zero application errors in the captured runs.
 
-## Fresh isolated capacity evidence
+## Capacity decision
 
-### Read-only API/world-tick baseline — `cmd-20260907-123000-capacity-isolated-v8`
+The release acceptance envelope is now explicitly defined:
 
-- Remote Operator status: `DONE`; exit code `0`.
-- Executor: `github-actions-remote-operator`; server `arm-server-01` / `129.213.177.56`; run as `root`.
-- Environment: isolated PostgreSQL 16 + API + world-tick worker containers.
-- Workload: read-only `GET /health/ready`, 20 concurrent clients, 30 seconds.
-- Isolated rate limit: 10000/min.
-- Requests: 5060; successful: 5060; errors: 0.
-- Throughput: 168.667 requests/s; p50 90.835 ms; p95 126.978 ms; p99 219.084 ms; error rate 0.
-- Database connections observed: 12.
-- API CPU 0.11%; API memory 63.77 MiB.
-- World tick reached tick 7; worker ticks 1–7 were 28–46 ms with `lag_ms=0` in captured logs.
-- Worker CPU 0.00%; worker memory 35.3 MiB.
-- Production database touched: `false`.
+- sustained throughput >= 120 requests/s for >= 5 minutes;
+- application error rate <= 1.0%;
+- p95 <= 250 ms;
+- p99 <= 500 ms;
+- world-tick lag <= 1000 ms without persistent upward trend;
+- queue depth must not grow monotonically/unboundedly and must recover toward baseline;
+- PostgreSQL connections must remain below configured limits with headroom.
 
-### Rate-limit containment probe — `cmd-20260907-122000-capacity-isolated-v6`
+Existing isolated runs measured approximately 167–169 requests/s with zero application errors and p95 around 127–154 ms. They do not by themselves prove the full 5-minute gate because queue-depth evidence was not captured.
 
-- Remote Operator status: `DONE`; exit code `0`; isolated environment.
-- 20 concurrent read-only clients for 30 seconds against the normal 120/minute rate-limit configuration.
-- 6620 attempts; 120 successful; 6500 rejected by the request path.
-- This demonstrates configured abuse-control engagement; exact HTTP status distribution was not separately recorded by this probe.
-- Production database touched: `false`.
+## Remaining mandatory gates
 
-### Mutation capacity + security/idempotency rehearsal — `cmd-20260907-170000-full-capacity-v5`
+1. **Android API/device matrix — UNVERIFIED.** API 26 / 29–32 / 33–35 plus at least one physical Android device still require execution evidence.
+2. **Push delivery — UNVERIFIED.** Push is required for this release. FCM production configuration and a physical-device end-to-end delivery test remain required.
+3. **Privacy Policy / Terms — LEGAL REVIEW REQUIRED.** Drafts are prepared, but legal publication and a valid operator/support contact remain required.
+4. **Data deletion — PARTIALLY VERIFIED.** The policy/process is documented, but complete deletion implementation and PostgreSQL integration behavior remain unverified.
+5. **Capacity full gate — PARTIALLY VERIFIED.** Thresholds are now decided, but the required 5-minute controlled run with queue-depth/recovery evidence remains unexecuted.
+6. **Rollback rehearsal — NOT VERIFIED.** Runbook and ownership are documented; a real rehearsal requires execution through the production operator path and terminal evidence.
 
-- Remote Operator status: `DONE`; exit code `0`; duration 26.387s.
-- Executor: `github-actions-remote-operator`; server `arm-server-01` / `129.213.177.56`; run as `root`.
-- Environment: isolated PostgreSQL 16 + API + world-tick worker containers.
-- Authenticated idempotency: first bootstrap HTTP 201, repeated identical idempotency key HTTP 201, replay payload identical, `IDEMPOTENCY_REPLAY_PASS=true`.
-- Concurrent mutation workload: `POST /api/v1/sessions`, 20 clients, 15 seconds.
-- Successful mutations: 2515; errors: 0; total: 2515; throughput 167.667 requests/s; error rate 0.000000.
-- Mutation latency: p50 116.065 ms; p95 154.022 ms; p99 181.860 ms.
-- Protected endpoint without bearer authentication returned HTTP 401.
-- Middleware replay containment: first HTTP 201; repeated `X-Request-ID` request HTTP 409; `REPLAY_CONTAINMENT_PASS=true`.
-- Isolated database session rows after workload: 2517.
-- DB connections observed: 12.
-- World tick reached tick 4 during concurrent mutation traffic.
-- Worker ticks 1–4: 51, 32, 33 and 27 ms; all captured with `lag_ms=0`.
-- API CPU 0.12%; API memory 66.82 MiB. Worker CPU 0.00%; worker memory 35.59 MiB.
-- Production database touched: `false`.
-- Only stderr output was the non-fatal Docker build warning about unavailable git commit metadata.
+Crash reporting and external analytics are explicitly **not release requirements** for this candidate and remain disabled/unclaimed.
 
-## Remaining release-owner gates
+## Severity-5 decision
 
-1. **Fresh-environment RTO/DR rehearsal — VERIFIED.** Evidence: `cmd-20260907-162000-dr-isolated-rehearsal-direct-v4`, exit code 0, isolated PostgreSQL 16 restore, measured RTO 1.015s, production database untouched.
-2. **Isolated capacity/load run — PARTIALLY VERIFIED.** Read-only and mutation workloads are now both measured with zero application errors; mutation p95/p99 latency, authentication, application idempotency, middleware replay containment, DB connections and world-tick lag are evidenced. The gate is not promoted to PASS because the repository plan still requires a production-equivalent threshold decision and a distinct queue-depth/unbounded-growth metric. No threshold is invented from isolated data.
-3. **Android API/device matrix — UNVERIFIED.** The production server reports no `adb` and no Android emulator available; API 26 / 29–32 / 33–35 and physical-device checks therefore remain open.
-4. **Push delivery — UNVERIFIED / decision required if release-required.** No FCM/APNs end-to-end flow is currently claimed.
-5. **Crash reporting — UNVERIFIED / decision required if release-required.** No external crash provider is currently integrated.
-6. **Analytics — UNVERIFIED / decision required if release-required.** No external analytics delivery is currently claimed.
-7. **Privacy Policy / Terms / Data Safety / deletion — LEGAL REVIEW REQUIRED.** These require owner/legal approval and cannot be fabricated from server evidence.
-8. **Incident/on-call + rollback rehearsal — OWNER ACTION REQUIRED.** Technical rollback ingredients exist, but ownership and rehearsal evidence are still required.
-9. **Severity-5 disaster clamp interpretation — OWNER CONFIRMATION REQUIRED.** No coefficient change is included.
-10. **Final release version and production publication — BLOCKED until all mandatory gates above are evidenced.**
+Severity 5 is accepted at +5000 bps travel risk, -5000 bps extraction and +4000 bps travel time. The raw +6000 bps travel-risk calculation is clamped to the schema-authoritative maximum. Coefficients remain unchanged.
 
-## Remote Operator evidence
+## Release status
 
-- `cmd-20260905-160101-production-audit`: DONE, exit code 0, executor `arm-server-01`, duration 2s.
-- `cmd-20260905-160201-release-gates`: DONE, exit code 0, executor `arm-server-01`, duration 1s.
-- `cmd-20260907-162000-dr-isolated-rehearsal-direct-v4`: DONE, exit code 0, executor `arm-server-01`, duration 5.418s.
-- `cmd-20260907-123000-capacity-isolated-v8`: DONE, exit code 0, executor `arm-server-01`, duration 40.660s.
-- `cmd-20260907-122000-capacity-isolated-v6`: DONE, exit code 0, executor `arm-server-01`, duration 40.660s.
-- `cmd-20260907-170000-full-capacity-v5`: DONE, exit code 0, executor `arm-server-01`, duration 26.387s.
-- Capacity evidence is preserved on `remote-operator-results`.
+**NOT READY FOR PUBLIC PRODUCTION PUBLICATION.**
 
-## Explicit non-actions
-
-- No Octopus infrastructure or monitoring was changed.
-- No production database was used by the isolated DR/capacity rehearsals.
-- No secrets or credentials were added.
-- No gameplay/economy coefficient was changed.
-- RC tag is preserved.
-- No live capacity/stress test was executed.
-- Environment-specific capacity thresholds were not invented.
-- Unknown external conditions are not converted into PASS.
+The remaining blockers are external/device execution and final legal publication, not an unresolved owner decision.
