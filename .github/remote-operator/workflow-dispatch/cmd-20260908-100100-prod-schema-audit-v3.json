@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-100100-prod-schema-audit-v3",
+  "duration_seconds": 1,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T06:58:47Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "set -euo pipefail; cd /opt/madworld; echo SCHEMA_AUDIT_START; date -u +%FT%TZ; hostname; id -u; echo --DEPLOYED--; cat /opt/madworld/.github-deployed-sha 2>/dev/null || true; echo --ABUSE_TABLES--; timeout 20 docker exec madworld-postgres-1 psql -U madworld -d madworld -Atc \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'abuse_control_%' ORDER BY tablename;\"; echo --MIGRATION_TABLES--; timeout 20 docker exec madworld-postgres-1 psql -U madworld -d madworld -Atc \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('schema_migrations','migration_versions','alembic_version') ORDER BY table_name;\"; echo --MIGRATION_FILES--; find backend/migrations -maxdepth 1 -type f -printf '%f\\n' | sort | tail -12; echo SCHEMA_AUDIT_DONE",
+    "timeout_minutes": "10",
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 1.256,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 2,
+    "finished_at": "2026-09-08T06:58:47Z",
+    "job_id": "cmd-20260908-100100-prod-schema-audit-v3",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T06:58:46Z",
+    "status": "FAILED",
+    "stderr": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  database \"madworld\" does not exist\n",
+    "stdout": "SCHEMA_AUDIT_START\n2026-09-08T06:58:47Z\narm-server-01\n0\n--DEPLOYED--\n2006dcf7e6da150ab650b5b0d6080da719eccfad\n--ABUSE_TABLES--\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-100100-prod-schema-audit-v3.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-08T06:58:46Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
