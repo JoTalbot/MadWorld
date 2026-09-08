@@ -2,15 +2,15 @@
   "artifacts": [
     {
       "expired": false,
-      "id": 10048471383,
+      "id": 10048477080,
       "name": "remote-operator-result",
-      "size_in_bytes": 635
+      "size_in_bytes": 636
     }
   ],
   "command_id": "cmd-20260908-113000-isolated-rollback-rehearsal",
-  "duration_seconds": 27,
+  "duration_seconds": 26,
   "executor": "github-actions-remote-operator",
-  "finished_at": "2026-09-08T09:02:34Z",
+  "finished_at": "2026-09-08T09:02:42Z",
   "inputs": {
     "command": "set -euo pipefail; cd /opt/madworld; bash ops/isolated_rollback_rehearsal.sh",
     "mode": "sync",
@@ -21,7 +21,7 @@
   "jobs": [
     {
       "conclusion": "failure",
-      "id": 102001210109,
+      "id": 102001252224,
       "name": "remote",
       "status": "completed"
     }
@@ -30,10 +30,10 @@
   "request_file": "20260908-113000-isolated-rollback-rehearsal.txt",
   "run_conclusion": "failure",
   "run_status": "completed",
-  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34207755673",
-  "started_at": "2026-09-08T09:02:06Z",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34207769473",
+  "started_at": "2026-09-08T09:02:15Z",
   "status": "FAILED",
   "type": "WORKFLOW_DISPATCH",
   "workflow": "remote-operator.yml",
-  "workflow_run_id": 34207755673
+  "workflow_run_id": 34207769473
 }
