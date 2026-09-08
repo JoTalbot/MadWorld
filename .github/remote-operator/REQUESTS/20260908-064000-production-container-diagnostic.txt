@@ -1,0 +1,8 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-064000-prod-container-diagnostic
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 5
+INPUTS_JSON: {"command":"set -euo pipefail; printf '%s\\n' '=== running containers ==='; docker ps --format '{{.Names}}' | sort; printf '%s\\n' '=== compose project labels ==='; docker ps --format '{{.Names}} {{.Label \"com.docker.compose.project\"}}' | sort","workdir":"/opt/madworld","timeout_minutes":5,"cleanup":true}
+---
