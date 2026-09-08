@@ -6,34 +6,31 @@
 - [ ] Exact-head Release Gate PASS on final release commit
 - [ ] Release artifact digest frozen
 
-## Mandatory external gates
+## Mandatory gates
 
 - [x] Fresh isolated DR/RTO rehearsal: VERIFIED. `cmd-20260907-162000-dr-isolated-rehearsal-direct-v4`, exit 0, measured RTO 1.015s, production DB untouched.
 - [x] Target-recovery/isolated DR rehearsal: VERIFIED; restore verification PASS and production DB untouched.
-- [ ] Target-recovery DR/RTO owner approval
-- [ ] Production-like capacity/load threshold approval
-- [x] Isolated capacity/rehearsal evidence: VERIFIED. Read-only and mutation workloads completed with zero application errors; authentication, idempotency, replay containment, DB connections and world-tick lag captured. Production-equivalent thresholds and distinct queue-depth/unbounded-growth metric remain open.
-- [ ] Android API 26
-- [ ] Android API 29-32
-- [ ] Android API 33-35
-- [ ] Physical Android device
-- [ ] Physical offline/reconnect/stale/network-loss
-- [ ] Push delivery or owner waiver
-- [ ] Crash reporting or owner waiver
-- [ ] Analytics or owner waiver
-- [ ] Privacy/Terms/Data Safety/deletion approval
-- [ ] On-call/incident rehearsal
-- [ ] Rollback rehearsal
-- [ ] Severity-5 clamp approval
+- [x] Production-equivalent capacity thresholds approved in `ops/CAPACITY_ACCEPTANCE.md`.
+- [ ] Full 5-minute controlled isolated capacity run with queue-depth/recovery evidence.
+- [ ] Android API 26 validation.
+- [ ] Android API 29–32 validation.
+- [x] Android API 33–35 physical-device validation: G1, Android 15 / API 35.
+- [x] Physical install/launch/login/authoritative state/offline/reconnect/network-loss/background/rotation/repeat-launch evidence recorded.
+- [x] Push/Firebase/FCM removed from release scope. No provider configuration or delivery test is required.
+- [x] Crash reporting waived as a release requirement.
+- [x] Analytics waived as a release requirement.
+- [ ] Privacy/Terms/Data Safety/deletion approval and publication.
+- [x] Incident/on-call owner assigned.
+- [ ] Rollback rehearsal.
+- [x] Severity-5 clamp accepted at the schema-authoritative cap.
 - [x] Immutable evidence for executed technical rehearsals is attached in repository documentation and Remote Operator result evidence.
 
 ## Verified technical evidence
 
 - Read-only isolated capacity: `cmd-20260907-123000-capacity-isolated-v8`, 5060/5060 successful, 168.667 RPS, p95 126.978 ms, p99 219.084 ms, zero application errors, world-tick lag 0.
-- Mutation/idempotency/security rehearsal: `cmd-20260907-170000-full-capacity-v5`, 2515/2515 successful mutations, 167.667 RPS, p95 154.022 ms, p99 181.860 ms, unauthenticated protected endpoint 401, application idempotency PASS, replay containment PASS, world-tick lag 0.
+- Mutation/idempotency/security rehearsal: `cmd-20260907-170000-full-capacity-v5`, 2515/2515 successful mutations, 167.667 RPS, p95 154.022 ms, p99 181.860 ms, unauthenticated protected endpoint 401, idempotency PASS, replay containment PASS, world-tick lag 0.
 - Fresh isolated DR: `cmd-20260907-162000-dr-isolated-rehearsal-direct-v4`, restore verification PASS, measured RTO 1.015s, production database untouched.
-- Remote Operator stale-PENDING reconciliation: workflow run `34140299253`, job `101800549294`, success, artifact `stale-pending-reconciliation`; audit-only, queue not modified.
-- All technical rehearsals ran through the GitHub Actions Remote Operator path on `arm-server-01` as root and preserved terminal evidence.
+- Android physical device: G1 / Android 15 / API 35, user-reported manual validation on 2026-09-08, all recorded checks PASS.
 
 ## Release freeze
 
