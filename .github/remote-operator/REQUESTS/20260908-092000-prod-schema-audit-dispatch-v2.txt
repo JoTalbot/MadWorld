@@ -1,0 +1,10 @@
+# Read-only production schema audit dispatched through the Remote Operator broker.
+---
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-092000-prod-schema-audit-dispatch-v2
+STATUS: PENDING
+WORKFLOW: remote-operator.yml
+REF: main
+TIMEOUT_MINUTES: 10
+INPUTS_JSON: {"operation":"command","mode":"sync","timeout_minutes":"10","workdir":"/opt/madworld","command":"set -u; printf '%s\\n' SCHEMA_AUDIT_START; date -u +%FT%TZ; hostname; id -u; printf '%s\\n' --DEPLOYED--; cat /opt/madworld/.github-deployed-sha 2>/dev/null || true; printf '%s\\n' --ABUSE_TABLES--; timeout 20 docker exec madworld-postgres-1 psql -U \"${POSTGRES_USER:-madworld}\" -d \"${POSTGRES_DB:-madworld}\" -Atc \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'abuse_control_%' ORDER BY tablename;\" 2>&1 || true; printf '%s\\n' --SCHEMA_MIGRATIONS--; timeout 20 docker exec madworld-postgres-1 psql -U \"${POSTGRES_USER:-madworld}\" -d \"${POSTGRES_DB:-madworld}\" -Atc \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='schema_migrations';\" 2>&1 || true; printf '%s\\n' --MIGRATION_COUNT--; timeout 20 docker exec madworld-postgres-1 psql -U \"${POSTGRES_USER:-madworld}\" -d \"${POSTGRES_DB:-madworld}\" -Atc \"SELECT count(*) FROM schema_migrations;\" 2>&1 || true; printf '%s\\n' SCHEMA_AUDIT_DONE"}
+---
