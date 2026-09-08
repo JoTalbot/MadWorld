@@ -1,0 +1,7 @@
+COMMAND_ID=cmd-20260908-062500-verify-remote-operator-final
+STATUS=PENDING
+WORKFLOW=remote-operator-dispatch.yml
+REF=main
+TIMEOUT=5
+INPUTS
+command=set -euo pipefail; printf 'REMOTE_OPERATOR=READY\n'; printf 'USER='; id -un; printf 'EUID='; id -u
