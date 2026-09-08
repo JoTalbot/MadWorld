@@ -1,0 +1,8 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-071500-prod-migration-network-diagnostic
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 5
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; echo '=== compose config networks ==='; docker compose --env-file .env -f ops/docker-compose.production.yml config --networks; echo '=== containers ==='; docker ps --format '{{.Names}}|{{.Status}}|{{.Networks}}'; echo '=== networks ==='; docker network ls --format '{{.Name}}|{{.Driver}}'; echo '=== postgres network inspect ==='; for n in $(docker network ls --format '{{.Name}}'); do if docker network inspect \"$n\" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}} {{end}}' 2>/dev/null | grep -q 'postgres'; then echo \"network=$n\"; docker network inspect \"$n\" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}} {{end}}'; fi; done; echo '=== migrator DNS test ==='; docker compose --env-file .env -f ops/docker-compose.production.yml run --rm migrator python -c \"import socket; print(socket.gethostbyname('postgres'))\"","workdir":"/opt/madworld","timeout_minutes":5,"cleanup":true}
+---
