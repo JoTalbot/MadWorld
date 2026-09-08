@@ -1,0 +1,39 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10044594075,
+      "name": "remote-operator-result",
+      "size_in_bytes": 823
+    }
+  ],
+  "command_id": "cmd-20260908-092000-prod-schema-audit-dispatch-v2",
+  "duration_seconds": 17,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T07:08:36Z",
+  "inputs": {
+    "command": "set -u; printf '%s\\n' SCHEMA_AUDIT_START; date -u +%FT%TZ; hostname; id -u; printf '%s\\n' --DEPLOYED--; cat /opt/madworld/.github-deployed-sha 2>/dev/null || true; printf '%s\\n' --ABUSE_TABLES--; timeout 20 docker exec madworld-postgres-1 psql -U \"${POSTGRES_USER:-madworld}\" -d \"${POSTGRES_DB:-madworld}\" -Atc \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'abuse_control_%' ORDER BY tablename;\" 2>&1 || true; printf '%s\\n' --SCHEMA_MIGRATIONS--; timeout 20 docker exec madworld-postgres-1 psql -U \"${POSTGRES_USER:-madworld}\" -d \"${POSTGRES_DB:-madworld}\" -Atc \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='schema_migrations';\" 2>&1 || true; printf '%s\\n' --MIGRATION_COUNT--; timeout 20 docker exec madworld-postgres-1 psql -U \"${POSTGRES_USER:-madworld}\" -d \"${POSTGRES_DB:-madworld}\" -Atc \"SELECT count(*) FROM schema_migrations;\" 2>&1 || true; printf '%s\\n' SCHEMA_AUDIT_DONE",
+    "mode": "sync",
+    "operation": "command",
+    "timeout_minutes": "10",
+    "workdir": "/opt/madworld"
+  },
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 101969557450,
+      "name": "remote",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260908-092000-prod-schema-audit-dispatch-v2.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34197870490",
+  "started_at": "2026-09-08T07:08:18Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator.yml",
+  "workflow_run_id": 34197870490
+}
