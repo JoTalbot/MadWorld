@@ -1,0 +1,7 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-061100-full-5min-capacity-v4
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 15
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; git fetch origin main; git reset --hard origin/main; bash /opt/madworld/ops/isolated_5min_capacity_rehearsal.sh","timeout_minutes":15,"workdir":"/opt/madworld","mode":"sync"}
