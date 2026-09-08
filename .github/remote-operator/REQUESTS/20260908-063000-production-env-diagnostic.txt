@@ -1,0 +1,8 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-063000-prod-env-diagnostic
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 5
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; printf '%s\\n' '=== env files ==='; find . -maxdepth 1 -type f -name '.env*' -printf '%f\\n' | sort; printf '%s\\n' '=== compose files ==='; find ops -maxdepth 1 -type f -name 'docker-compose*.yml' -printf '%f\\n' | sort; printf '%s\\n' '=== database env presence ==='; if env | grep -q '^MADWORLD_DATABASE_URL='; then echo MADWORLD_DATABASE_URL=set-in-ssh-environment; else echo MADWORLD_DATABASE_URL=absent-from-ssh-environment; fi","workdir":"/opt/madworld","timeout_minutes":5,"cleanup":true}
+---
