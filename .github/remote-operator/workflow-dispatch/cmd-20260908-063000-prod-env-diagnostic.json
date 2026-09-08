@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-063000-prod-env-diagnostic",
+  "duration_seconds": 1,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T03:17:52Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; cd /opt/madworld; printf '%s\\n' '=== env files ==='; find . -maxdepth 1 -type f -name '.env*' -printf '%f\\n' | sort; printf '%s\\n' '=== compose files ==='; find ops -maxdepth 1 -type f -name 'docker-compose*.yml' -printf '%f\\n' | sort; printf '%s\\n' '=== database env presence ==='; if env | grep -q '^MADWORLD_DATABASE_URL='; then echo MADWORLD_DATABASE_URL=set-in-ssh-environment; else echo MADWORLD_DATABASE_URL=absent-from-ssh-environment; fi",
+    "timeout_minutes": 5,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 1.057,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T03:17:52Z",
+    "job_id": "cmd-20260908-063000-prod-env-diagnostic",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T03:17:51Z",
+    "status": "SUCCESS",
+    "stderr": "",
+    "stdout": "=== env files ===\n.env\n=== compose files ===\ndocker-compose.deploy.yml\ndocker-compose.production.yml\n=== database env presence ===\nMADWORLD_DATABASE_URL=absent-from-ssh-environment\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-063000-production-env-diagnostic.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T03:17:50Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
