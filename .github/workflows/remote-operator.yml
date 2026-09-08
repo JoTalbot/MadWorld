@@ -151,11 +151,11 @@ jobs:
           finished_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           duration=$(( $(date +%s) - start_epoch ))
           python3 - "$local_tmp/result.json" "$status" "$rc" "$started_at" "$finished_at" "$duration" "$SSH_HOST" "$workdir" "$MODE" "$OPERATION" "$job_id" "$pid" <<'PY'
-import json, sys
-path,status,rc,started,finished,duration,server,workdir,mode,operation,job_id,pid=sys.argv[1:]
-d={'status':status,'operation':operation,'mode':mode,'job_id':job_id,'server':server,'workdir':workdir,'run_as':'root','started_at':started,'finished_at':finished,'duration_seconds':int(duration),'pid':None if pid=='null' else int(pid),'exit_code':int(rc)}
-json.dump(d,open(path,'w',encoding='utf-8'),indent=2)
-PY
+          import json, sys
+          path,status,rc,started,finished,duration,server,workdir,mode,operation,job_id,pid=sys.argv[1:]
+          d={'status':status,'operation':operation,'mode':mode,'job_id':job_id,'server':server,'workdir':workdir,'run_as':'root','started_at':started,'finished_at':finished,'duration_seconds':int(duration),'pid':None if pid=='null' else int(pid),'exit_code':int(rc)}
+          json.dump(d,open(path,'w',encoding='utf-8'),indent=2)
+          PY
           cp "$local_tmp/result.json" result.json
           cp "$local_tmp/stdout.log" stdout.log
           cp "$local_tmp/stderr.log" stderr.log
