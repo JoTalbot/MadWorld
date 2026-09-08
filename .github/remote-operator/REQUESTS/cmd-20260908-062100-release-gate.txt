@@ -1,0 +1,3 @@
+WORKFLOW_DISPATCH
+COMMAND=python -m pytest backend/tests -q
+TIMEOUT=480
