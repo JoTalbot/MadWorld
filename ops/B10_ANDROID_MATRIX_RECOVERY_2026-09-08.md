@@ -59,7 +59,7 @@ The smoke APK still targets `https://example.invalid`. **Install/launch smoke
 is not login, gameplay, offline/reconnect or physical-device validation.** Fake
 Android tools are test fixtures only; their PASS records are never device evidence.
 
-## Local verification
+## Initial local verification (before PostgreSQL continuation)
 
 - Full backend suite after the cancellation-during-cleanup fix:
   **256 passed, 25 skipped**. Skips require PostgreSQL;
@@ -100,3 +100,20 @@ verify each result's commit/API/APK digest, then update the relevant gate only
 for what was actually exercised. Until then Android API 26/29–32 and final
 release acceptance remain open. Capacity, rollback and legal/publication gates
 are unchanged by this CI-only batch.
+
+## Continuation — real PostgreSQL verification, 2026-09-08 13:45 UTC
+
+The local database gap above is now closed for the tested application commit
+`879faa4`: **281 tests passed with zero skips** on an isolated native PostgreSQL
+16.2 instance with genuine `pgcrypto` 1.3. All **43** authoritative migrations
+applied from an empty application database; immediate and post-suite reruns
+applied nothing, and all stored migration checksums matched source. The owned
+cluster had no TCP listener and was shut down with terminal exit 0; its PID file
+and Unix socket were confirmed absent.
+
+Full provenance, native-extension dependency recovery, test boundaries and
+cleanup evidence: `ops/B10_POSTGRES16_VERIFICATION_2026-09-08.md`. Application
+code, migration SQL and workflow files were not changed for this continuation.
+PR #24's GitHub checks remain QUEUED and the workflow patch is still NOT APPLIED.
+This strengthens backend evidence only; it does not close the real Android,
+exact-head CI or production gates. The owner handoff above remains required.

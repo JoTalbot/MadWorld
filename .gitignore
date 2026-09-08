@@ -19,3 +19,6 @@ android/app/build/
 
 # Runtime lock files
 *.lock
+
+# Local test toolchains and ephemeral database clusters
+.cache/

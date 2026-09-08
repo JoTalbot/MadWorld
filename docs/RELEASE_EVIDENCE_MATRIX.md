@@ -16,6 +16,7 @@ This file maps release gates to concrete evidence. It is a truth map, not a pred
 | Gate | Evidence | Boundary / freshness | Status | Remaining action |
 |---|---|---|---|---|
 | Repository / backend CI | PR #23 repair CI; post-merge run `34220470032` | `df787dc`, 2026-09-08 12:23 UTC | PARTIALLY VERIFIED | post-merge CI is QUEUED, not PASS; see `ops/B10_ANDROID_MATRIX_RECOVERY_2026-09-08.md`, then verify exact final release commit |
+| Local backend / PostgreSQL 16 verification | `ops/B10_POSTGRES16_VERIFICATION_2026-09-08.md`: 281 tests, zero skips, 43 matching migrations | `879faa4`, isolated PostgreSQL 16.2 / Python 3.11.2, 2026-09-08 | VERIFIED | does not replace exact-head GitHub CI, Python 3.12/container, or Android verification |
 | Android unit/debug/release build | Android CI + release artifact | candidate | VERIFIED | remaining API matrix is separate |
 | Production deployment | deployment run + exact deployed commit + service/runtime checks | deployed candidate | VERIFIED | recheck after release-affecting changes |
 | Public API health | public `/health/ready` response | live deployment | VERIFIED | recheck after release-affecting changes |
