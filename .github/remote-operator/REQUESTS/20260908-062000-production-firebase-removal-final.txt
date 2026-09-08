@@ -1,0 +1,8 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-062000-prod-firebase-removal-final
+STATUS: PENDING
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+TIMEOUT_MINUTES: 10
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; test -f backend/migrations/035_remove_firebase_push_tokens.sql; docker compose -f ops/docker-compose.production.yml run --rm migrator python scripts/migrate.py; docker compose -f ops/docker-compose.production.yml exec -T postgres psql -tAc 'SELECT to_regclass($$public.device_push_tokens$$) IS NULL;' | grep -qx t; curl -fsS https://api.autosklo.org.ua/health; printf '%s\\n' ''; curl -fsS https://api.autosklo.org.ua/health/ready","workdir":"/opt/madworld","timeout_minutes":10,"cleanup":true}
+---
