@@ -1,0 +1,19 @@
+# Read-only production schema audit for B10 abuse-control migration.
+# Do not mutate production.
+cd /opt/madworld
+set -u
+printf '%s\n' 'SCHEMA_AUDIT_START'
+date -u +%FT%TZ
+hostname
+id -u
+printf '%s\n' '--DEPLOYED--'
+cat /opt/madworld/.github-deployed-sha 2>/dev/null || true
+printf '%s\n' '--MIGRATION_FILES--'
+find /opt/madworld/backend/migrations -maxdepth 1 -type f -printf '%f\n' | sort | tail -10
+printf '%s\n' '--DB_TABLES--'
+timeout 20 docker exec madworld-postgres-1 psql -U "${POSTGRES_USER:-madworld}" -d "${POSTGRES_DB:-madworld}" -Atc "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'abuse_control_%' ORDER BY tablename;" 2>&1 || true
+printf '%s\n' '--MIGRATION_TABLE_CANDIDATES--'
+timeout 20 docker exec madworld-postgres-1 psql -U "${POSTGRES_USER:-madworld}" -d "${POSTGRES_DB:-madworld}" -Atc "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND (table_name ILIKE '%migration%' OR table_name ILIKE '%schema%') ORDER BY table_name;" 2>&1 || true
+printf '%s\n' '--SCHEMA_VERSION_ROWS--'
+timeout 20 docker exec madworld-postgres-1 psql -U "${POSTGRES_USER:-madworld}" -d "${POSTGRES_DB:-madworld}" -Atc "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name='schema_migrations';" 2>&1 || true
+printf '%s\n' 'SCHEMA_AUDIT_DONE'
