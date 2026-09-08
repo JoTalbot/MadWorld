@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: remote-operator-workflow-dispatch
+  group: remote-operator-workflow-dispatch-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -134,7 +134,6 @@ jobs:
               opts = ['-i', str(key), '-p', os.environ.get('SSH_PORT','22'), '-o', 'BatchMode=yes',
                       '-o', 'StrictHostKeyChecking=yes', '-o', f'UserKnownHostsFile={known}',
                       '-o', 'ConnectTimeout=20', '-o', 'ServerAliveInterval=30', '-o', 'ServerAliveCountMax=3']
-              qwd = subprocess.run(['bash','-lc', 'printf %q "$1"'], input='', text=True, capture_output=True)
               import shlex
               remote_cmd = f"cd {shlex.quote(workdir)} && if [ \"$(id -u)\" -eq 0 ]; then bash -lc {shlex.quote(command)}; else sudo -n bash -lc {shlex.quote(command)}; fi"
               started = time.time()
