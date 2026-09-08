@@ -1,0 +1,12 @@
+---
+COMMAND_ID: cmd-20260908-050500-capacity-discovery
+STATUS: PENDING
+AGENT: release-b10-capacity-discovery-v1
+CREATED_AT: 2026-09-08T05:05:00Z
+TIMEOUT_MINUTES: 5
+MODE: workflow_dispatch
+TYPE: WORKFLOW_DISPATCH
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+INPUTS_JSON: {"command":"set -euo pipefail; cd /opt/madworld; echo CAPACITY_DISCOVERY_START; echo HEAD=$(git rev-parse HEAD); echo BRANCH=$(git branch --show-current); echo ===CANDIDATE_FILES===; find . -maxdepth 5 -type f \( -iname '*capacity*' -o -iname '*load*' -o -iname '*stress*' -o -iname '*rehears*' \) -not -path './.git/*' | sort | head -200; echo ===COMPOSE===; ls -la docker-compose*.yml 2>/dev/null || true; echo ===OPS_CAPACITY===; find ops -maxdepth 3 -type f | sort | grep -Ei 'capacity|load|stress|resilien|rehears' || true; echo CAPACITY_DISCOVERY_END"}
+---
