@@ -1,0 +1,34 @@
+{
+  "command_id": "cmd-20260908-153100-prod-abuse-migration-repair-v2",
+  "duration_seconds": 8,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T02:24:17Z",
+  "inputs": {
+    "command": "set -euo pipefail\ncd /opt/madworld\nCF=/opt/madworld/ops/docker-compose.production.yml\nDF=/opt/madworld/ops/docker-compose.deploy.yml\nENVF=/opt/madworld/.env\necho REPAIR_V2_START cmd-20260908-153100-prod-abuse-migration-repair-v2\ndate -u +%FT%TZ; hostname; id -u\necho '--MIGRATE_IDEMPOTENT--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" run --rm migrator\necho '--VERIFY_TABLES_VIA_APP_ENV--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" run --rm migrator python -c \"from sqlalchemy import text; from app.infrastructure.db import create_engine_from_env; e=create_engine_from_env(); c=e.connect(); print(c.execute(text(\\\"select to_regclass('public.abuse_control_hits'), to_regclass('public.abuse_control_replays'), to_regclass('public.abuse_control_scores')\\\")).one()); c.close()\"\necho '--RESTART_API--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" up -d --no-build api\nfor i in 1 2 3 4 5 6 7 8 9 10; do sleep 3; c=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/health || true); echo probe_$i=$c; [ \"$c\" = 200 ] && break; done\necho '--HEALTH--'\ncurl -sS -o /dev/null -w 'health=%{http_code}\\n' http://127.0.0.1:8090/health\ncurl -sS -o /dev/null -w 'ready=%{http_code}\\n' http://127.0.0.1:8090/health/ready\necho '--PUBLIC--'\ncurl -k -sS -o /dev/null -w 'public=%{http_code}\\n' https://api.autosklo.org.ua/health\necho '--STATUS--'\ndocker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" ps -a\nfree -m | head -2\necho REPAIR_V2_DONE"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 8.72,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T02:24:17Z",
+    "job_id": "cmd-20260908-153100-prod-abuse-migration-repair-v2",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T02:24:08Z",
+    "status": "SUCCESS",
+    "stderr": " Container madworld-postgres-1 Running \n Container madworld-postgres-1 Waiting \n Container madworld-postgres-1 Healthy \n Container madworld-migrator-run-6bf7f0a393d6 Creating \n Container madworld-migrator-run-6bf7f0a393d6 Created \n Container madworld-postgres-1 Running \n Container madworld-postgres-1 Waiting \n Container madworld-postgres-1 Healthy \n Container madworld-migrator-run-d206c0b0b5ae Creating \n Container madworld-migrator-run-d206c0b0b5ae Created \n Container madworld-postgres-1 Running \n Container madworld-api-1 Running \n Container madworld-postgres-1 Waiting \n Container madworld-postgres-1 Healthy \n",
+    "stdout": "REPAIR_V2_START cmd-20260908-153100-prod-abuse-migration-repair-v2\n2026-09-08T02:24:09Z\narm-server-01\n0\n--MIGRATE_IDEMPOTENT--\n--VERIFY_TABLES_VIA_APP_ENV--\n(None, None, None)\n--RESTART_API--\nprobe_1=200\n--HEALTH--\nhealth=200\nready=200\n--PUBLIC--\npublic=200\n--STATUS--\nNAME                           IMAGE                        COMMAND                  SERVICE             CREATED         STATUS                   PORTS\nmadworld-api-1                 madworld-api                 \"uvicorn app.main:ap\u2026\"   api                 3 minutes ago   Up 3 minutes (healthy)   127.0.0.1:8090->8000/tcp\nmadworld-migrator-1            madworld-migrator            \"python scripts/migr\u2026\"   migrator            3 days ago      Exited (0) 3 days ago    \nmadworld-postgres-1            postgres:16                  \"docker-entrypoint.s\u2026\"   postgres            3 days ago      Up 3 days (healthy)      127.0.0.1:5433->5432/tcp\nmadworld-world-tick-worker-1   madworld-world-tick-worker   \"python -m scripts.w\u2026\"   world-tick-worker   3 days ago      Up 3 days                8000/tcp\n               total        used        free      shared  buff/cache   available\nMem:           23974       18792        2341         200        3362        5182\nREPAIR_V2_DONE\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-153100-prod-abuse-migration-repair-v2.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T02:24:08Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
