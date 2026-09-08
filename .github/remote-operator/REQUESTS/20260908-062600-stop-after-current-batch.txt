@@ -1,0 +1,7 @@
+COMMAND_ID=cmd-20260908-062600-stop-after-current-batch
+STATUS=PENDING
+WORKFLOW=remote-operator-dispatch.yml
+REF=main
+TIMEOUT=5
+INPUTS
+command=set -euo pipefail; printf 'BATCH_MARKER=FINAL\n'; printf 'USER='; id -un; printf 'EUID='; id -u
