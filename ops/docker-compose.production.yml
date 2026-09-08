@@ -36,4 +36,5 @@ services:
       dockerfile: ops/Dockerfile.backend
     environment:
       MADWORLD_DATABASE_URL: ${MADWORLD_DATABASE_URL:?required}
+    working_dir: /app/backend
     command: ["python", "scripts/migrate.py"]
