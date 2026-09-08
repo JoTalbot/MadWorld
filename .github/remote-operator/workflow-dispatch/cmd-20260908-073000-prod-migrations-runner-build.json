@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-073000-prod-migrations-runner-build",
+  "duration_seconds": 4,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T03:34:29Z",
+  "inputs": {
+    "cleanup": true,
+    "command": "set -euo pipefail; cd /opt/madworld; docker compose --env-file .env -f ops/docker-compose.production.yml build migrator; docker compose --env-file .env -f ops/docker-compose.production.yml run --rm migrator python scripts/migrate.py; printf '%s\\n' '=== migration runner completed ==='; curl -fsS https://api.autosklo.org.ua/health >/tmp/mw-health.txt; curl -fsS https://api.autosklo.org.ua/health/ready >/tmp/mw-ready.txt; printf '%s\\n' '=== health ==='; cat /tmp/mw-health.txt; printf '%s\\n' '=== ready ==='; cat /tmp/mw-ready.txt",
+    "timeout_minutes": 10,
+    "workdir": "/opt/madworld"
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 2.957,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 1,
+    "finished_at": "2026-09-08T03:34:29Z",
+    "job_id": "cmd-20260908-073000-prod-migrations-runner-build",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T03:34:26Z",
+    "status": "FAILED",
+    "stderr": " Image madworld-migrator Building \n Image madworld-migrator Built \ntime=\"2026-09-08T03:34:28Z\" level=warning msg=\"Found orphan containers (madworld-postgres-1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up.\"\n Container madworld-migrator-run-74ec01a171e7 Creating \n Container madworld-migrator-run-74ec01a171e7 Created \nTraceback (most recent call last):\n  File \"/app/backend/scripts/migrate.py\", line 5, in <module>\n    from app.infrastructure.db import create_engine_from_env\nModuleNotFoundError: No module named 'app'\n\n",
+    "stdout": "#1 [internal] load local bake definitions\n#1 reading from stdin 500B done\n#1 DONE 0.0s\n\n#2 [internal] load build definition from Dockerfile.backend\n#2 transferring dockerfile: 375B done\n#2 DONE 0.0s\n\n#3 [internal] load metadata for docker.io/library/python:3.12-slim\n#3 DONE 0.0s\n\n#4 [internal] load .dockerignore\n#4 transferring context: 2B done\n#4 DONE 0.0s\n\n#5 [1/7] FROM docker.io/library/python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea\n#5 resolve docker.io/library/python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea 0.0s done\n#5 DONE 0.0s\n\n#6 [internal] load build context\n#6 transferring context: 983.40kB 0.0s done\n#6 DONE 0.0s\n\n#7 [2/7] WORKDIR /app\n#7 CACHED\n\n#8 [3/7] COPY backend/requirements.txt /app/backend/requirements.txt\n#8 CACHED\n\n#9 [4/7] RUN pip install --no-cache-dir -r /app/backend/requirements.txt\n#9 CACHED\n\n#10 [5/7] COPY backend /app/backend\n#10 DONE 0.2s\n\n#11 [6/7] WORKDIR /app/backend\n#11 DONE 0.0s\n\n#12 [7/7] RUN useradd --create-home --uid 10001 madworld\n#12 DONE 0.4s\n\n#13 exporting to image\n#13 exporting layers\n#13 exporting layers 0.2s done\n#13 exporting manifest sha256:cb83ca82104798cab8032d0e100a88950a9281478941d84f047b8e604de73a14 0.0s done\n#13 exporting config sha256:67686e78a1a48fcf4bffb3a699e123605123b539d71a694fb6995cd310205e5b 0.0s done\n#13 exporting attestation manifest sha256:318e05cf96057a296f085eaec08f886f990ca0c7680bca9e4fdd5136082131dd 0.0s done\n#13 exporting manifest list sha256:8a9b787af23b91f328fb7f28d378df367fa14236aa7e59cf4f60069241cdb0b7 0.0s done\n#13 naming to docker.io/library/madworld-migrator:latest done\n#13 unpacking to docker.io/library/madworld-migrator:latest 0.1s done\n#13 DONE 0.4s\n\n#14 resolving provenance for metadata file\n#14 DONE 0.0s\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-073000-production-migrations-runner-build.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "started_at": "2026-09-08T03:34:25Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
