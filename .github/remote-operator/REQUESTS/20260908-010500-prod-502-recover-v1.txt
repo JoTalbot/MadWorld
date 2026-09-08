@@ -1,0 +1,17 @@
+TYPE: WORKFLOW_DISPATCH
+COMMAND_ID: cmd-20260908-010500-prod-502-recover-v1
+STATUS: PENDING
+AGENT: arena-01a07e5b
+CREATED_AT: 2026-09-08T01:05:00Z
+TIMEOUT_MINUTES: 10
+WORKFLOW: remote-operator-dispatch.yml
+REF: main
+NOTE: Self-gating recovery. Aborts without mutation if the API upstream already answers 200,
+NOTE: if host MemAvailable is below 900 MB, or if a required compose/env file is missing.
+NOTE: Scope is the MadWorld compose project only and only its `api` service; --no-build avoids
+NOTE: a heavy image build on a loaded host, and the migrator service is never started.
+NOTE: Rollback: docker compose -f ops/docker-compose.production.yml -f ops/docker-compose.deploy.yml
+NOTE: --env-file /opt/madworld/.env stop api  (no data is written, no migration is run).
+NOTE: Runs after cmd-20260908-003000-prod-502-diag-v2, whose evidence is captured first.
+INPUTS_JSON: {"command": "set -u\necho RECOVER_START cmd-20260908-010500-prod-502-recover-v1\ndate -u +%FT%TZ; hostname; id -u\nCF=/opt/madworld/ops/docker-compose.production.yml\nDF=/opt/madworld/ops/docker-compose.deploy.yml\nENVF=/opt/madworld/.env\necho '--GATE_1_UPSTREAM--'\ncode=$(timeout 15 curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/health 2>/dev/null || echo 000)\necho \"pre_api8090_health=$code\"\nif [ \"$code\" = \"200\" ]; then echo 'DECISION=NOOP_ALREADY_HEALTHY'; echo RECOVER_DONE; exit 0; fi\necho '--GATE_2_MEMORY--'\navail=$(awk '/MemAvailable/{print int($2/1024)}' /proc/meminfo)\necho \"mem_available_mb=$avail threshold_mb=900\"\nif [ \"$avail\" -lt 900 ]; then echo 'DECISION=BLOCKED_LOW_MEMORY no mutation performed'; free -m | head -2; echo RECOVER_DONE; exit 0; fi\necho '--GATE_3_FILES--'\nfor f in \"$CF\" \"$DF\" \"$ENVF\"; do test -f \"$f\" || { echo \"DECISION=BLOCKED_MISSING_FILE $f\"; echo RECOVER_DONE; exit 0; }; done\necho 'DECISION=START_API_ONLY'\necho '--BEFORE--'; timeout 25 docker ps -a --format '{{.Names}}|{{.Status}}' 2>&1 | grep -i madworld || true\ntimeout 200 docker compose -f \"$CF\" -f \"$DF\" --env-file \"$ENVF\" up -d --no-build api 2>&1 | tail -20 || true\necho '--WAIT--'\nfor i in 1 2 3 4 5 6 7 8 9 10 11 12; do sleep 5; c=$(timeout 10 curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/health 2>/dev/null || echo 000); echo \"probe_$i=$c\"; if [ \"$c\" = \"200\" ]; then break; fi; done\necho '--POST--'\ntimeout 15 curl -sS -o /dev/null -w 'post_api8090_health=%{http_code}\\n' http://127.0.0.1:8090/health || true\ntimeout 25 curl -sS -o /dev/null -w 'post_api8090_ready=%{http_code}\\n' http://127.0.0.1:8090/health/ready || true\ntimeout 15 curl -k -sS -o /dev/null -w 'post_local_https=%{http_code}\\n' https://127.0.0.1/health || true\ntimeout 25 docker ps -a --format '{{.Names}}|{{.Status}}' 2>&1 | grep -i madworld || true\nfor c in $(timeout 15 docker ps -a --format '{{.Names}}' 2>/dev/null | grep -i madworld | head -3); do echo \"--LOGS $c--\"; timeout 20 docker logs --tail 20 \"$c\" 2>&1 | tail -20 || true; done\nfree -m | head -2\necho RECOVER_DONE\n", "workdir": "/opt/madworld", "timeout_minutes": "10"}
+---
