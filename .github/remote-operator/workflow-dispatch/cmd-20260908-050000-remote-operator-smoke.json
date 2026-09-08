@@ -1,0 +1,37 @@
+{
+  "command_id": "cmd-20260908-050000-remote-operator-smoke",
+  "duration_seconds": 2,
+  "execution": "direct-remote-operator",
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T04:48:34Z",
+  "inputs": {
+    "cleanup": "true",
+    "command": "printf 'REMOTE_OPERATOR_SMOKE=PASS\\n'; printf 'EUID=%s\\n' \"$(id -u)\"; printf 'USER=%s\\n' \"$(id -un)\"; printf 'HOST=%s\\n' \"$(hostname)\"; printf 'PWD=%s\\n' \"$(pwd)\"; printf 'KERNEL=%s\\n' \"$(uname -sr)\"; printf 'DISK='; df -P . | awk 'NR==2 {print $4}'",
+    "timeout_minutes": "5",
+    "workdir": ""
+  },
+  "ref": "main",
+  "remote_result": {
+    "duration_seconds": 1.068,
+    "executor": "github-actions-remote-operator",
+    "exit_code": 0,
+    "finished_at": "2026-09-08T04:48:34Z",
+    "job_id": "cmd-20260908-050000-remote-operator-smoke",
+    "mode": "sync",
+    "operation": "command",
+    "run_as": "root",
+    "server": "129.213.177.56",
+    "started_at": "2026-09-08T04:48:33Z",
+    "status": "SUCCESS",
+    "stderr": "",
+    "stdout": "REMOTE_OPERATOR_SMOKE=PASS\nEUID=0\nUSER=root\nHOST=arm-server-01\nPWD=/opt/madworld\nKERNEL=Linux 6.17.0-1018-oracle\nDISK=100872528\n",
+    "workdir": "/opt/madworld"
+  },
+  "request_file": "20260908-050000-remote-operator-smoke.txt",
+  "run_conclusion": "success",
+  "run_status": "completed",
+  "started_at": "2026-09-08T04:48:32Z",
+  "status": "DONE",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator-dispatch.yml"
+}
