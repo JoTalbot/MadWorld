@@ -1,0 +1,39 @@
+{
+  "artifacts": [
+    {
+      "expired": false,
+      "id": 10048452813,
+      "name": "remote-operator-result",
+      "size_in_bytes": 569
+    }
+  ],
+  "command_id": "cmd-20260908-112500-5min-capacity-queue-recovery",
+  "duration_seconds": 16,
+  "executor": "github-actions-remote-operator",
+  "finished_at": "2026-09-08T09:01:59Z",
+  "inputs": {
+    "command": "set -euo pipefail; cd /opt/madworld; test -x ops/isolated_5min_capacity_rehearsal.sh; printf '%s\\n' CAPACITY_5MIN_START; date -u +%FT%TZ; bash ops/isolated_5min_capacity_rehearsal.sh; printf '%s\\n' CAPACITY_5MIN_DONE",
+    "mode": "sync",
+    "operation": "command",
+    "timeout_minutes": "15",
+    "workdir": "/opt/madworld"
+  },
+  "jobs": [
+    {
+      "conclusion": "failure",
+      "id": 102001088392,
+      "name": "remote",
+      "status": "completed"
+    }
+  ],
+  "ref": "main",
+  "request_file": "20260908-112500-5min-capacity-queue-recovery.txt",
+  "run_conclusion": "failure",
+  "run_status": "completed",
+  "run_url": "https://github.com/JoTalbot/MadWorld/actions/runs/34207717687",
+  "started_at": "2026-09-08T09:01:43Z",
+  "status": "FAILED",
+  "type": "WORKFLOW_DISPATCH",
+  "workflow": "remote-operator.yml",
+  "workflow_run_id": 34207717687
+}
